@@ -2,6 +2,7 @@ import { useCallback, useEffect, useMemo, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { ChevronRight, Search } from 'lucide-react'
 import { discoverCompanies, getKnownSectors, KNOWN_EXCHANGES, MARKET_CAP_BANDS, type CompanySearchResult, type DiscoverFilters } from '../lib/api'
+import { supabaseDataErrorHint } from '../lib/dataMode'
 import { useDebouncedValue } from '../lib/useDebouncedValue'
 import { CompanyCard } from '../components/CompanyCard'
 import { EmptyState, ErrorState, PageHeading, Skeleton } from '../components/ui'
@@ -118,7 +119,10 @@ export function DiscoverPage() {
       </div>
 
       {state === 'error' ? (
-        <ErrorState copy="We could not load the company directory." onRetry={() => load(filters)} />
+        <ErrorState
+          copy={['We could not load the company directory.', supabaseDataErrorHint()].filter(Boolean).join(' ')}
+          onRetry={() => load(filters)}
+        />
       ) : state === 'loading' ? (
         <div className="company-grid">
           {Array.from({ length: 6 }, (_, index) => (

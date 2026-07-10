@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { Bell, ChevronRight, MessageSquare, Users } from 'lucide-react'
 import { getDashboardData, type DashboardData, type PublicCompany, type PublicQuestion } from '../lib/api'
+import { supabaseDataErrorHint } from '../lib/dataMode'
 import { useMvp } from '../context/useMvp'
 import { EmptyState, ErrorState, Monogram, PageHeading, Skeleton } from './ui'
 
@@ -91,7 +92,12 @@ export function DashboardPage() {
   }
 
   if (error) {
-    return <ErrorState copy="We could not load your dashboard. Please try again." onRetry={() => setReloadKey(key => key + 1)} />
+    return (
+      <ErrorState
+        copy={['We could not load your dashboard. Please try again.', supabaseDataErrorHint()].filter(Boolean).join(' ')}
+        onRetry={() => setReloadKey(key => key + 1)}
+      />
+    )
   }
 
   if (!data) {

@@ -43,9 +43,6 @@ export type DirectoryCompany = {
   description: string
   securities: DirectorySecurity[]
   aliases?: DirectoryAlias[]
-  /** Demo mode intentionally seeds no campaign for these, so the empty-campaign
-   *  state is reachable without any admin tool. */
-  seedNoCampaign?: boolean
 }
 
 function simple(
@@ -57,7 +54,7 @@ function simple(
   ticker: string,
   exchange: Exchange,
   description: string,
-  options?: { isAdr?: boolean; displayName?: string; seedNoCampaign?: boolean; aliases?: DirectoryAlias[] },
+  options?: { isAdr?: boolean; displayName?: string; aliases?: DirectoryAlias[] },
 ): DirectoryCompany {
   return {
     key,
@@ -69,7 +66,6 @@ function simple(
     description,
     securities: [{ symbol: ticker, exchange, isPrimary: true, isAdr: options?.isAdr }],
     aliases: options?.aliases,
-    seedNoCampaign: options?.seedNoCampaign,
   }
 }
 
@@ -140,8 +136,8 @@ const technology: DirectoryCompany[] = [
   simple('intuit', 'Intuit Inc.', 'Technology', 'United States', 'Over $100B', 'INTU', 'NASDAQ', 'Develops financial and tax software including TurboTax and QuickBooks.'),
   simple('booking-holdings', 'Booking Holdings Inc.', 'Technology', 'United States', 'Over $100B', 'BKNG', 'NASDAQ', 'Operates online travel and reservation platforms including Booking.com and Priceline.', { displayName: 'Booking Holdings' }),
   simple('netflix', 'Netflix, Inc.', 'Technology', 'United States', 'Over $100B', 'NFLX', 'NASDAQ', 'Operates a subscription streaming service for films and television series.'),
-  simple('datadog', 'Datadog, Inc.', 'Technology', 'United States', '$25B-$100B', 'DDOG', 'NASDAQ', 'Provides cloud-monitoring and observability software for infrastructure and applications.', { seedNoCampaign: true }),
-  simple('mongodb', 'MongoDB, Inc.', 'Technology', 'United States', '$5B-$25B', 'MDB', 'NASDAQ', 'Develops a general-purpose document database platform.', { seedNoCampaign: true }),
+  simple('datadog', 'Datadog, Inc.', 'Technology', 'United States', '$25B-$100B', 'DDOG', 'NASDAQ', 'Provides cloud-monitoring and observability software for infrastructure and applications.'),
+  simple('mongodb', 'MongoDB, Inc.', 'Technology', 'United States', '$5B-$25B', 'MDB', 'NASDAQ', 'Develops a general-purpose document database platform.'),
   simple('zoom', 'Zoom Communications, Inc.', 'Technology', 'United States', '$5B-$25B', 'ZM', 'NASDAQ', 'Provides video conferencing and unified communications software.', { displayName: 'Zoom' }),
   simple('atlassian', 'Atlassian Corporation', 'Technology', 'Australia', '$25B-$100B', 'TEAM', 'NASDAQ', 'Develops collaboration and software-development tools including Jira and Confluence.'),
   simple('spotify', 'Spotify Technology S.A.', 'Technology', 'Luxembourg', '$25B-$100B', 'SPOT', 'NYSE', 'Operates an audio streaming platform for music and podcasts.', { displayName: 'Spotify' }),
@@ -195,8 +191,8 @@ const financials: DirectoryCompany[] = [
   simple('moodys', "Moody's Corporation", 'Financial services', 'United States', '$25B-$100B', 'MCO', 'NYSE', 'Provides credit ratings, research, and risk-analysis tools.', { displayName: "Moody's" }),
   simple('sp-global', 'S&P Global Inc.', 'Financial services', 'United States', 'Over $100B', 'SPGI', 'NYSE', 'Provides credit ratings, market-data, and index services.', { displayName: 'S&P Global' }),
   simple('ameriprise', 'Ameriprise Financial, Inc.', 'Financial services', 'United States', '$25B-$100B', 'AMP', 'NYSE', 'Provides financial planning, asset management, and insurance services.', { displayName: 'Ameriprise Financial' }),
-  simple('synchrony', 'Synchrony Financial', 'Financial services', 'United States', '$5B-$25B', 'SYF', 'NYSE', 'Provides consumer financing and private-label credit card programs.', { seedNoCampaign: true }),
-  simple('fifth-third', 'Fifth Third Bancorp', 'Financial services', 'United States', '$5B-$25B', 'FITB', 'NASDAQ', 'Operates a regional bank holding company in the Midwest and Southeast.', { seedNoCampaign: true }),
+  simple('synchrony', 'Synchrony Financial', 'Financial services', 'United States', '$5B-$25B', 'SYF', 'NYSE', 'Provides consumer financing and private-label credit card programs.'),
+  simple('fifth-third', 'Fifth Third Bancorp', 'Financial services', 'United States', '$5B-$25B', 'FITB', 'NASDAQ', 'Operates a regional bank holding company in the Midwest and Southeast.'),
   simple('mt-bank', 'M&T Bank Corporation', 'Financial services', 'United States', '$5B-$25B', 'MTB', 'NYSE', 'Operates a regional bank holding company in the Northeast and Mid-Atlantic.', { displayName: 'M&T Bank' }),
 ]
 
@@ -220,8 +216,8 @@ const energy: DirectoryCompany[] = [
   simple('enbridge', 'Enbridge Inc.', 'Energy', 'Canada', '$25B-$100B', 'ENB', 'NYSE', 'Operates crude oil and natural gas pipeline and midstream infrastructure.'),
   simple('suncor', 'Suncor Energy Inc.', 'Energy', 'Canada', '$25B-$100B', 'SU', 'NYSE', 'Produces synthetic crude oil from oil sands and operates refining and retail fuel businesses.', { displayName: 'Suncor Energy' }),
   simple('targa-resources', 'Targa Resources Corp.', 'Energy', 'United States', '$25B-$100B', 'TRGP', 'NYSE', 'Gathers, processes, and transports natural gas liquids.', { displayName: 'Targa Resources' }),
-  simple('oneok', 'ONEOK, Inc.', 'Energy', 'United States', '$25B-$100B', 'OKE', 'NYSE', 'Gathers, processes, and transports natural gas and natural gas liquids.', { seedNoCampaign: true }),
-  simple('coterra', 'Coterra Energy Inc.', 'Energy', 'United States', '$5B-$25B', 'CTRA', 'NYSE', 'Explores for and produces crude oil and natural gas.', { displayName: 'Coterra Energy', seedNoCampaign: true }),
+  simple('oneok', 'ONEOK, Inc.', 'Energy', 'United States', '$25B-$100B', 'OKE', 'NYSE', 'Gathers, processes, and transports natural gas and natural gas liquids.'),
+  simple('coterra', 'Coterra Energy Inc.', 'Energy', 'United States', '$5B-$25B', 'CTRA', 'NYSE', 'Explores for and produces crude oil and natural gas.', { displayName: 'Coterra Energy' }),
 ]
 
 /* ---------------------------------- Mining ---------------------------------- */
@@ -233,13 +229,13 @@ const mining: DirectoryCompany[] = [
   simple('southern-copper', 'Southern Copper Corporation', 'Mining', 'United States', '$25B-$100B', 'SCCO', 'NYSE', 'Mines and processes copper and other base metals.', { displayName: 'Southern Copper' }),
   simple('albemarle', 'Albemarle Corporation', 'Mining', 'United States', '$5B-$25B', 'ALB', 'NYSE', 'Produces lithium and other specialty chemicals for batteries and industrial uses.'),
   simple('nucor', 'Nucor Corporation', 'Mining', 'United States', '$25B-$100B', 'NUE', 'NYSE', 'Manufactures steel and steel products.'),
-  simple('steel-dynamics', 'Steel Dynamics, Inc.', 'Mining', 'United States', '$5B-$25B', 'STLD', 'NASDAQ', 'Manufactures steel and metal recycling.', { displayName: 'Steel Dynamics', seedNoCampaign: true }),
+  simple('steel-dynamics', 'Steel Dynamics, Inc.', 'Mining', 'United States', '$5B-$25B', 'STLD', 'NASDAQ', 'Manufactures steel and metal recycling.', { displayName: 'Steel Dynamics' }),
   simple('alcoa', 'Alcoa Corporation', 'Mining', 'United States', '$5B-$25B', 'AA', 'NYSE', 'Produces bauxite, alumina, and aluminum products.'),
   simple('vale', 'Vale S.A.', 'Mining', 'Brazil', '$25B-$100B', 'VALE', 'NYSE', 'Mines iron ore, nickel, and other base metals.', { isAdr: true }),
   simple('rio-tinto', 'Rio Tinto Group', 'Mining', 'United Kingdom', 'Over $100B', 'RIO', 'NYSE', 'Mines iron ore, aluminum, copper, and other minerals.', { isAdr: true, displayName: 'Rio Tinto' }),
   simple('wheaton-precious-metals', 'Wheaton Precious Metals Corp.', 'Mining', 'Canada', '$25B-$100B', 'WPM', 'NYSE', 'Holds streaming interests in precious-metals mining operations.', { displayName: 'Wheaton Precious Metals' }),
   simple('agnico-eagle', 'Agnico Eagle Mines Limited', 'Mining', 'Canada', '$25B-$100B', 'AEM', 'NYSE', 'Mines gold, primarily in Canada, Finland, and Mexico.', { displayName: 'Agnico Eagle Mines' }),
-  simple('cleveland-cliffs', 'Cleveland-Cliffs Inc.', 'Mining', 'United States', '$1B-$5B', 'CLF', 'NYSE', 'Mines iron ore and manufactures steel.', { seedNoCampaign: true }),
+  simple('cleveland-cliffs', 'Cleveland-Cliffs Inc.', 'Mining', 'United States', '$1B-$5B', 'CLF', 'NYSE', 'Mines iron ore and manufactures steel.'),
 ]
 
 /* --------------------------------- Industrials --------------------------------- */
@@ -267,8 +263,8 @@ const industrials: DirectoryCompany[] = [
   simple('waste-management', 'WM (Waste Management, Inc.)', 'Industrials', 'United States', '$25B-$100B', 'WM', 'NYSE', 'Provides waste collection, recycling, and disposal services.', { displayName: 'Waste Management' }),
   simple('delta-air-lines', 'Delta Air Lines, Inc.', 'Industrials', 'United States', '$25B-$100B', 'DAL', 'NYSE', 'Operates a global passenger and cargo airline.', { displayName: 'Delta Air Lines' }),
   simple('southwest-airlines', 'Southwest Airlines Co.', 'Industrials', 'United States', '$5B-$25B', 'LUV', 'NYSE', 'Operates a low-cost passenger airline in the United States.', { displayName: 'Southwest Airlines' }),
-  simple('ryder', 'Ryder System, Inc.', 'Industrials', 'United States', '$5B-$25B', 'R', 'NYSE', 'Provides fleet management, supply chain, and dedicated transportation services.', { displayName: 'Ryder System', seedNoCampaign: true }),
-  simple('old-dominion', 'Old Dominion Freight Line, Inc.', 'Industrials', 'United States', '$25B-$100B', 'ODFL', 'NASDAQ', 'Provides less-than-truckload freight transportation.', { displayName: 'Old Dominion Freight Line', seedNoCampaign: true }),
+  simple('ryder', 'Ryder System, Inc.', 'Industrials', 'United States', '$5B-$25B', 'R', 'NYSE', 'Provides fleet management, supply chain, and dedicated transportation services.', { displayName: 'Ryder System' }),
+  simple('old-dominion', 'Old Dominion Freight Line, Inc.', 'Industrials', 'United States', '$25B-$100B', 'ODFL', 'NASDAQ', 'Provides less-than-truckload freight transportation.', { displayName: 'Old Dominion Freight Line' }),
   simple('rockwell-automation', 'Rockwell Automation, Inc.', 'Industrials', 'United States', '$25B-$100B', 'ROK', 'NYSE', 'Manufactures industrial automation and information technology.', { displayName: 'Rockwell Automation' }),
 ]
 
@@ -330,10 +326,10 @@ const consumer: DirectoryCompany[] = [
   simple('ebay', 'eBay Inc.', 'Consumer products', 'United States', '$25B-$100B', 'EBAY', 'NASDAQ', 'Operates an online marketplace connecting buyers and sellers.', { displayName: 'eBay' }),
   simple('constellation-brands', 'Constellation Brands, Inc.', 'Consumer products', 'United States', '$25B-$100B', 'STZ', 'NYSE', 'Produces and markets beer, wine, and spirits.', { displayName: 'Constellation Brands' }),
   simple('molson-coors', 'Molson Coors Beverage Company', 'Consumer products', 'United States', '$5B-$25B', 'TAP', 'NYSE', 'Produces and markets beer and other beverages.', { displayName: 'Molson Coors' }),
-  simple('church-dwight', 'Church & Dwight Co., Inc.', 'Consumer products', 'United States', '$25B-$100B', 'CHD', 'NYSE', 'Manufactures household and personal-care products.', { displayName: 'Church & Dwight', seedNoCampaign: true }),
+  simple('church-dwight', 'Church & Dwight Co., Inc.', 'Consumer products', 'United States', '$25B-$100B', 'CHD', 'NYSE', 'Manufactures household and personal-care products.', { displayName: 'Church & Dwight' }),
   simple('clorox', 'The Clorox Company', 'Consumer products', 'United States', '$5B-$25B', 'CLX', 'NYSE', 'Manufactures cleaning, disinfecting, and household consumer products.', { displayName: 'Clorox' }),
   simple('kroger', 'The Kroger Co.', 'Consumer products', 'United States', '$25B-$100B', 'KR', 'NYSE', 'Operates supermarkets and grocery retail stores.', { displayName: 'Kroger' }),
-  simple('albertsons', 'Albertsons Companies, Inc.', 'Consumer products', 'United States', '$5B-$25B', 'ACI', 'NYSE', 'Operates supermarkets and grocery retail stores.', { displayName: 'Albertsons Companies', seedNoCampaign: true }),
+  simple('albertsons', 'Albertsons Companies, Inc.', 'Consumer products', 'United States', '$5B-$25B', 'ACI', 'NYSE', 'Operates supermarkets and grocery retail stores.', { displayName: 'Albertsons Companies' }),
   simple('marriott', 'Marriott International, Inc.', 'Consumer products', 'United States', '$25B-$100B', 'MAR', 'NASDAQ', 'Franchises and manages hotel brands worldwide.', { displayName: 'Marriott International' }),
   simple('hilton', 'Hilton Worldwide Holdings Inc.', 'Consumer products', 'United States', '$25B-$100B', 'HLT', 'NYSE', 'Franchises and manages hotel brands worldwide.', { displayName: 'Hilton Worldwide' }),
   simple('expedia', 'Expedia Group, Inc.', 'Consumer products', 'United States', '$5B-$25B', 'EXPE', 'NASDAQ', 'Operates online travel-booking platforms.', { displayName: 'Expedia Group' }),
@@ -362,14 +358,14 @@ const healthcare: DirectoryCompany[] = [
   simple('hca-healthcare', 'HCA Healthcare, Inc.', 'Healthcare', 'United States', '$25B-$100B', 'HCA', 'NYSE', 'Operates general acute-care hospitals and outpatient facilities.', { displayName: 'HCA Healthcare' }),
   simple('novo-nordisk', 'Novo Nordisk A/S', 'Healthcare', 'Denmark', 'Over $100B', 'NVO', 'NYSE', 'Discovers, develops, and manufactures diabetes and obesity treatments.', { isAdr: true, displayName: 'Novo Nordisk' }),
   simple('biogen', 'Biogen Inc.', 'Healthcare', 'United States', '$5B-$25B', 'BIIB', 'NASDAQ', 'Discovers, develops, and manufactures treatments for neurological diseases.'),
-  simple('zoetis', 'Zoetis Inc.', 'Healthcare', 'United States', '$25B-$100B', 'ZTS', 'NYSE', 'Discovers, develops, and manufactures medicines and vaccines for animals.', { seedNoCampaign: true }),
-  simple('idexx', 'IDEXX Laboratories, Inc.', 'Healthcare', 'United States', '$25B-$100B', 'IDXX', 'NASDAQ', 'Manufactures diagnostic products and services for veterinary and food safety.', { displayName: 'IDEXX Laboratories', seedNoCampaign: true }),
+  simple('zoetis', 'Zoetis Inc.', 'Healthcare', 'United States', '$25B-$100B', 'ZTS', 'NYSE', 'Discovers, develops, and manufactures medicines and vaccines for animals.'),
+  simple('idexx', 'IDEXX Laboratories, Inc.', 'Healthcare', 'United States', '$25B-$100B', 'IDXX', 'NASDAQ', 'Manufactures diagnostic products and services for veterinary and food safety.', { displayName: 'IDEXX Laboratories' }),
   simple('stryker', 'Stryker Corporation', 'Healthcare', 'United States', 'Over $100B', 'SYK', 'NYSE', 'Manufactures orthopaedic implants and medical technology.'),
   simple('boston-scientific', 'Boston Scientific Corporation', 'Healthcare', 'United States', 'Over $100B', 'BSX', 'NYSE', 'Manufactures interventional medical devices.', { displayName: 'Boston Scientific' }),
   simple('medtronic', 'Medtronic plc', 'Healthcare', 'Ireland', 'Over $100B', 'MDT', 'NYSE', 'Manufactures medical devices for cardiac, neurological, and diabetes care.'),
   simple('becton-dickinson', 'Becton, Dickinson and Company', 'Healthcare', 'United States', '$25B-$100B', 'BDX', 'NYSE', 'Manufactures medical devices, laboratory equipment, and diagnostic products.', { displayName: 'BD' }),
   simple('illumina', 'Illumina, Inc.', 'Healthcare', 'United States', '$5B-$25B', 'ILMN', 'NASDAQ', 'Manufactures genomic sequencing and array-based technologies.'),
-  simple('dexcom', 'DexCom, Inc.', 'Healthcare', 'United States', '$25B-$100B', 'DXCM', 'NASDAQ', 'Manufactures continuous glucose-monitoring systems.', { displayName: 'Dexcom', seedNoCampaign: true }),
+  simple('dexcom', 'DexCom, Inc.', 'Healthcare', 'United States', '$25B-$100B', 'DXCM', 'NASDAQ', 'Manufactures continuous glucose-monitoring systems.', { displayName: 'Dexcom' }),
 ]
 
 /* ------------------------------ Telecommunications ------------------------------ */
@@ -411,7 +407,6 @@ const telecommunications: DirectoryCompany[] = [
       { symbol: 'LBRDA', exchange: 'NASDAQ', isPrimary: true, shareClass: 'Series A' },
       { symbol: 'LBRDK', exchange: 'NASDAQ', isPrimary: false, shareClass: 'Series K' },
     ],
-    seedNoCampaign: true,
   },
 ]
 
@@ -428,9 +423,9 @@ const realEstate: DirectoryCompany[] = [
   simple('welltower', 'Welltower Inc.', 'Real estate', 'United States', '$25B-$100B', 'WELL', 'NYSE', 'Owns and operates senior housing and healthcare real estate.'),
   simple('avalonbay', 'AvalonBay Communities, Inc.', 'Real estate', 'United States', '$25B-$100B', 'AVB', 'NYSE', 'Owns and develops multifamily residential apartment communities.', { displayName: 'AvalonBay Communities' }),
   simple('brookfield', 'Brookfield Corporation', 'Real estate', 'Canada', 'Over $100B', 'BN', 'NYSE', 'Manages real estate, renewable power, infrastructure, and private-equity assets.', { displayName: 'Brookfield' }),
-  simple('iron-mountain', 'Iron Mountain Incorporated', 'Real estate', 'United States', '$25B-$100B', 'IRM', 'NYSE', 'Provides records management, data-center, and storage real estate services.', { displayName: 'Iron Mountain', seedNoCampaign: true }),
+  simple('iron-mountain', 'Iron Mountain Incorporated', 'Real estate', 'United States', '$25B-$100B', 'IRM', 'NYSE', 'Provides records management, data-center, and storage real estate services.', { displayName: 'Iron Mountain' }),
   simple('extra-space', 'Extra Space Storage Inc.', 'Real estate', 'United States', '$25B-$100B', 'EXR', 'NYSE', 'Owns and operates self-storage facilities.', { displayName: 'Extra Space Storage' }),
-  simple('ventas', 'Ventas, Inc.', 'Real estate', 'United States', '$25B-$100B', 'VTR', 'NYSE', 'Owns and operates senior housing and healthcare real estate.', { seedNoCampaign: true }),
+  simple('ventas', 'Ventas, Inc.', 'Real estate', 'United States', '$25B-$100B', 'VTR', 'NYSE', 'Owns and operates senior housing and healthcare real estate.'),
 ]
 
 export const companyDirectory: DirectoryCompany[] = [

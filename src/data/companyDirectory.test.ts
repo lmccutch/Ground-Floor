@@ -32,11 +32,10 @@ describe('companyDirectory data integrity', () => {
     }
   })
 
-  it('includes at least one dual-class company, one ADR, one former-ticker alias, and one no-campaign company', () => {
+  it('includes at least one dual-class company, one ADR, and one former-ticker alias', () => {
     expect(companyDirectory.some(entry => entry.securities.length > 1)).toBe(true)
     expect(companyDirectory.some(entry => entry.securities.some(security => security.isAdr))).toBe(true)
     expect(companyDirectory.some(entry => entry.aliases?.some(alias => alias.aliasType === 'former_ticker'))).toBe(true)
-    expect(companyDirectory.some(entry => entry.seedNoCampaign)).toBe(true)
   })
 
   it('never stores an exact numeric market-cap value, only broad bands', () => {

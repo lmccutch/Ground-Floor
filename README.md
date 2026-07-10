@@ -9,13 +9,24 @@ npm install
 npm run dev
 ```
 
-Without Supabase variables, the app runs in a local demo mode using browser storage. This mode is useful for UI review only and is not a production data store.
+By default in development (when `VITE_DATA_MODE` is unset), the app runs in `demo` mode using the curated local company directory and browser storage — even if `VITE_SUPABASE_URL`/`VITE_SUPABASE_ANON_KEY` are also present in `.env.local`. Data mode is always chosen explicitly by `VITE_DATA_MODE`, never inferred from whether Supabase credentials happen to exist.
+
+## Data modes (`VITE_DATA_MODE`)
+
+Set in `.env.local` (see `.env.example`). Supported values:
+
+- **`demo`** (default in development) — Uses the curated ~225-company directory in `src/data/companyDirectory.ts`. Every campaign, supporter, follower, question, vote, and notification starts at zero; nothing is fabricated. Interactions you create locally (starting a campaign, supporting it, submitting/voting on questions) persist in this browser's `localStorage` under the `groundfloor-mvp` key.
+- **`supabase`** — Uses only the Supabase database. Requires both `VITE_SUPABASE_URL` and `VITE_SUPABASE_ANON_KEY`; the app fails with a clear configuration error at startup if either is missing. Once running, a failed Supabase query throws and is shown as a load error — it never silently falls back to demo data. In local development, that error includes a hint that a migration or the company-directory bootstrap may not be applied yet.
+- **`test`** — Same demo-style local behavior as `demo` mode (no backend calls, deterministic curated directory), but stored under a separate `groundfloor-mvp-test` localStorage key so automated/test runs never read or pollute a developer's real demo-mode data.
+
+**Production builds require an explicit `VITE_DATA_MODE`.** There is no default outside of development — an unset or invalid value fails clearly at startup rather than silently choosing a mode.
 
 ## Production configuration
 
 Copy `.env.example` to `.env.local` and provide:
 
-- `VITE_SUPABASE_URL` and `VITE_SUPABASE_ANON_KEY` for authentication and persistence.
+- `VITE_DATA_MODE` — `demo`, `supabase`, or `test` (see above).
+- `VITE_SUPABASE_URL` and `VITE_SUPABASE_ANON_KEY` for authentication and persistence (required when `VITE_DATA_MODE=supabase`).
 - `VITE_POSTHOG_KEY` and optionally `VITE_POSTHOG_HOST` for product analytics.
 - `VITE_SITE_URL` for magic-link redirects.
 
@@ -29,6 +40,7 @@ These migrations were written and reviewed carefully but have not been applied t
 Populate the company directory by running `npm run bootstrap:generate`, which reads `src/data/companyDirectory.ts` and writes an idempotent SQL file to `supabase/seed/`. Apply that file to your Supabase project yourself (CLI, dashboard SQL editor, or `psql`) — it is never run automatically, and it only ever creates companies/securities/aliases, never campaigns, questions, or users.
 
 Never ship service-role or provider API credentials to the browser.
+
 
 ## Quality checks
 
@@ -61,7 +73,7 @@ Before accepting production users, publish Terms of Use, Privacy Policy, communi
 - `src/pages/` — top-level routed pages (Home, Discover, NotFound).
 - `src/components/` — the campaign page, dashboard, request form, auth modal, search, and shared UI primitives.
 - `src/context/` — the auth/profile context (`useMvp`).
-- `src/lib/` — Supabase client, API layer (Supabase with a localStorage demo fallback), analytics, helpers.
+- `src/lib/` — Supabase client, API layer (Supabase with a localStorage demo fallback), `dataMode.ts` (the single place `VITE_DATA_MODE` is resolved and validated), analytics, helpers.
 - `src/data/companyDirectory.ts` — the curated Phase 1 company/security/alias directory (see `docs/company-universe.md`); the single source of truth for demo mode, tests, and the bootstrap generator.
 - `scripts/generate-company-bootstrap.ts` — generates the Supabase bootstrap SQL from `companyDirectory.ts` (`npm run bootstrap:generate`).
 - `src/index.css` — design tokens and base styles; `src/App.css` — component and page styles.

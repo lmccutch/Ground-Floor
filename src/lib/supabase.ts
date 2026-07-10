@@ -1,10 +1,13 @@
 import { createClient, type SupabaseClient } from '@supabase/supabase-js'
+import { getDataModeConfig } from './dataMode'
 
 const url = import.meta.env.VITE_SUPABASE_URL as string | undefined
 const anonKey = import.meta.env.VITE_SUPABASE_ANON_KEY as string | undefined
 
-export const isSupabaseConfigured = Boolean(url && anonKey)
-export const supabase: SupabaseClient | null = isSupabaseConfigured
+// Supabase mode is selected explicitly via VITE_DATA_MODE — never merely because
+// credentials happen to be present (getDataModeConfig() already validates that
+// both env vars exist whenever mode === 'supabase').
+export const supabase: SupabaseClient | null = getDataModeConfig().isSupabaseMode
   ? createClient(url!, anonKey!, { auth: { persistSession: true, autoRefreshToken: true, detectSessionInUrl: true } })
   : null
 

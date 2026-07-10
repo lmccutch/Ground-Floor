@@ -637,6 +637,26 @@ select.text-input {
   color: var(--red);
 }
 
+.config-error-screen {
+  display: grid;
+  justify-items: center;
+  align-content: center;
+  gap: 10px;
+  min-height: 100vh;
+  padding: 64px 20px;
+  text-align: center;
+  color: var(--muted);
+}
+
+.config-error-screen h1 {
+  font-size: 20px;
+  color: var(--ink);
+}
+
+.config-error-screen p {
+  max-width: 460px;
+}
+
 .empty-state h2 {
   font-size: 19px;
 }

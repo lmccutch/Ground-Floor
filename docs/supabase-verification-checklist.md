@@ -63,10 +63,16 @@ Locally, create/overwrite `.env.local` (temporarily — keep a copy of your
 real one) with the scratch project's values from **Project Settings → API**:
 
 ```env
+VITE_DATA_MODE=supabase
 VITE_SUPABASE_URL=https://<scratch-ref>.supabase.co
 VITE_SUPABASE_ANON_KEY=<scratch anon key>
 VITE_SITE_URL=http://localhost:5173
 ```
+
+`VITE_DATA_MODE=supabase` is required — data mode is selected explicitly,
+never inferred from credentials being present. If either Supabase variable
+is missing in this mode, the app fails at startup with a clear
+configuration-error screen instead of silently falling back to demo data.
 
 Leave `VITE_POSTHOG_KEY` unset so test activity doesn't hit analytics.
 Also set **Authentication → URL Configuration → Site URL** in the scratch

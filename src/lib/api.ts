@@ -1,5 +1,6 @@
 import { companyDirectory, type DirectoryCompany, type DirectorySecurity } from '../data/companyDirectory'
 import { buildCompanySlug, normalizeName, normalizeSymbol } from './companyIdentity'
+import { getDataModeConfig } from './dataMode'
 import { supabase } from './supabase'
 
 // When Supabase is configured every function reads/writes the real database and
@@ -153,11 +154,14 @@ const SEARCH_LIMIT_DEFAULT = 10
 
 /* ------------------------------ demo storage ------------------------------ */
 
-const storageKey = 'groundfloor-mvp'
+const storageKey = getDataModeConfig().storageKey
 const legacyStorageKey = 'grround-floor-mvp'
 
 // One-time migration: carry forward demo-mode data stored under the pre-rename key.
+// Never runs in test mode — test mode's storage namespace must never be seeded
+// from whatever demo data exists in a developer's browser.
 function migrateLegacyStorage() {
+  if (getDataModeConfig().isTestMode) return
   if (localStorage.getItem(storageKey) !== null) return
   const legacy = localStorage.getItem(legacyStorageKey)
   if (legacy !== null) localStorage.setItem(storageKey, legacy)
@@ -215,8 +219,6 @@ function updateLocalCampaign(companyId: string, update: (campaign: LocalCampaign
 
 /* --------------------------- directory (demo data) -------------------------- */
 
-const companyDirectoryByKey = new Map(companyDirectory.map(entry => [entry.key, entry]))
-
 function primarySecurityOf(entry: DirectoryCompany): DirectorySecurity {
   return entry.securities.find(security => security.isPrimary) ?? entry.securities[0]
 }
@@ -259,46 +261,20 @@ function findDirectoryEntryBySlug(slug: string): DirectoryCompany | null {
   return companyDirectory.find(entry => directoryEntrySlug(entry) === slug) ?? null
 }
 
-/** Deterministic (not random) so demo numbers stay stable across reloads. */
-function hashString(value: string): number {
-  let hash = 0
-  for (let index = 0; index < value.length; index++) hash = (Math.imul(hash, 31) + value.charCodeAt(index)) >>> 0
-  return hash
-}
-
 /**
- * Returns the demo campaign for a company, materializing plausible aggregate demo
- * stats (supporters/followers only — never fabricated question text) the first time
- * a non-`seedNoCampaign` company is read, so Discover/search have realistic numbers
- * to sort and display without inventing shareholder-authored content.
+ * Returns the demo campaign for a company, or null if one has never been started
+ * in this browser. Demo mode never fabricates supporters, followers, questions, or
+ * votes — every number here reflects only what this browser's user actually did.
  */
-function getOrSeedLocalCampaign(companyId: string): LocalCampaign | null {
+function getLocalCampaign(companyId: string): LocalCampaign | null {
   const store = readLocal()
   const existing = store.campaigns?.[companyId]
-  if (existing?.exists) return existing
-
-  const entry = companyDirectoryByKey.get(companyId)
-  if (!entry || entry.seedNoCampaign) return null
-
-  const hash = hashString(companyId)
-  const supporters = 4 + (hash % 45)
-  const seeded: LocalCampaign = {
-    exists: true,
-    supporters,
-    currentShareholders: Math.round(supporters * 0.6),
-    questions: 0,
-    votes: 0,
-    followers: 2 + ((hash >> 12) % 30),
-    launchedAt: new Date(Date.now() - (hash % (1000 * 60 * 60 * 24 * 60))).toISOString(),
-    supportedByUser: false,
-    followedByUser: false,
-  }
-  return updateLocalCampaign(companyId, () => seeded)
+  return existing?.exists ? existing : null
 }
 
 function toSearchResult(entry: DirectoryCompany): CompanySearchResult {
   const primary = primarySecurityOf(entry)
-  const campaign = getOrSeedLocalCampaign(entry.key)
+  const campaign = getLocalCampaign(entry.key)
   return {
     id: entry.key,
     slug: directoryEntrySlug(entry),
@@ -550,7 +526,7 @@ export async function getCampaign(companyId: string, userId?: string): Promise<C
     }
   }
 
-  const item = getOrSeedLocalCampaign(companyId)
+  const item = getLocalCampaign(companyId)
   if (!item) return null
   return {
     id: `campaign-${companyId}`,

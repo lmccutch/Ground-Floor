@@ -59,9 +59,10 @@ healthcare, telecommunications, and real estate; several Canadian and other
 non-U.S. issuers listed on U.S. exchanges; several dual-class companies
 (e.g. Alphabet GOOGL/GOOG, Berkshire Hathaway BRK.A/BRK.B); several ADRs;
 several former-ticker aliases (e.g. Meta Platforms' former ticker `FB`,
-Paramount Global's former ticker `VIAC`); and several companies that
-deliberately have **no** campaign seeded, so the empty-campaign state is
-reachable without any admin tool.
+Paramount Global's former ticker `VIAC`). No company ships with a campaign:
+every campaign, supporter, follower, question, and vote starts at zero in
+every mode, so the empty-campaign state is the default and nothing is
+fabricated.
 
 No exact market-capitalization figures are stored or displayed. The
 existing `market_cap_category` column uses broad, static bands
@@ -128,6 +129,18 @@ Demo mode implements the same tier ordering in TypeScript
 (`searchCompanies` in `src/lib/api.ts`) against `companyDirectory.ts`, so
 behavior is consistent between modes and both are covered by the same unit
 tests.
+
+### Data-mode selection
+
+Which data source the app uses is selected **explicitly** via
+`VITE_DATA_MODE` (`demo` | `supabase` | `test`), resolved in one place
+(`src/lib/dataMode.ts`) — never inferred from whether Supabase credentials
+happen to be present. Demo/test mode reads `companyDirectory.ts` +
+localStorage exclusively (under separate storage keys, so test runs never
+touch a developer's demo data); Supabase mode reads the database
+exclusively and surfaces query failures as errors rather than silently
+falling back. The two sources are never merged. Full mode semantics,
+defaults, and failure behavior are documented in `README.md`.
 
 ### Routes
 

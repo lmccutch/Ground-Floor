@@ -16,6 +16,7 @@ import {
   type ShareholderStatus,
 } from '../lib/api'
 import { track } from '../lib/analytics'
+import { supabaseDataErrorHint } from '../lib/dataMode'
 import { useMvp } from '../context/useMvp'
 import { CampaignActions, ShareMenu } from './CampaignActions'
 import { Modal } from './Modal'
@@ -117,7 +118,12 @@ export function CampaignPage() {
   }
 
   if (state === 'error' || !company) {
-    return <ErrorState copy="We could not load this company. Please try again." onRetry={() => setReloadKey(key => key + 1)} />
+    return (
+      <ErrorState
+        copy={['We could not load this company. Please try again.', supabaseDataErrorHint()].filter(Boolean).join(' ')}
+        onRetry={() => setReloadKey(key => key + 1)}
+      />
+    )
   }
 
   const voteTotal = questions.reduce((sum, question) => sum + question.votes, 0)

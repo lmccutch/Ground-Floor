@@ -91,7 +91,7 @@ describe('searchCompanies (demo mode)', () => {
 })
 
 describe('on-demand campaign creation (demo mode)', () => {
-  it('a company flagged seedNoCampaign has no campaign until started', async () => {
+  it('a company has no campaign until started', async () => {
     const before = await getCampaign('datadog')
     expect(before).toBeNull()
     const created = await startCampaign('datadog')
@@ -107,12 +107,15 @@ describe('on-demand campaign creation (demo mode)', () => {
     expect(second?.id).toBe(first?.id)
   })
 
-  it('a non-seedNoCampaign company already has a plausible demo campaign', async () => {
-    const campaign = await getCampaign('apple')
+  it('demo mode never fabricates campaign activity — any company has no campaign until started, and a newly started campaign starts at zero', async () => {
+    const before = await getCampaign('apple')
+    expect(before).toBeNull()
+    const campaign = await startCampaign('apple')
     expect(campaign).not.toBeNull()
-    expect(campaign?.supporters).toBeGreaterThan(0)
-    // No fabricated question content ships with a demo-seeded campaign.
+    expect(campaign?.supporters).toBe(0)
+    expect(campaign?.followers).toBe(0)
     expect(campaign?.questions).toBe(0)
+    expect(campaign?.votes).toBe(0)
   })
 })
 
