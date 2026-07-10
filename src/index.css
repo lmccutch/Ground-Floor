@@ -1,31 +1,119 @@
+/* Design tokens + base styles. Component styles live in App.css. */
+
 :root {
-  --text: #6b6375;
-  --text-h: #08060d;
-  --bg: #fff;
-  --border: #e5e4e7;
-  --code-bg: #f4f3ec;
-  --accent: #aa3bff;
-  --accent-bg: rgba(170, 59, 255, 0.1);
-  --accent-border: rgba(170, 59, 255, 0.5);
-  --social-bg: rgba(244, 243, 236, 0.5);
-  --shadow:
-    rgba(0, 0, 0, 0.1) 0 10px 15px -3px, rgba(0, 0, 0, 0.05) 0 4px 6px -2px;
+  /* Palette */
+  --navy: #14252d;
+  --navy-800: #1b323c;
+  --navy-700: #23404b;
+  --navy-line: #2c454e;
+  --ink: #1c2a31;
+  --text: #44565e;
+  --muted: #6e7f86;
+  --faint: #8b9aa0;
+  --line: #dfe5e1;
+  --line-strong: #c9d3ce;
+  --bg: #f5f6f3;
+  --paper: #ffffff;
+  --gold: #bf9344;
+  --gold-deep: #8f6d2c;
+  --gold-soft: #f4ecda;
+  --green: #3f7d5f;
+  --green-soft: #e3efe7;
+  --red: #a8432f;
+  --red-soft: #f7e8e4;
 
-  --sans: system-ui, 'Segoe UI', Roboto, sans-serif;
-  --heading: system-ui, 'Segoe UI', Roboto, sans-serif;
-  --mono: ui-monospace, Consolas, monospace;
+  /* Type */
+  --sans: 'DM Sans', 'Segoe UI', system-ui, sans-serif;
+  --mono: 'DM Mono', ui-monospace, Consolas, monospace;
+  --serif: 'Playfair Display', Georgia, serif;
 
-  font: 18px/145% var(--sans);
-  letter-spacing: 0.18px;
-  color-scheme: light dark;
+  /* Shape */
+  --radius-sm: 5px;
+  --radius: 8px;
+  --radius-lg: 12px;
+  --shadow-sm: 0 1px 2px rgba(20, 37, 45, 0.06);
+  --shadow-md: 0 8px 24px rgba(20, 37, 45, 0.1);
+  --shadow-lg: 0 24px 60px rgba(20, 37, 45, 0.2);
+
+  --nav-width: 240px;
+
+  color-scheme: light;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html {
+  -webkit-text-size-adjust: 100%;
+}
+
+body {
+  margin: 0;
+  min-width: 320px;
+  background: var(--bg);
   color: var(--text);
-  :root { font-family: 'DM Sans', 'Segoe UI', sans-serif; color: #17212b; background: #f5f6f3; font-synthesis: none; text-rendering: optimizeLegibility; -webkit-font-smoothing: antialiased; --navy: #14252d; --ink: #17212b; --muted: #718087; --line: #dde3e0; --paper: #fbfcfa; --gold: #bf9344; --gold-soft: #f3ead6; --blue: #5c839d; }
-  * { box-sizing: border-box; }
-  body { margin: 0; min-width: 320px; }
-  button, input, select, textarea { font: inherit; }
-  button, a { -webkit-tap-highlight-color: transparent; }
-  button:focus-visible, a:focus-visible, input:focus-visible, textarea:focus-visible, select:focus-visible { outline: 2px solid #bf9344; outline-offset: 3px; }
-  a { color: inherit; text-decoration: none; }
-  h1, h2, h3, p { margin: 0; }
-  h1, h2, h3, strong, b { letter-spacing: -.02em; }
+  font: 400 14px/1.55 var(--sans);
+  letter-spacing: 0.1px;
+  text-rendering: optimizeLegibility;
+  -webkit-font-smoothing: antialiased;
+}
+
+h1,
+h2,
+h3,
+h4,
+p {
+  margin: 0;
+}
+
+h1,
+h2,
+h3,
+h4 {
+  color: var(--ink);
+  letter-spacing: -0.015em;
+  line-height: 1.2;
+  font-weight: 600;
+}
+
+a {
+  color: inherit;
+  text-decoration: none;
+}
+
+button,
+input,
+select,
+textarea {
+  font: inherit;
+  color: inherit;
+}
+
+button {
+  cursor: pointer;
+}
+
+button:disabled {
+  cursor: not-allowed;
+}
+
+img,
+svg {
+  display: block;
+  max-width: 100%;
+}
+
+button:focus-visible,
+a:focus-visible,
+input:focus-visible,
+textarea:focus-visible,
+select:focus-visible,
+summary:focus-visible {
+  outline: 2px solid var(--gold);
+  outline-offset: 2px;
+}
+
+::selection {
+  background: var(--gold-soft);
 }
