@@ -1,9 +1,11 @@
-import { companies as seedCompanies, sampleQuestions } from '../data'
+import { companyDirectory, type DirectoryCompany, type DirectorySecurity } from '../data/companyDirectory'
+import { buildCompanySlug, normalizeName, normalizeSymbol } from './companyIdentity'
 import { supabase } from './supabase'
 
 // When Supabase is configured every function reads/writes the real database and
-// throws on failure. Without it, the app runs in demo mode: data lives in
-// localStorage and is clearly labelled as such in the UI.
+// throws on failure. Without it, the app runs in demo mode: data comes from the
+// curated src/data/companyDirectory.ts dataset plus localStorage, and is clearly
+// labelled as demo data in the UI. The two modes are never merged.
 
 export type CampaignStatus =
   | 'Gathering shareholder interest'
@@ -33,6 +35,7 @@ export type PositionRange =
 
 export type PublicCompany = {
   id: string
+  slug: string
   name: string
   ticker: string
   exchange: string
@@ -43,7 +46,24 @@ export type PublicCompany = {
   investorRelationsUrl?: string
   status: string
   accent?: string
+  marketCapCategory?: string
 }
+
+/** Lightweight shape returned by search and Discover — never carries restricted enrichment fields. */
+export type CompanySearchResult = {
+  id: string
+  slug: string
+  name: string
+  ticker: string
+  exchange: string
+  sector?: string
+  hasCampaign: boolean
+  campaignStatus?: string
+  supporters: number
+  questions: number
+}
+
+export type CompanyLookup = { company: PublicCompany | null; redirectTicker?: string }
 
 export type PublicQuestion = {
   id: string
@@ -57,7 +77,6 @@ export type PublicQuestion = {
   createdAt: string
   votedByUser: boolean
   commentCount: number
-  sample?: boolean
 }
 
 export type Campaign = {
@@ -113,9 +132,36 @@ export type CompanyRequestInput = {
   consent: boolean
 }
 
+export type RequestCompanyResult = { matchedCompany: PublicCompany } | { requestId: string }
+
+export type DiscoverFilters = {
+  query?: string
+  sector?: string
+  exchange?: string
+  marketCapCategory?: string
+  /** 'has-campaign' | 'no-campaign' | undefined (any) */
+  campaignState?: 'has-campaign' | 'no-campaign'
+}
+
+export type DiscoverResults = { results: CompanySearchResult[]; hasMore: boolean }
+
+export const MARKET_CAP_BANDS = ['$300M-$1B', '$1B-$5B', '$5B-$25B', '$25B-$100B', 'Over $100B'] as const
+export const KNOWN_EXCHANGES = ['NASDAQ', 'NYSE', 'NYSE_AMERICAN'] as const
+
+const DISCOVER_PAGE_SIZE = 24
+const SEARCH_LIMIT_DEFAULT = 10
+
 /* ------------------------------ demo storage ------------------------------ */
 
-const storageKey = 'grround-floor-mvp'
+const storageKey = 'groundfloor-mvp'
+const legacyStorageKey = 'grround-floor-mvp'
+
+// One-time migration: carry forward demo-mode data stored under the pre-rename key.
+function migrateLegacyStorage() {
+  if (localStorage.getItem(storageKey) !== null) return
+  const legacy = localStorage.getItem(legacyStorageKey)
+  if (legacy !== null) localStorage.setItem(storageKey, legacy)
+}
 
 type LocalQuestion = {
   id: string
@@ -131,7 +177,10 @@ type LocalQuestion = {
 
 type LocalCampaign = Partial<
   Pick<Campaign, 'supporters' | 'currentShareholders' | 'questions' | 'votes' | 'followers' | 'launchedAt' | 'supportedByUser' | 'followedByUser'>
->
+> & {
+  /** True once a campaign has actually been created for this company (via startCampaign). */
+  exists?: boolean
+}
 
 type LocalRequest = CompanyRequestInput & { id: string; createdAt: string }
 
@@ -144,6 +193,7 @@ type LocalStore = {
 }
 
 function readLocal(): LocalStore {
+  migrateLegacyStorage()
   try {
     return JSON.parse(localStorage.getItem(storageKey) || '{}') as LocalStore
   } catch {
@@ -160,16 +210,108 @@ function updateLocalCampaign(companyId: string, update: (campaign: LocalCampaign
   const campaigns = store.campaigns ?? {}
   campaigns[companyId] = update(campaigns[companyId] ?? {})
   writeLocal({ ...store, campaigns })
+  return campaigns[companyId]
 }
 
-const demoCompanies: PublicCompany[] = seedCompanies.map((company, index) => ({
-  id: `company-${index + 1}`,
-  ...company,
-  description: `${company.name} is a fictional company used to demonstrate Grround Floor.`,
-  website: 'https://example.com',
-  investorRelationsUrl: 'https://example.com/investors',
-  status: 'Early shareholder campaign',
-}))
+/* --------------------------- directory (demo data) -------------------------- */
+
+const companyDirectoryByKey = new Map(companyDirectory.map(entry => [entry.key, entry]))
+
+function primarySecurityOf(entry: DirectoryCompany): DirectorySecurity {
+  return entry.securities.find(security => security.isPrimary) ?? entry.securities[0]
+}
+
+function directoryEntrySlug(entry: DirectoryCompany): string {
+  return buildCompanySlug(entry.displayName, entry.key)
+}
+
+function directoryCompanyToPublic(entry: DirectoryCompany): PublicCompany {
+  const primary = primarySecurityOf(entry)
+  return {
+    id: entry.key,
+    slug: directoryEntrySlug(entry),
+    name: entry.displayName,
+    ticker: primary.symbol,
+    exchange: primary.exchange,
+    sector: entry.sector,
+    country: entry.country,
+    description: entry.description,
+    status: 'Early shareholder campaign',
+    marketCapCategory: entry.marketCapCategory,
+  }
+}
+
+function findDirectoryEntryByTicker(ticker: string): { entry: DirectoryCompany; isPrimaryMatch: boolean } | null {
+  const normalized = normalizeSymbol(ticker)
+  if (!normalized) return null
+  for (const entry of companyDirectory) {
+    const security = entry.securities.find(item => normalizeSymbol(item.symbol) === normalized)
+    if (security) return { entry, isPrimaryMatch: security.isPrimary }
+  }
+  for (const entry of companyDirectory) {
+    const hasAlias = entry.aliases?.some(alias => alias.aliasType === 'former_ticker' && normalizeSymbol(alias.alias) === normalized)
+    if (hasAlias) return { entry, isPrimaryMatch: false }
+  }
+  return null
+}
+
+function findDirectoryEntryBySlug(slug: string): DirectoryCompany | null {
+  return companyDirectory.find(entry => directoryEntrySlug(entry) === slug) ?? null
+}
+
+/** Deterministic (not random) so demo numbers stay stable across reloads. */
+function hashString(value: string): number {
+  let hash = 0
+  for (let index = 0; index < value.length; index++) hash = (Math.imul(hash, 31) + value.charCodeAt(index)) >>> 0
+  return hash
+}
+
+/**
+ * Returns the demo campaign for a company, materializing plausible aggregate demo
+ * stats (supporters/followers only — never fabricated question text) the first time
+ * a non-`seedNoCampaign` company is read, so Discover/search have realistic numbers
+ * to sort and display without inventing shareholder-authored content.
+ */
+function getOrSeedLocalCampaign(companyId: string): LocalCampaign | null {
+  const store = readLocal()
+  const existing = store.campaigns?.[companyId]
+  if (existing?.exists) return existing
+
+  const entry = companyDirectoryByKey.get(companyId)
+  if (!entry || entry.seedNoCampaign) return null
+
+  const hash = hashString(companyId)
+  const supporters = 4 + (hash % 45)
+  const seeded: LocalCampaign = {
+    exists: true,
+    supporters,
+    currentShareholders: Math.round(supporters * 0.6),
+    questions: 0,
+    votes: 0,
+    followers: 2 + ((hash >> 12) % 30),
+    launchedAt: new Date(Date.now() - (hash % (1000 * 60 * 60 * 24 * 60))).toISOString(),
+    supportedByUser: false,
+    followedByUser: false,
+  }
+  return updateLocalCampaign(companyId, () => seeded)
+}
+
+function toSearchResult(entry: DirectoryCompany): CompanySearchResult {
+  const primary = primarySecurityOf(entry)
+  const campaign = getOrSeedLocalCampaign(entry.key)
+  return {
+    id: entry.key,
+    slug: directoryEntrySlug(entry),
+    name: entry.displayName,
+    ticker: primary.symbol,
+    exchange: primary.exchange,
+    sector: entry.sector,
+    hasCampaign: Boolean(campaign?.exists),
+    campaignStatus: campaign?.exists ? 'Gathering shareholder interest' : undefined,
+    supporters: campaign?.supporters ?? 0,
+    questions: campaign?.questions ?? 0,
+  }
+}
 
 /* -------------------------------- companies ------------------------------- */
 
@@ -182,7 +324,8 @@ function asOptional(value: unknown): string | undefined {
 function mapCompany(row: Row): PublicCompany {
   return {
     id: String(row.id),
-    name: String(row.name),
+    slug: String(row.slug ?? row.id),
+    name: String(row.display_name ?? row.name),
     ticker: String(row.ticker),
     exchange: String(row.exchange ?? ''),
     sector: String(row.sector ?? ''),
@@ -192,35 +335,184 @@ function mapCompany(row: Row): PublicCompany {
     investorRelationsUrl: asOptional(row.investor_relations_url ?? row.investorRelationsUrl),
     status: String(row.status ?? 'Early shareholder campaign'),
     accent: asOptional(row.accent),
+    marketCapCategory: asOptional(row.market_cap_category),
   }
 }
 
-export async function getCompanies(query = ''): Promise<PublicCompany[]> {
-  let list: PublicCompany[]
+export async function getCompanies(limit = 24): Promise<PublicCompany[]> {
   if (supabase) {
-    const { data, error } = await supabase.from('companies').select('*').eq('is_public', true).order('name')
+    const { data, error } = await supabase.from('companies').select('*').eq('is_discoverable', true).order('display_name').limit(limit)
     if (error) throw new Error(error.message)
-    list = ((data ?? []) as Row[]).map(mapCompany)
-  } else {
-    list = demoCompanies
+    return ((data ?? []) as Row[]).map(mapCompany)
   }
-  const needle = query.trim().toLowerCase()
-  if (!needle) return list
-  return list.filter(company => `${company.name} ${company.ticker} ${company.sector} ${company.exchange}`.toLowerCase().includes(needle))
+  return companyDirectory.slice(0, limit).map(directoryCompanyToPublic)
 }
 
-export async function getCompanyByTicker(ticker: string): Promise<PublicCompany | null> {
+export async function getCompanyByTicker(ticker: string): Promise<CompanyLookup> {
+  const normalized = normalizeSymbol(ticker)
+  if (!normalized) return { company: null }
+
   if (supabase) {
-    const { data, error } = await supabase
-      .from('companies')
-      .select('*')
-      .ilike('ticker', ticker)
-      .eq('is_public', true)
+    const { data: securityMatch, error: securityError } = await supabase
+      .from('securities')
+      .select('symbol, is_primary, company:companies(*)')
+      .eq('normalized_symbol', normalized)
+      .eq('is_active', true)
       .maybeSingle()
+    if (securityError) throw new Error(securityError.message)
+    if (securityMatch?.company) {
+      const company = mapCompany(securityMatch.company as unknown as Row)
+      return { company, redirectTicker: securityMatch.is_primary ? undefined : company.ticker }
+    }
+
+    const { data: aliasMatch, error: aliasError } = await supabase
+      .from('company_aliases')
+      .select('company:companies(*)')
+      .eq('alias_type', 'former_ticker')
+      .eq('normalized_alias', normalized)
+      .maybeSingle()
+    if (aliasError) throw new Error(aliasError.message)
+    if (aliasMatch?.company) {
+      const company = mapCompany(aliasMatch.company as unknown as Row)
+      return { company, redirectTicker: company.ticker }
+    }
+    return { company: null }
+  }
+
+  const found = findDirectoryEntryByTicker(ticker)
+  if (!found) return { company: null }
+  const company = directoryCompanyToPublic(found.entry)
+  return { company, redirectTicker: found.isPrimaryMatch ? undefined : company.ticker }
+}
+
+export async function getCompanyBySlug(slug: string): Promise<PublicCompany | null> {
+  if (supabase) {
+    const { data, error } = await supabase.from('companies').select('*').eq('slug', slug).maybeSingle()
     if (error) throw new Error(error.message)
     return data ? mapCompany(data as Row) : null
   }
-  return demoCompanies.find(company => company.ticker.toLowerCase() === ticker.toLowerCase()) ?? null
+  const entry = findDirectoryEntryBySlug(slug)
+  return entry ? directoryCompanyToPublic(entry) : null
+}
+
+/** Database-backed ranked search. Debounce and cancel stale calls in the UI layer. */
+export async function searchCompanies(query: string, limit = SEARCH_LIMIT_DEFAULT): Promise<CompanySearchResult[]> {
+  const trimmed = query.trim()
+  if (!trimmed) return []
+
+  if (supabase) {
+    const { data, error } = await supabase.rpc('search_companies', { search_query: trimmed, result_limit: limit })
+    if (error) throw new Error(error.message)
+    return ((data ?? []) as Row[]).map(row => ({
+      id: String(row.company_id),
+      slug: String(row.company_id),
+      name: String(row.display_name),
+      ticker: String(row.ticker),
+      exchange: String(row.exchange ?? ''),
+      sector: asOptional(row.sector),
+      hasCampaign: Boolean(row.has_campaign),
+      campaignStatus: asOptional(row.campaign_status),
+      supporters: Number(row.supporters ?? 0),
+      questions: Number(row.questions ?? 0),
+    }))
+  }
+
+  const tickerQuery = normalizeSymbol(trimmed)
+  const textQuery = normalizeName(trimmed)
+  const scored: { entry: DirectoryCompany; tier: number }[] = []
+
+  for (const entry of companyDirectory) {
+    let tier: number | null = null
+    const consider = (candidate: number) => {
+      tier = tier === null ? candidate : Math.min(tier, candidate)
+    }
+    for (const security of entry.securities) {
+      const normalizedSymbol = normalizeSymbol(security.symbol)
+      if (normalizedSymbol === tickerQuery) consider(security.isPrimary ? 0 : 1)
+      else if (security.isPrimary && tickerQuery && normalizedSymbol.startsWith(tickerQuery)) consider(3)
+    }
+    for (const alias of entry.aliases ?? []) {
+      if (alias.aliasType === 'former_ticker' && normalizeSymbol(alias.alias) === tickerQuery) consider(2)
+      else if (textQuery && normalizeName(alias.alias).startsWith(textQuery)) consider(6)
+    }
+    const normalizedName = normalizeName(entry.displayName)
+    if (textQuery && normalizedName === textQuery) consider(4)
+    else if (textQuery && normalizedName.startsWith(textQuery)) consider(5)
+    else if (textQuery && normalizedName.includes(textQuery)) consider(7)
+    if (tier !== null) scored.push({ entry, tier })
+  }
+
+  scored.sort((a, b) => a.tier - b.tier || a.entry.displayName.localeCompare(b.entry.displayName))
+  return scored.slice(0, limit).map(({ entry }) => toSearchResult(entry))
+}
+
+export function getKnownSectors(): string[] {
+  return [...new Set(companyDirectory.map(entry => entry.sector))].sort()
+}
+
+/**
+ * Filtered/paginated browsing for Discover — distinct from searchCompanies, which is
+ * ranked full-text search. Never fetches the full directory in one call.
+ * Note (Phase 1, proportionate-schema tradeoff): campaignState filtering happens after
+ * the page is fetched, so a page may contain fewer than the page size when that filter
+ * is active. Acceptable at the current directory size; revisit if the directory grows
+ * enough that this noticeably thins result pages.
+ */
+export async function discoverCompanies(filters: DiscoverFilters, offset = 0, limit = DISCOVER_PAGE_SIZE): Promise<DiscoverResults> {
+  if (supabase) {
+    let request = supabase
+      .from('companies')
+      .select('*, securities!inner(symbol, exchange, is_primary)', { count: 'exact' })
+      .eq('is_discoverable', true)
+      .eq('securities.is_primary', true)
+    if (filters.sector) request = request.eq('sector', filters.sector)
+    if (filters.marketCapCategory) request = request.eq('market_cap_category', filters.marketCapCategory)
+    if (filters.exchange) request = request.eq('securities.exchange', filters.exchange)
+    if (filters.query) request = request.ilike('display_name', `%${filters.query}%`)
+    const { data, error, count } = await request.order('display_name', { ascending: true }).range(offset, offset + limit - 1)
+    if (error) throw new Error(error.message)
+    const rows = (data ?? []) as Row[]
+    const companyIds = rows.map(row => String(row.id))
+    const metricsByCompany = new Map<string, Row>()
+    if (companyIds.length) {
+      const { data: metricsRows } = await supabase.from('public_campaign_metrics').select('*').in('company_id', companyIds)
+      for (const row of (metricsRows ?? []) as Row[]) metricsByCompany.set(String(row.company_id), row)
+    }
+    let results: CompanySearchResult[] = rows.map(row => {
+      const embedded = row.securities as Row[] | Row | undefined
+      const security = (Array.isArray(embedded) ? embedded[0] : embedded) ?? {}
+      const metrics = metricsByCompany.get(String(row.id))
+      return {
+        id: String(row.id),
+        slug: String(row.slug ?? row.id),
+        name: String(row.display_name ?? row.name),
+        ticker: String((security as Row).symbol ?? row.ticker),
+        exchange: String((security as Row).exchange ?? row.exchange),
+        sector: asOptional(row.sector),
+        hasCampaign: Boolean(metrics),
+        campaignStatus: asOptional(metrics?.status),
+        supporters: Number(metrics?.supporters ?? 0),
+        questions: Number(metrics?.questions ?? 0),
+      }
+    })
+    if (filters.campaignState === 'has-campaign') results = results.filter(result => result.hasCampaign)
+    if (filters.campaignState === 'no-campaign') results = results.filter(result => !result.hasCampaign)
+    return { results, hasMore: (count ?? 0) > offset + limit }
+  }
+
+  let entries = companyDirectory.slice()
+  if (filters.sector) entries = entries.filter(entry => entry.sector === filters.sector)
+  if (filters.marketCapCategory) entries = entries.filter(entry => entry.marketCapCategory === filters.marketCapCategory)
+  if (filters.exchange) entries = entries.filter(entry => primarySecurityOf(entry).exchange === filters.exchange)
+  if (filters.query) {
+    const needle = normalizeName(filters.query)
+    entries = entries.filter(entry => normalizeName(entry.displayName).includes(needle))
+  }
+  entries.sort((a, b) => a.displayName.localeCompare(b.displayName))
+  let results = entries.map(toSearchResult)
+  if (filters.campaignState === 'has-campaign') results = results.filter(result => result.hasCampaign)
+  if (filters.campaignState === 'no-campaign') results = results.filter(result => !result.hasCampaign)
+  return { results: results.slice(offset, offset + limit), hasMore: results.length > offset + limit }
 }
 
 /* -------------------------------- campaigns ------------------------------- */
@@ -257,11 +549,9 @@ export async function getCampaign(companyId: string, userId?: string): Promise<C
       followedByUser,
     }
   }
-  const store = readLocal()
-  const item = store.campaigns?.[companyId] ?? {}
-  if (!item.launchedAt) {
-    updateLocalCampaign(companyId, current => ({ ...current, launchedAt: new Date().toISOString() }))
-  }
+
+  const item = getOrSeedLocalCampaign(companyId)
+  if (!item) return null
   return {
     id: `campaign-${companyId}`,
     companyId,
@@ -276,6 +566,19 @@ export async function getCampaign(companyId: string, userId?: string): Promise<C
     supportedByUser: Boolean(item.supportedByUser),
     followedByUser: Boolean(item.followedByUser),
   }
+}
+
+/** Creates the campaign if none exists yet (idempotent), then returns it. */
+export async function startCampaign(companyId: string, userId?: string): Promise<Campaign | null> {
+  if (supabase) {
+    const { error } = await supabase.rpc('start_campaign', { p_company_id: companyId })
+    if (error) throw new Error(error.message)
+    return getCampaign(companyId, userId)
+  }
+  updateLocalCampaign(companyId, current =>
+    current.exists ? current : { ...current, exists: true, launchedAt: new Date().toISOString(), questions: 0, votes: 0 },
+  )
+  return getCampaign(companyId)
 }
 
 export async function supportCampaign(
@@ -354,9 +657,12 @@ export async function getQuestions(companyId: string, userId?: string): Promise<
       commentCount: Number(row.comment_count ?? 0),
     }))
   }
+
+  // Demo mode only ever shows questions the current browser actually submitted —
+  // it never fabricates example question text under a real company's name.
   const store = readLocal()
   const votes = store.votes ?? {}
-  const own = (store.questions ?? [])
+  return (store.questions ?? [])
     .filter(question => question.companyId === companyId)
     .map(question => ({
       id: question.id,
@@ -370,28 +676,7 @@ export async function getQuestions(companyId: string, userId?: string): Promise<
       votedByUser: Boolean(votes[question.id]),
       commentCount: 0,
     }))
-  // Example questions appear on the first demo campaign only, badged as samples.
-  const samples =
-    companyId === 'company-1'
-      ? sampleQuestions.map((question, index) => {
-          const id = `question-${index + 1}`
-          const voted = Boolean(votes[id])
-          return {
-            id,
-            companyId,
-            text: question.text,
-            topic: question.topic,
-            author: question.author,
-            votes: question.votes + (voted ? 1 : 0),
-            status: 'Open',
-            createdAt: question.createdAt,
-            votedByUser: voted,
-            commentCount: question.comments,
-            sample: true,
-          }
-        })
-      : []
-  return [...own, ...samples].sort((a, b) => b.votes - a.votes)
+    .sort((a, b) => b.votes - a.votes)
 }
 
 export async function submitQuestion(companyId: string, input: QuestionInput, profile?: Profile | null): Promise<PublicQuestion> {
@@ -477,7 +762,27 @@ export async function voteQuestion(question: PublicQuestion, userId?: string): P
 
 /* --------------------------------- requests ------------------------------- */
 
-export async function requestCompany(input: CompanyRequestInput, userId?: string) {
+async function findMatchingCompany(name: string, ticker: string): Promise<PublicCompany | null> {
+  const lookup = await getCompanyByTicker(ticker)
+  if (lookup.company) return lookup.company
+
+  const needle = normalizeName(name)
+  if (!needle) return null
+
+  if (supabase) {
+    const { data, error } = await supabase.from('companies').select('*').ilike('display_name', name).eq('is_discoverable', true).limit(1)
+    if (error) throw new Error(error.message)
+    const row = (data ?? [])[0] as Row | undefined
+    return row ? mapCompany(row) : null
+  }
+  const entry = companyDirectory.find(candidate => normalizeName(candidate.displayName) === needle)
+  return entry ? directoryCompanyToPublic(entry) : null
+}
+
+export async function requestCompany(input: CompanyRequestInput, userId?: string): Promise<RequestCompanyResult> {
+  const matched = await findMatchingCompany(input.name, input.ticker)
+  if (matched) return { matchedCompany: matched }
+
   const ticker = input.ticker.toUpperCase()
   if (supabase && userId) {
     const { data, error } = await supabase
@@ -495,15 +800,15 @@ export async function requestCompany(input: CompanyRequestInput, userId?: string
       .select('id')
       .single()
     if (error) throw new Error(error.message)
-    return data
+    return { requestId: String((data as Row).id) }
   }
   const store = readLocal()
   const requests = store.requests ?? []
   const existing = requests.find(request => request.ticker.toUpperCase() === ticker)
-  if (existing) return existing
+  if (existing) return { requestId: existing.id }
   const item: LocalRequest = { ...input, ticker, id: `request-${Date.now()}`, createdAt: new Date().toISOString() }
   writeLocal({ ...store, requests: [...requests, item] })
-  return item
+  return { requestId: item.id }
 }
 
 /* ------------------------------ auth & profile ---------------------------- */
@@ -666,7 +971,7 @@ export async function getDashboardData(userId: string): Promise<DashboardData> {
   const campaigns = store.campaigns ?? {}
   const supportedIds = Object.entries(campaigns).filter(([, c]) => c.supportedByUser).map(([id]) => id)
   const followedIds = Object.entries(campaigns).filter(([, c]) => c.followedByUser).map(([id]) => id)
-  const tickerLookup = new Map(demoCompanies.map(company => [company.id, company.ticker]))
+  const tickerLookup = new Map(companyDirectory.map(entry => [entry.key, primarySecurityOf(entry).symbol]))
   const votedIds = new Set(Object.entries(store.votes ?? {}).filter(([, on]) => on).map(([id]) => id))
 
   const submitted: PublicQuestion[] = (store.questions ?? []).map(question => ({
@@ -683,29 +988,11 @@ export async function getDashboardData(userId: string): Promise<DashboardData> {
     commentCount: 0,
   }))
 
-  const votedSamples: PublicQuestion[] = sampleQuestions
-    .map((question, index) => ({ question, id: `question-${index + 1}` }))
-    .filter(({ id }) => votedIds.has(id))
-    .map(({ question, id }) => ({
-      id,
-      companyId: 'company-1',
-      companyTicker: tickerFor('company-1', tickerLookup),
-      text: question.text,
-      topic: question.topic,
-      author: question.author,
-      votes: question.votes + 1,
-      status: 'Open',
-      createdAt: question.createdAt,
-      votedByUser: true,
-      commentCount: question.comments,
-      sample: true,
-    }))
-
   return {
-    supported: demoCompanies.filter(company => supportedIds.includes(company.id)),
-    followed: demoCompanies.filter(company => followedIds.includes(company.id)),
+    supported: companyDirectory.filter(entry => supportedIds.includes(entry.key)).map(directoryCompanyToPublic),
+    followed: companyDirectory.filter(entry => followedIds.includes(entry.key)).map(directoryCompanyToPublic),
     submitted,
-    voted: [...submitted.filter(question => question.votedByUser), ...votedSamples],
+    voted: submitted.filter(question => question.votedByUser),
     notifications: [],
   }
 }

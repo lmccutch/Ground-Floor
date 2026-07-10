@@ -3,7 +3,7 @@ import { Link } from 'react-router-dom'
 import { Bell, ChevronRight, MessageSquare, Users } from 'lucide-react'
 import { getDashboardData, type DashboardData, type PublicCompany, type PublicQuestion } from '../lib/api'
 import { useMvp } from '../context/useMvp'
-import { Badge, EmptyState, ErrorState, Monogram, PageHeading, Skeleton } from './ui'
+import { EmptyState, ErrorState, Monogram, PageHeading, Skeleton } from './ui'
 
 function CompanyList({ title, companies, empty }: { title: string; companies: PublicCompany[]; empty: string }) {
   return (
@@ -31,16 +31,13 @@ function CompanyList({ title, companies, empty }: { title: string; companies: Pu
 
 function QuestionRow({ question }: { question: PublicQuestion }) {
   const body = (
-    <>
-      <span className="list-row-main">
-        <b>{question.text}</b>
-        <small>
-          {question.votes} {question.votes === 1 ? 'vote' : 'votes'} · {question.status}
-          {question.companyTicker ? ` · ${question.companyTicker}` : ''}
-        </small>
-      </span>
-      {question.sample && <Badge tone="neutral">Example</Badge>}
-    </>
+    <span className="list-row-main">
+      <b>{question.text}</b>
+      <small>
+        {question.votes} {question.votes === 1 ? 'vote' : 'votes'} · {question.status}
+        {question.companyTicker ? ` · ${question.companyTicker}` : ''}
+      </small>
+    </span>
   )
   return question.companyTicker ? (
     <Link to={`/company/${question.companyTicker}#${question.id}`} className="list-row">

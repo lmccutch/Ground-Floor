@@ -1,5 +1,5 @@
 /* ==========================================================================
-   Grround Floor — component & page styles.
+   GroundFloor — component & page styles.
    Tokens and base styles live in index.css.
    ========================================================================== */
 
@@ -651,6 +651,12 @@ select.text-input {
   margin-top: 10px;
 }
 
+.empty-actions-column {
+  display: grid;
+  justify-items: center;
+  gap: 8px;
+}
+
 .empty-actions {
   display: flex;
   gap: 10px;
@@ -724,7 +730,7 @@ select.text-input {
 
 .hero {
   display: grid;
-  grid-template-columns: 1.05fr 0.95fr;
+  grid-template-columns: minmax(0, 1.05fr) minmax(0, 0.95fr);
   gap: 56px;
   align-items: center;
   padding: 20px 0 60px;
@@ -749,10 +755,15 @@ select.text-input {
   line-height: 1.7;
 }
 
+.hero-search {
+  max-width: 420px;
+  margin-top: 24px;
+}
+
 .hero-actions {
   display: flex;
   gap: 10px;
-  margin-top: 26px;
+  margin-top: 16px;
 }
 
 .hero-preview {
@@ -1015,6 +1026,112 @@ select.text-input {
   box-shadow: 0 0 0 3px var(--gold-soft);
 }
 
+.visually-hidden {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+.search-autocomplete {
+  position: relative;
+}
+
+.search-panel {
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: calc(100% + 6px);
+  z-index: 40;
+  max-height: 360px;
+  overflow-y: auto;
+  padding: 6px;
+  background: var(--paper);
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow-md);
+}
+
+.search-panel-note,
+.search-panel-empty {
+  padding: 14px 12px;
+  color: var(--muted);
+  font-size: 13px;
+}
+
+.search-panel-empty p {
+  margin-bottom: 6px;
+}
+
+.search-panel-empty a {
+  color: var(--navy-700);
+  font-weight: 600;
+  font-size: 12.5px;
+}
+
+.search-panel-empty a:hover {
+  color: var(--gold-deep);
+}
+
+.search-result {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  width: 100%;
+  padding: 10px;
+  border: 0;
+  border-radius: var(--radius-sm);
+  background: none;
+  color: var(--ink);
+  text-align: left;
+}
+
+.search-result:hover,
+.search-result.active {
+  background: var(--bg);
+}
+
+.search-result-ticker {
+  flex: 0 0 auto;
+  min-width: 52px;
+  color: var(--faint);
+  font: 500 12px var(--mono);
+}
+
+.search-result-main {
+  flex: 1;
+  min-width: 0;
+}
+
+.search-result-main b {
+  display: block;
+  font-size: 13px;
+  font-weight: 500;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.search-result-main small {
+  display: block;
+  margin-top: 2px;
+  color: var(--muted);
+  font-size: 11.5px;
+}
+
+.search-result-meta {
+  flex: 0 0 auto;
+  color: var(--faint);
+  font-size: 11px;
+  text-align: right;
+  max-width: 110px;
+}
+
 .chip-row {
   display: flex;
   flex-wrap: wrap;
@@ -1047,6 +1164,12 @@ select.text-input {
   display: grid;
   grid-template-columns: repeat(3, 1fr);
   gap: 16px;
+}
+
+.load-more-row {
+  display: flex;
+  justify-content: center;
+  margin-top: 24px;
 }
 
 .company-card {
@@ -1094,6 +1217,17 @@ select.text-input {
   color: var(--muted);
   font-size: 13px;
   line-height: 1.55;
+}
+
+.card-stats {
+  margin-top: 12px;
+  color: var(--muted);
+  font-size: 12.5px;
+}
+
+.card-stats b {
+  color: var(--ink);
+  font-weight: 600;
 }
 
 .card-cta {
@@ -1651,6 +1785,42 @@ a.list-row:hover b {
 .request-confirmation p {
   color: var(--muted);
   font-size: 14px;
+}
+
+.matched-company-card {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  width: 100%;
+  max-width: 360px;
+  margin-top: 6px;
+  padding: 14px 16px;
+  background: var(--paper);
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  text-align: left;
+  transition: border-color 0.15s ease;
+}
+
+.matched-company-card:hover {
+  border-color: var(--gold);
+}
+
+.matched-company-card span:not(.avatar) {
+  flex: 1;
+  min-width: 0;
+}
+
+.matched-company-card b {
+  display: block;
+  font-size: 14px;
+}
+
+.matched-company-card small {
+  display: block;
+  margin-top: 2px;
+  color: var(--muted);
+  font-size: 12px;
 }
 
 /* ------------------------------- Responsive ------------------------------ */

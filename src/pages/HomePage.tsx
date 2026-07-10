@@ -1,28 +1,43 @@
 import { useEffect, useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { ArrowUp, Check, ChevronRight, Sparkles, Users, X } from 'lucide-react'
-import { getCompanies, type PublicCompany } from '../lib/api'
+import { discoverCompanies, type CompanySearchResult } from '../lib/api'
 import { CompanyCard } from '../components/CompanyCard'
+import { SearchAutocomplete } from '../components/SearchAutocomplete'
 import { Badge, Monogram, Skeleton } from '../components/ui'
 
 const steps = [
   ['01', 'Find or request a company', 'Browse active campaigns, or request a company we don’t cover yet.'],
   ['02', 'Support the campaign', 'Add your self-reported shareholder status. Your position size stays private.'],
   ['03', 'Ask and vote', 'Surface the questions the shareholder community most wants answered.'],
-  ['04', 'We request the interview', 'At the supporter target, Grround Floor formally invites management. Participation is voluntary.'],
+  ['04', 'We request the interview', 'At the supporter target, GroundFloor formally invites management. Participation is voluntary.'],
 ] as const
 
 const traditional = ['Generic earnings-call questions', 'Limited analyst access', 'Fragmented online discussions', 'No structured follow-up']
-const grroundFloor = ['Shareholder-ranked questions', 'A collective, credible interview request', 'One public record per company', 'Campaign updates as they actually happen']
+const groundFloorExperience = ['Shareholder-ranked questions', 'A collective, credible interview request', 'One public record per company', 'Campaign updates as they actually happen']
 
 export function HomePage() {
   const navigate = useNavigate()
-  const [companies, setCompanies] = useState<PublicCompany[] | null>(null)
+  const [companies, setCompanies] = useState<CompanySearchResult[] | null>(null)
+  const [heading, setHeading] = useState('Active campaigns')
   const [failed, setFailed] = useState(false)
 
   useEffect(() => {
-    getCompanies()
-      .then(setCompanies)
+    // Prefer companies that already have a campaign; fall back to honest
+    // "recently added" language when none exist yet rather than implying
+    // activity that isn't there.
+    discoverCompanies({ campaignState: 'has-campaign' }, 0, 3)
+      .then(page => {
+        if (page.results.length > 0) {
+          setCompanies(page.results)
+          setHeading('Active campaigns')
+        } else {
+          return discoverCompanies({}, 0, 3).then(fallback => {
+            setCompanies(fallback.results)
+            setHeading('Recently added — be the first to start a campaign')
+          })
+        }
+      })
       .catch(() => setFailed(true))
   }, [])
 
@@ -37,9 +52,12 @@ export function HomePage() {
             Direct access to management, <em>powered by shareholders.</em>
           </h1>
           <p>
-            Grround Floor gathers shareholder demand one company at a time. Support a campaign, submit and vote on questions — when a campaign
+            GroundFloor gathers shareholder demand one company at a time. Support a campaign, submit and vote on questions — when a campaign
             reaches its supporter target, we formally request a management interview.
           </p>
+          <div className="hero-search">
+            <SearchAutocomplete placeholder="Search companies or tickers, e.g. SOFI" />
+          </div>
           <div className="hero-actions">
             <button className="btn primary" onClick={() => navigate('/discover')}>
               Explore companies <ChevronRight size={16} />
@@ -55,7 +73,7 @@ export function HomePage() {
       <section id="how" className="how-section">
         <div className="section-row">
           <div>
-            <span className="eyebrow">How Grround Floor works</span>
+            <span className="eyebrow">How GroundFloor works</span>
             <h2 className="display">A better seat at the table.</h2>
             <p>The strongest questions should not be limited to the largest funds.</p>
           </div>
@@ -89,8 +107,8 @@ export function HomePage() {
           </div>
           <div className="compare-divider" />
           <div>
-            <span className="compare-label">Grround Floor experience</span>
-            {grroundFloor.map(item => (
+            <span className="compare-label">GroundFloor experience</span>
+            {groundFloorExperience.map(item => (
               <div className="compare-item" key={item}>
                 <Check size={15} /> {item}
               </div>
@@ -103,7 +121,7 @@ export function HomePage() {
         <div className="section-row">
           <div>
             <span className="eyebrow">Open now</span>
-            <h2 className="display">Active campaigns</h2>
+            <h2 className="display">{heading}</h2>
           </div>
           <Link to="/discover" className="text-link">
             View all <ChevronRight size={15} />

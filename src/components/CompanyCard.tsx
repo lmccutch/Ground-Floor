@@ -1,24 +1,32 @@
 import { Link } from 'react-router-dom'
 import { ChevronRight } from 'lucide-react'
-import type { PublicCompany } from '../lib/api'
+import type { CompanySearchResult } from '../lib/api'
 import { Badge, Monogram } from './ui'
 
-export function CompanyCard({ company }: { company: PublicCompany }) {
+export function CompanyCard({ company }: { company: CompanySearchResult }) {
   return (
     <Link to={`/company/${company.ticker}`} className="company-card">
       <div className="company-card-top">
-        <Monogram ticker={company.ticker} accent={company.accent} />
-        <Badge tone="gold">Early campaign</Badge>
+        <Monogram ticker={company.ticker} />
+        {company.hasCampaign ? <Badge tone="gold">Early campaign</Badge> : <Badge tone="neutral">No campaign yet</Badge>}
       </div>
-      <span className="card-sector">{company.sector}</span>
+      {company.sector && <span className="card-sector">{company.sector}</span>}
       <h3>{company.name}</h3>
       <span className="ticker-line">
         {company.ticker} · {company.exchange}
-        {company.country ? ` · ${company.country}` : ''}
       </span>
-      <p className="clamp-2">{company.description}</p>
+      <span className="card-stats">
+        {company.hasCampaign ? (
+          <>
+            <b>{company.supporters}</b> supporter{company.supporters === 1 ? '' : 's'} · <b>{company.questions}</b> question
+            {company.questions === 1 ? '' : 's'}
+          </>
+        ) : (
+          'Be the first to start this campaign'
+        )}
+      </span>
       <span className="card-cta">
-        View campaign <ChevronRight size={15} />
+        {company.hasCampaign ? 'View campaign' : 'View company'} <ChevronRight size={15} />
       </span>
     </Link>
   )

@@ -170,7 +170,7 @@ function SupportModal({
     setError('')
     try {
       onSaved(await supportCampaign(campaign, status, status === 'Current shareholder' ? position : undefined, profile?.id))
-      track('company_supported', { ticker: company.ticker, shareholder_status: status })
+      track('campaign_supported', { ticker: company.ticker, shareholder_status: status })
       setSaved(true)
     } catch {
       setError('We could not record your support. Please try again.')

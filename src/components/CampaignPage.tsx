@@ -1,13 +1,16 @@
 import { useEffect, useRef, useState } from 'react'
-import { Link, useParams } from 'react-router-dom'
+import { Link, Navigate, useParams } from 'react-router-dom'
 import { ArrowUp, CalendarDays, Check, ExternalLink, Link2, MessageSquare, Plus, ShieldCheck, Users } from 'lucide-react'
 import {
   getCampaign,
+  getCompanyBySlug,
   getCompanyByTicker,
   getQuestions,
+  startCampaign,
   submitQuestion,
   voteQuestion,
   type Campaign,
+  type CompanyLookup,
   type PublicCompany,
   type PublicQuestion,
   type ShareholderStatus,
@@ -22,34 +25,49 @@ import { Badge, EmptyState, ErrorState, Monogram, Skeleton } from './ui'
 const topics = ['Strategy', 'Financial performance', 'Capital allocation', 'Competition', 'Operations', 'Governance', 'Executive compensation', 'Industry conditions', 'Risk', 'Other']
 const shareholderStatuses: ShareholderStatus[] = ['Current shareholder', 'Former shareholder', 'Considering investing', 'Following the company', 'Prefer not to say']
 
-type PageState = 'loading' | 'ready' | 'missing' | 'error'
+type PageState = 'loading' | 'ready' | 'missing' | 'error' | 'redirect'
 
 export function CampaignPage() {
-  const { ticker = '' } = useParams()
+  const { ticker, slug } = useParams()
   const { profile, requireAuth } = useMvp()
   const [company, setCompany] = useState<PublicCompany | null>(null)
   const [campaign, setCampaign] = useState<Campaign | null>(null)
   const [questions, setQuestions] = useState<PublicQuestion[]>([])
   const [state, setState] = useState<PageState>('loading')
+  const [redirectTo, setRedirectTo] = useState<string | null>(null)
   const [showForm, setShowForm] = useState(false)
   const [reloadKey, setReloadKey] = useState(0)
   const trackedTicker = useRef('')
   const profileId = profile?.id
+  const routeKey = slug ?? ticker ?? ''
 
   useEffect(() => {
     let cancelled = false
     setState('loading')
-    getCompanyByTicker(ticker)
-      .then(async found => {
+
+    async function resolveCompany(): Promise<CompanyLookup> {
+      if (slug) return { company: await getCompanyBySlug(slug) }
+      return getCompanyByTicker(ticker ?? '')
+    }
+
+    resolveCompany()
+      .then(async result => {
         if (cancelled) return
-        if (!found) {
+        if (result.redirectTicker) {
+          track('ticker_route_redirected', { from: ticker, to: result.redirectTicker })
+          setRedirectTo(`/company/${result.redirectTicker}`)
+          setState('redirect')
+          return
+        }
+        if (!result.company) {
           setState('missing')
           return
         }
+        const found = result.company
         setCompany(found)
         if (trackedTicker.current !== found.ticker) {
           trackedTicker.current = found.ticker
-          track('company_page_viewed', { ticker: found.ticker, logged_in: Boolean(profileId) })
+          track('company_directory_page_viewed', { ticker: found.ticker, logged_in: Boolean(profileId) })
         }
         const [campaignData, questionData] = await Promise.all([getCampaign(found.id, profileId), getQuestions(found.id, profileId)])
         if (cancelled) return
@@ -63,7 +81,11 @@ export function CampaignPage() {
     return () => {
       cancelled = true
     }
-  }, [ticker, profileId, reloadKey])
+  }, [routeKey, slug, ticker, profileId, reloadKey])
+
+  if (state === 'redirect' && redirectTo) {
+    return <Navigate to={redirectTo} replace />
+  }
 
   if (state === 'loading') {
     return (
@@ -78,15 +100,15 @@ export function CampaignPage() {
   if (state === 'missing') {
     return (
       <EmptyState
-        title={`We don't have ${ticker.toUpperCase()} yet`}
-        copy="No campaign exists for this ticker. You can request the company and we will open a public campaign for it."
+        title={`We don't have ${(ticker ?? slug ?? '').toUpperCase()} yet`}
+        copy="No company matches this address. You can request the company and we will review it for the directory."
         action={
           <div className="empty-actions">
             <Link className="btn primary" to="/request-company">
               Request this company
             </Link>
             <Link className="btn secondary" to="/discover">
-              Browse campaigns
+              Browse the directory
             </Link>
           </div>
         }
@@ -95,7 +117,7 @@ export function CampaignPage() {
   }
 
   if (state === 'error' || !company) {
-    return <ErrorState copy="We could not load this campaign. Please try again." onRetry={() => setReloadKey(key => key + 1)} />
+    return <ErrorState copy="We could not load this company. Please try again." onRetry={() => setReloadKey(key => key + 1)} />
   }
 
   const voteTotal = questions.reduce((sum, question) => sum + question.votes, 0)
@@ -146,65 +168,175 @@ export function CampaignPage() {
         <ShareMenu company={company} />
       </div>
 
+      {campaign ? (
+        <ActiveCampaign
+          company={company}
+          campaign={campaign}
+          questions={questions}
+          voteTotal={voteTotal}
+          progress={progress}
+          onCampaignChange={setCampaign}
+          onVote={onVote}
+          onAskQuestion={() => {
+            if (requireAuth('submit a question')) setShowForm(true)
+          }}
+        />
+      ) : (
+        <NoCampaignYet
+          company={company}
+          onStarted={created => setCampaign(created)}
+          onAskFirstQuestion={() => {
+            if (requireAuth('ask the first question')) setShowForm(true)
+          }}
+        />
+      )}
+
+      {showForm && (
+        <QuestionForm
+          company={company}
+          campaign={campaign}
+          onClose={() => setShowForm(false)}
+          onSaved={(question, nextCampaign) => {
+            setQuestions(current => (current.some(item => item.id === question.id) ? current : [question, ...current]))
+            if (nextCampaign) setCampaign(nextCampaign)
+            setShowForm(false)
+          }}
+        />
+      )}
+    </div>
+  )
+}
+
+function NoCampaignYet({
+  company,
+  onStarted,
+  onAskFirstQuestion,
+}: {
+  company: PublicCompany
+  onStarted: (campaign: Campaign) => void
+  onAskFirstQuestion: () => void
+}) {
+  const { profile, requireAuth } = useMvp()
+  const [starting, setStarting] = useState(false)
+  const [error, setError] = useState('')
+
+  async function handleStart() {
+    if (starting) return
+    if (!requireAuth('start this campaign')) return
+    setStarting(true)
+    setError('')
+    track('campaign_start_started', { ticker: company.ticker, trigger: 'start_button' })
+    try {
+      const created = await startCampaign(company.id, profile?.id)
+      if (created) {
+        track('campaign_created', { ticker: company.ticker, trigger: 'start_button' })
+        onStarted(created)
+      } else {
+        setError('We could not start this campaign. Please try again.')
+      }
+    } catch {
+      setError('We could not start this campaign. Please try again.')
+    } finally {
+      setStarting(false)
+    }
+  }
+
+  return (
+    <EmptyState
+      icon={<MessageSquare size={22} />}
+      title="No shareholder campaign has started for this company."
+      copy="Be the first to request a dedicated management interview and help decide what shareholders want management to answer."
+      action={
+        <div className="empty-actions-column">
+          <div className="empty-actions">
+            <button className="btn primary" onClick={() => void handleStart()} disabled={starting}>
+              {starting ? 'Starting…' : 'Start this campaign'}
+            </button>
+            <button className="btn secondary" onClick={onAskFirstQuestion}>
+              Ask the first question
+            </button>
+          </div>
+          {error && <p className="form-error">{error}</p>}
+        </div>
+      }
+    />
+  )
+}
+
+function ActiveCampaign({
+  company,
+  campaign,
+  questions,
+  voteTotal,
+  progress,
+  onCampaignChange,
+  onVote,
+  onAskQuestion,
+}: {
+  company: PublicCompany
+  campaign: Campaign
+  questions: PublicQuestion[]
+  voteTotal: number
+  progress: number
+  onCampaignChange: (campaign: Campaign | null) => void
+  onVote: (question: PublicQuestion) => void
+  onAskQuestion: () => void
+}) {
+  return (
+    <>
       <div className="status-panel">
         <div>
           <span className="eyebrow">Campaign status</span>
-          <h2>{campaign?.status ?? company.status}</h2>
+          <h2>{campaign.status}</h2>
           <p>Management participation is voluntary and has not been confirmed.</p>
         </div>
         <Badge tone="gold">Early campaign</Badge>
       </div>
 
-      {campaign && <CampaignActions company={company} campaign={campaign} onCampaignChange={setCampaign} />}
+      <CampaignActions company={company} campaign={campaign} onCampaignChange={onCampaignChange} />
 
-      {campaign && (
-        <>
-          <div className="campaign-metrics">
-            <div>
-              <Users size={16} />
-              <b>{campaign.supporters}</b>
-              <span>supporters</span>
-            </div>
-            <div>
-              <ShieldCheck size={16} />
-              <b>{campaign.currentShareholders}</b>
-              <span>current shareholders</span>
-            </div>
-            <div>
-              <Users size={16} />
-              <b>{campaign.followers}</b>
-              <span>followers</span>
-            </div>
-            <div>
-              <MessageSquare size={16} />
-              <b>{questions.length}</b>
-              <span>questions</span>
-            </div>
-            <div>
-              <ArrowUp size={16} />
-              <b>{voteTotal}</b>
-              <span>votes cast</span>
-            </div>
-          </div>
+      <div className="campaign-metrics">
+        <div>
+          <Users size={16} />
+          <b>{campaign.supporters}</b>
+          <span>supporters</span>
+        </div>
+        <div>
+          <ShieldCheck size={16} />
+          <b>{campaign.currentShareholders}</b>
+          <span>current shareholders</span>
+        </div>
+        <div>
+          <Users size={16} />
+          <b>{campaign.followers}</b>
+          <span>followers</span>
+        </div>
+        <div>
+          <MessageSquare size={16} />
+          <b>{questions.length}</b>
+          <span>questions</span>
+        </div>
+        <div>
+          <ArrowUp size={16} />
+          <b>{voteTotal}</b>
+          <span>votes cast</span>
+        </div>
+      </div>
 
-          <div className="progress-panel">
-            <div>
-              <b>
-                At {campaign.outreachTarget} supporters, Grround Floor makes a formal interview request to management.
-              </b>
-              <span>We do not guarantee that management will accept.</span>
-            </div>
-            <div className="progress-meter">
-              <div className="progress-bar" role="progressbar" aria-valuenow={campaign.supporters} aria-valuemin={0} aria-valuemax={campaign.outreachTarget}>
-                <i style={{ width: `${Math.max(progress, 2)}%` }} />
-              </div>
-              <span>
-                {campaign.supporters} of {campaign.outreachTarget} supporters
-              </span>
-            </div>
+      <div className="progress-panel">
+        <div>
+          <b>At {campaign.outreachTarget} supporters, GroundFloor makes a formal interview request to management.</b>
+          <span>We do not guarantee that management will accept.</span>
+        </div>
+        <div className="progress-meter">
+          <div className="progress-bar" role="progressbar" aria-valuenow={campaign.supporters} aria-valuemin={0} aria-valuemax={campaign.outreachTarget}>
+            <i style={{ width: `${Math.max(progress, 2)}%` }} />
           </div>
-        </>
-      )}
+          <span>
+            {campaign.supporters} of {campaign.outreachTarget} supporters
+          </span>
+        </div>
+      </div>
 
       <div className="campaign-grid">
         <section>
@@ -213,26 +345,15 @@ export function CampaignPage() {
               <span className="eyebrow">Shareholder questions</span>
               <h2>What would you ask management?</h2>
             </div>
-            <button
-              className="btn primary"
-              onClick={() => {
-                if (requireAuth('submit a question')) setShowForm(true)
-              }}
-            >
+            <button className="btn primary" onClick={onAskQuestion}>
               <Plus size={15} /> Submit a question
             </button>
           </div>
           <p className="guidance">Ask one clear question. Avoid speeches, allegations, and questions that can be answered with a basic search.</p>
           {questions.length === 0 ? (
-            <EmptyState
-              icon={<MessageSquare size={22} />}
-              title="No questions yet"
-              copy="Be the first shareholder to put a question to management."
-            />
+            <EmptyState icon={<MessageSquare size={22} />} title="No questions yet" copy="Be the first shareholder to put a question to management." />
           ) : (
-            questions.map(question => (
-              <QuestionCard key={question.id} question={question} company={company} onVote={() => void onVote(question)} />
-            ))
+            questions.map(question => <QuestionCard key={question.id} question={question} company={company} onVote={() => onVote(question)} />)
           )}
         </section>
 
@@ -245,42 +366,29 @@ export function CampaignPage() {
               <li>Something management alone can answer — not public filings.</li>
             </ul>
           </div>
-          {campaign && (
-            <div className="panel">
-              <span className="eyebrow">Campaign timeline</span>
-              <div className="timeline-row">
-                <CalendarDays size={15} />
-                <div>
-                  <b>Campaign launched</b>
-                  <small>{new Date(campaign.launchedAt).toLocaleDateString(undefined, { year: 'numeric', month: 'long', day: 'numeric' })}</small>
-                </div>
-              </div>
-              <div className="timeline-row">
-                <Users size={15} />
-                <div>
-                  <b>Interview request</b>
-                  <small>Sent when the campaign reaches {campaign.outreachTarget} supporters.</small>
-                </div>
+          <div className="panel">
+            <span className="eyebrow">Campaign timeline</span>
+            <div className="timeline-row">
+              <CalendarDays size={15} />
+              <div>
+                <b>Campaign launched</b>
+                <small>{new Date(campaign.launchedAt).toLocaleDateString(undefined, { year: 'numeric', month: 'long', day: 'numeric' })}</small>
               </div>
             </div>
-          )}
+            <div className="timeline-row">
+              <Users size={15} />
+              <div>
+                <b>Interview request</b>
+                <small>Sent when the campaign reaches {campaign.outreachTarget} supporters.</small>
+              </div>
+            </div>
+          </div>
           <p className="ownership-disclaimer">
             <ShieldCheck size={15} /> Ownership status is self-reported. Position sizes are never displayed publicly.
           </p>
         </aside>
       </div>
-
-      {showForm && (
-        <QuestionForm
-          company={company}
-          onClose={() => setShowForm(false)}
-          onSaved={question => {
-            setQuestions(current => (current.some(item => item.id === question.id) ? current : [question, ...current]))
-            setShowForm(false)
-          }}
-        />
-      )}
-    </div>
+    </>
   )
 }
 
@@ -313,7 +421,6 @@ function QuestionCard({ question, company, onVote }: { question: PublicQuestion;
         <div className="question-meta">
           <span className="topic-tag">{question.topic}</span>
           <time dateTime={question.createdAt}>{new Date(question.createdAt).toLocaleDateString()}</time>
-          {question.sample && <Badge tone="neutral">Example</Badge>}
           {question.status !== 'Open' && <Badge tone="green">{question.status}</Badge>}
         </div>
         <h3>{question.text}</h3>
@@ -333,12 +440,14 @@ function QuestionCard({ question, company, onVote }: { question: PublicQuestion;
 
 function QuestionForm({
   company,
+  campaign,
   onClose,
   onSaved,
 }: {
   company: PublicCompany
+  campaign: Campaign | null
   onClose: () => void
-  onSaved: (question: PublicQuestion) => void
+  onSaved: (question: PublicQuestion, nextCampaign?: Campaign) => void
 }) {
   const { profile } = useMvp()
   const [text, setText] = useState('')
@@ -359,9 +468,17 @@ function QuestionForm({
     setBusy(true)
     setError('')
     try {
+      let activeCampaign = campaign ?? undefined
+      if (!activeCampaign) {
+        track('campaign_start_started', { ticker: company.ticker, trigger: 'ask_first_question' })
+        const created = await startCampaign(company.id, profile?.id)
+        if (!created) throw new Error('Could not start campaign')
+        activeCampaign = created
+        track('campaign_created', { ticker: company.ticker, trigger: 'ask_first_question' })
+      }
       const saved = await submitQuestion(company.id, { text: trimmed, topic, shareholderStatus: status, anonymous }, profile)
       track('question_submitted', { ticker: company.ticker, topic, shareholder_status: status })
-      onSaved(saved)
+      onSaved(saved, activeCampaign)
     } catch {
       setError('We could not save your question. Please try again.')
       setBusy(false)
@@ -372,7 +489,7 @@ function QuestionForm({
     <Modal onClose={onClose}>
       <form onSubmit={submit}>
         <span className="eyebrow">Ask {company.ticker} management</span>
-        <h2>Submit one clear question.</h2>
+        <h2>{campaign ? 'Submit one clear question.' : 'Ask the first question.'}</h2>
         <p className="modal-copy">
           Your question will be public. Do not include material non-public information, personal attacks, or unsupported allegations.
         </p>

@@ -28,7 +28,7 @@ export function AppShell({ children }: { children: ReactNode }) {
       <aside className={menuOpen ? 'sidebar open' : 'sidebar'}>
         <Link to="/" className="logo-mark">
           <span>G</span>
-          <b>Grround Floor</b>
+          <b>GroundFloor</b>
         </Link>
         <nav aria-label="Primary">
           {navItems.map(({ to, label, icon: Icon, end }) => (
@@ -73,7 +73,7 @@ export function AppShell({ children }: { children: ReactNode }) {
             <Menu size={18} />
           </button>
           <Link to="/" className="topbar-brand">
-            Grround Floor
+            GroundFloor
           </Link>
           <div className="topbar-right">
             {demoMode && (

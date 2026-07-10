@@ -1,6 +1,6 @@
-﻿# Grround Floor MVP
+﻿# GroundFloor MVP
 
-Grround Floor is a shareholder campaign platform: people can discover companies, support an interview campaign, submit and vote on management questions, and follow campaign updates. Management participation is voluntary and campaign metrics are shown only when backed by stored data.
+GroundFloor is a shareholder campaign platform: people can discover companies, support an interview campaign, submit and vote on management questions, and follow campaign updates. Management participation is voluntary and campaign metrics are shown only when backed by stored data.
 
 ## Run locally
 
@@ -19,12 +19,24 @@ Copy `.env.example` to `.env.local` and provide:
 - `VITE_POSTHOG_KEY` and optionally `VITE_POSTHOG_HOST` for product analytics.
 - `VITE_SITE_URL` for magic-link redirects.
 
-Apply `supabase/migrations/202607100001_grround_floor_mvp.sql` to a Supabase project before inviting real users. The migration creates profiles, companies, campaigns, questions, votes, requests, notifications, attribution, referrals, and RLS policies. Seed public companies and campaigns through the Supabase dashboard or a server-side seed script; never ship service-role credentials to the browser.
+Apply the migrations in `supabase/migrations/` (in filename order) to a Supabase project before inviting real users:
+
+1. `202607100001_grround_floor_mvp.sql` — profiles, campaigns, questions, votes, requests, notifications, attribution, referrals, and RLS policies.
+2. `202607110001_company_universe_core.sql` — extends `companies` and adds `securities`/`company_aliases`, real search (`search_companies`), and on-demand campaign creation (`start_campaign`). See `docs/company-universe.md`.
+
+These migrations were written and reviewed carefully but have not been applied to or tested against a live Supabase project in this environment — verify them against a scratch project before using them in production.
+
+Populate the company directory by running `npm run bootstrap:generate`, which reads `src/data/companyDirectory.ts` and writes an idempotent SQL file to `supabase/seed/`. Apply that file to your Supabase project yourself (CLI, dashboard SQL editor, or `psql`) — it is never run automatically, and it only ever creates companies/securities/aliases, never campaigns, questions, or users.
+
+Never ship service-role or provider API credentials to the browser.
 
 ## Quality checks
 
 ```bash
 npm run lint
+npm run typecheck
+npm run test        # Vitest — always runs in demo mode, no credentials needed
+npm run test:e2e    # Playwright — always runs in demo mode, no credentials needed
 npm run build
 ```
 
@@ -47,8 +59,16 @@ Before accepting production users, publish Terms of Use, Privacy Policy, communi
 ## Project structure
 
 - `src/pages/` — top-level routed pages (Home, Discover, NotFound).
-- `src/components/` — the campaign page, dashboard, request form, auth modal, and shared UI primitives.
+- `src/components/` — the campaign page, dashboard, request form, auth modal, search, and shared UI primitives.
 - `src/context/` — the auth/profile context (`useMvp`).
 - `src/lib/` — Supabase client, API layer (Supabase with a localStorage demo fallback), analytics, helpers.
+- `src/data/companyDirectory.ts` — the curated Phase 1 company/security/alias directory (see `docs/company-universe.md`); the single source of truth for demo mode, tests, and the bootstrap generator.
+- `scripts/generate-company-bootstrap.ts` — generates the Supabase bootstrap SQL from `companyDirectory.ts` (`npm run bootstrap:generate`).
 - `src/index.css` — design tokens and base styles; `src/App.css` — component and page styles.
-- `supabase/` — schema migration and fictional seed data.
+- `supabase/` — schema migrations and seed data (fictional community-activity seed for local dev, plus the generated company-directory bootstrap).
+- `e2e/` — Playwright end-to-end tests (always demo mode).
+- `docs/company-universe.md` — architecture, scope, and what is/isn't built for the company directory.
+
+## Company directory (Phase 1)
+
+GroundFloor ships with a curated launch directory of ~225 recognizable U.S.-listed companies — not a comprehensive, provider-verified screen of every eligible company. See `docs/company-universe.md` for the full architecture, what's built, and what's explicitly deferred to a future phase.

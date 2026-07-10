@@ -32,6 +32,7 @@ function App() {
           <Route path="/discover" element={<DiscoverPage />} />
           <Route path="/company/:ticker" element={<CampaignPage />} />
           <Route path="/companies" element={<DashboardPage />} />
+          <Route path="/companies/:slug" element={<CampaignPage />} />
           <Route
             path="/request-company"
             element={

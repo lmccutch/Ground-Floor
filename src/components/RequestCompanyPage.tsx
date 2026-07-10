@@ -1,12 +1,13 @@
 import { useState } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { Link, useNavigate } from 'react-router-dom'
 import { useForm } from 'react-hook-form'
 import { z } from 'zod'
 import { zodResolver } from '@hookform/resolvers/zod'
-import { Check, ChevronRight } from 'lucide-react'
+import { Check, ChevronRight, Search } from 'lucide-react'
 import { useMvp } from '../context/useMvp'
-import { requestCompany, type ShareholderStatus } from '../lib/api'
+import { requestCompany, type PublicCompany, type ShareholderStatus } from '../lib/api'
 import { track } from '../lib/analytics'
+import { Monogram } from './ui'
 
 const statuses: ShareholderStatus[] = ['Current shareholder', 'Former shareholder', 'Considering investing', 'Following the company', 'Prefer not to say']
 
@@ -26,6 +27,7 @@ export function RequestCompanyPage() {
   const navigate = useNavigate()
   const { profile, requireAuth } = useMvp()
   const [done, setDone] = useState(false)
+  const [matchedCompany, setMatchedCompany] = useState<PublicCompany | null>(null)
   const [submitError, setSubmitError] = useState('')
   const {
     register,
@@ -40,12 +42,45 @@ export function RequestCompanyPage() {
     if (!requireAuth('request a company')) return
     setSubmitError('')
     try {
-      await requestCompany(values, profile?.id)
-      track('company_requested', { ticker: values.ticker.toUpperCase() })
+      const result = await requestCompany(values, profile?.id)
+      if ('matchedCompany' in result) {
+        track('missing_company_suggested', { ticker: values.ticker.toUpperCase(), matched_existing: true })
+        setMatchedCompany(result.matchedCompany)
+        return
+      }
+      track('missing_company_suggested', { ticker: values.ticker.toUpperCase(), matched_existing: false })
       setDone(true)
     } catch {
       setSubmitError('We could not save your request. Please try again.')
     }
+  }
+
+  if (matchedCompany) {
+    return (
+      <div className="request-confirmation">
+        <div className="success-icon">
+          <Search size={24} />
+        </div>
+        <span className="eyebrow">Already in the directory</span>
+        <h1>We found this company.</h1>
+        <p>{matchedCompany.name} is already part of the GroundFloor directory — no need to submit a duplicate request.</p>
+        <Link to={`/company/${matchedCompany.ticker}`} className="matched-company-card">
+          <Monogram ticker={matchedCompany.ticker} accent={matchedCompany.accent} />
+          <span>
+            <b>{matchedCompany.name}</b>
+            <small>
+              {matchedCompany.ticker} · {matchedCompany.exchange}
+            </small>
+          </span>
+          <ChevronRight size={16} />
+        </Link>
+        <div className="empty-actions">
+          <button className="btn secondary" onClick={() => navigate('/')}>
+            Back home
+          </button>
+        </div>
+      </div>
+    )
   }
 
   if (done) {
@@ -56,7 +91,7 @@ export function RequestCompanyPage() {
         </div>
         <span className="eyebrow">Request received</span>
         <h1>Your request has been added.</h1>
-        <p>The more shareholders who join, the stronger the case for management to participate.</p>
+        <p>The more shareholders who join, the stronger the case for adding it to the directory.</p>
         <div className="empty-actions">
           <button className="btn primary" onClick={() => navigate('/discover')}>
             Find another company <ChevronRight size={15} />
@@ -72,20 +107,20 @@ export function RequestCompanyPage() {
   return (
     <div className="request-page">
       <div className="request-intro">
-        <span className="eyebrow">Early campaigns</span>
+        <span className="eyebrow">Suggest a company</span>
         <h1>Can’t find the company?</h1>
-        <p>Request it. We’ll create a public campaign so other shareholders can join, ask questions, and build a clear signal of demand.</p>
+        <p>Suggest it for review. Once it's added to the directory, any shareholder can start a campaign and build a clear signal of demand.</p>
       </div>
       <form className="panel request-form" onSubmit={handleSubmit(submit)} noValidate>
         <label className="field">
           Company name
-          <input className="text-input" {...register('name')} placeholder="Example: Northstar Grid Systems" />
+          <input className="text-input" {...register('name')} placeholder="Example: Instacart" />
           {errors.name && <small className="form-error">Enter the company name.</small>}
         </label>
         <div className="field-row">
           <label className="field">
             Ticker
-            <input className="text-input" {...register('ticker')} placeholder="NGS" />
+            <input className="text-input" {...register('ticker')} placeholder="CART" />
             {errors.ticker && <small className="form-error">Enter a ticker.</small>}
           </label>
           <label className="field">
@@ -124,7 +159,7 @@ export function RequestCompanyPage() {
         <button className="btn primary full" disabled={isSubmitting} type="submit">
           {isSubmitting ? 'Adding request…' : 'Request this company'} <ChevronRight size={15} />
         </button>
-        <p className="form-footnote">By submitting, you agree to the community guidelines. Grround Floor does not provide investment advice.</p>
+        <p className="form-footnote">By submitting, you agree to the community guidelines. GroundFloor does not provide investment advice.</p>
       </form>
     </div>
   )

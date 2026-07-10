@@ -38,13 +38,24 @@ export function identify(userId: string, properties?: Record<string, unknown>) {
   enqueue(posthog => posthog.identify(userId, properties))
 }
 
+const ATTRIBUTION_KEY = 'groundfloor-attribution'
+const LEGACY_ATTRIBUTION_KEY = 'grround-floor-attribution'
+
+// One-time migration: carry forward attribution stored under the pre-rename key.
+function migrateLegacyAttribution() {
+  if (localStorage.getItem(ATTRIBUTION_KEY) !== null) return
+  const legacy = localStorage.getItem(LEGACY_ATTRIBUTION_KEY)
+  if (legacy !== null) localStorage.setItem(ATTRIBUTION_KEY, legacy)
+}
+
 export function getAttribution() {
+  migrateLegacyAttribution()
   const params = new URLSearchParams(window.location.search)
   const keys = ['utm_source', 'utm_medium', 'utm_campaign', 'utm_content', 'utm_term']
   const attribution = Object.fromEntries(keys.flatMap(key => (params.get(key) ? [[key, params.get(key)!]] : [])))
-  if (Object.keys(attribution).length) localStorage.setItem('grround-floor-attribution', JSON.stringify(attribution))
+  if (Object.keys(attribution).length) localStorage.setItem(ATTRIBUTION_KEY, JSON.stringify(attribution))
   try {
-    return JSON.parse(localStorage.getItem('grround-floor-attribution') || '{}') as Record<string, string>
+    return JSON.parse(localStorage.getItem(ATTRIBUTION_KEY) || '{}') as Record<string, string>
   } catch {
     return {}
   }
