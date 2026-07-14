@@ -11,7 +11,8 @@
     "typecheck": "tsc -b --noEmit",
     "test": "vitest run",
     "test:e2e": "playwright test",
-    "bootstrap:generate": "tsx scripts/generate-company-bootstrap.ts"
+    "bootstrap:generate": "tsx scripts/generate-company-bootstrap.ts",
+    "verify:rpc-security": "tsx scripts/verify-start-campaign-security.ts"
   },
   "dependencies": {
     "@hookform/resolvers": "^5.4.0",

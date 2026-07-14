@@ -12,6 +12,9 @@ dist
 dist-ssr
 *.local
 
+# Supabase CLI session files
+supabase/.temp
+
 # Test output
 test-results
 playwright-report
