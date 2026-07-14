@@ -278,3 +278,10 @@ placeholder Vite boilerplate) — confirmed by inspection, nothing to fix.
   REPLACE-WITH-PRODUCTION-DOMAIN placeholder still applies.
 - Account deletion / data access requests arrive via the contact inbox and
   must be honored manually until automated flows exist.
+
+## 11. Homepage positioning (added 2026-07-14)
+
+No new production steps — the homepage rewrite changed only copy, structure,
+and `index.html`'s baked-in title/description/OG tags (now reflecting "Where
+shareholders decide what management answers next"). No new env vars, no
+schema changes.

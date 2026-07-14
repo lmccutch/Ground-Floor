@@ -8,7 +8,19 @@ import { useDebouncedValue } from '../lib/useDebouncedValue'
 
 type Status = 'idle' | 'loading' | 'ready' | 'error'
 
-export function SearchAutocomplete({ placeholder = 'Search companies or tickers', autoFocus = false }: { placeholder?: string; autoFocus?: boolean }) {
+export function SearchAutocomplete({
+  placeholder = 'Search companies or tickers',
+  autoFocus = false,
+  onSearchStarted,
+  onResultSelected,
+}: {
+  placeholder?: string
+  autoFocus?: boolean
+  /** Fired once a search actually starts (debounced), in addition to the component's own tracking. */
+  onSearchStarted?: () => void
+  /** Fired when a result is chosen, in addition to the component's own tracking. */
+  onResultSelected?: (result: CompanySearchResult) => void
+}) {
   const navigate = useNavigate()
   const listId = useId()
   const [query, setQuery] = useState('')
@@ -20,6 +32,10 @@ export function SearchAutocomplete({ placeholder = 'Search companies or tickers'
   const containerRef = useRef<HTMLDivElement>(null)
   const requestId = useRef(0)
   const debouncedQuery = useDebouncedValue(query, 250)
+  const onSearchStartedRef = useRef(onSearchStarted)
+  onSearchStartedRef.current = onSearchStarted
+  const onResultSelectedRef = useRef(onResultSelected)
+  onResultSelectedRef.current = onResultSelected
 
   useEffect(() => {
     const trimmed = debouncedQuery.trim()
@@ -31,6 +47,7 @@ export function SearchAutocomplete({ placeholder = 'Search companies or tickers'
     const thisRequest = ++requestId.current
     setStatus('loading')
     track('global_company_search_started', { query_length: trimmed.length })
+    onSearchStartedRef.current?.()
     searchCompanies(trimmed, 10)
       .then(found => {
         if (requestId.current !== thisRequest) return // a newer request superseded this one
@@ -57,6 +74,7 @@ export function SearchAutocomplete({ placeholder = 'Search companies or tickers'
 
   function goToResult(result: CompanySearchResult, position: number) {
     track('search_result_clicked', { ticker: result.ticker, result_position: position, has_campaign: result.hasCampaign })
+    onResultSelectedRef.current?.(result)
     addRecentSearch({ ticker: result.ticker, name: result.name, path: `/company/${result.ticker}` })
     setRecents(getRecentSearches())
     setOpen(false)

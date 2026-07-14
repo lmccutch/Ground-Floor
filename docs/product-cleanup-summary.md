@@ -147,3 +147,25 @@ footer linking all of them, per-route SEO metadata, an MNPI warning in the
 question form, expanded report categories, and eight new analytics events.
 Legal pages are explicitly marked as drafts requiring professional review.
 No schema changes; no RLS changes. Full detail: docs/trust-and-transparency.md.
+
+## Homepage rewrite (2026-07-14)
+
+Rebuilt the homepage around a single positioning statement — "Where
+shareholders decide what management answers next" — replacing the old
+"Direct access to management, powered by shareholders" hero and its
+fabricated illustrative widget (a fictional "Northstar Grid Systems" company
+shown with invented numbers: "62 of 100 supporters", "38" votes). The new
+hero has no fabricated numbers at all.
+
+New eight-section structure: hero (headline, supporting copy, search, two
+CTAs, trust note) → the problem → how it works (real 6-step process, linking
+to `/how-it-works`) → live participation (real campaign data only, honest
+empty state, never the full directory) → an explicitly-labelled illustrative
+example question (no real company attached) → why collective participation
+matters → trust principles (linking to Transparency/Guidelines/Disclaimer) →
+final CTA. Full detail: `docs/core-user-experience.md`.
+
+Removed the old four-step marketing summary and the dark "traditional vs.
+GroundFloor" comparison block (and their now-unused CSS) since the new
+"how it works" and "why this matters" sections replace them with the real
+lifecycle and non-activist framing the new copy requires.

@@ -206,3 +206,83 @@ publicly anywhere.
   transparency_viewed, report_reason_selected, account_deletion_requested.
 - Public policies documenting this experience live at /guidelines,
   /voting-rules, /transparency, and /moderation.
+
+## Homepage (2026-07-14)
+
+`src/pages/HomePage.tsx` — positioning: "Where shareholders decide what
+management answers next." Supporting copy: "GroundFloor brings individual
+shareholders together around public companies so they can submit, rank, and
+support the questions they want management to answer." Banned phrases
+(guaranteed access, official company campaign, verified shareholders, company
+partnership, institutional-grade, exclusive information, beat the market,
+democratize finance) do not appear anywhere on the page — enforced by an e2e
+assertion that greps the full rendered page text.
+
+### Structure
+
+1. **Hero** — headline, one supporting sentence, the existing
+   `SearchAutocomplete` (unchanged component, given two optional new
+   callback props — see Search below), two CTAs ("Find a company" →
+   `/discover`, "See how it works" → `/how-it-works`), and a trust note
+   ("Management participation is voluntary and never guaranteed."). No
+   metrics, cards, or charts in the hero itself.
+2. **The problem** — three short sentences on the institutional/individual
+   information gap. No activist language.
+3. **How it works** — the real 6-step process (find → support/start →
+   submit & rank → GroundFloor prepares outreach → management may
+   participate → interview/transcript published if they do), linking to the
+   full `/how-it-works` page.
+4. **Live participation** — real data only, reusing `getDiscoverHighlights()`
+   (near-threshold → most-supported → newest, deduped, capped at 3). Shows an
+   `EmptyState` inviting the visitor to be first when nothing real exists yet
+   — never a random slice of the 225-company directory, and never a
+   fabricated example.
+5. **Illustrative example** — one example shareholder question, explicitly
+   tagged "Illustrative example — not a real question or company", with no
+   company identity (no ticker, no monogram) attached, so it can never be
+   mistaken for a real campaign.
+6. **Why collective participation matters** — three sentences, no activist
+   framing.
+7. **Trust principles** — six short principles (no investment advice, no
+   guaranteed interviews, no issuer control over ranking, self-reported
+   status, public broadly-distributed answers, disclosed conflicts), linking
+   to Transparency, Community Guidelines, and the Investment Disclaimer.
+8. **Final CTA** — "Find a company you own or follow." with a direct button
+   to Discover.
+
+### Real-data and empty-state rules
+
+`getDiscoverHighlights()` (built in the core-experience phase) is reused
+as-is — no second data path was created. The homepage never falls back to
+showing companies with no campaign (the old behavior); when there is no real
+campaign activity anywhere, the honest empty state renders instead.
+
+### Search
+
+The homepage uses the same `SearchAutocomplete` component as Discover and
+the app-wide search — not a second implementation. It gained two optional
+props, `onSearchStarted` and `onResultSelected`, so a page can layer its own
+analytics on top of the component's existing tracking without duplicating
+search logic; both are stored in refs so they don't need to appear in the
+debounce effect's dependency array. Exact ticker priority, name search,
+former-ticker resolution, keyboard navigation, and recent searches are all
+inherited unchanged and covered by both `e2e/company-universe.spec.ts` and
+the new `e2e/homepage.spec.ts`.
+
+### Analytics events added
+
+`homepage_viewed`, `homepage_primary_cta_clicked` {source},
+`homepage_secondary_cta_clicked`, `homepage_how_it_works_clicked`,
+`homepage_search_started`, `homepage_search_result_clicked` {ticker},
+`homepage_trust_link_clicked` {target}, `homepage_final_cta_clicked`. Search
+events never carry raw query text — only `query_length` (existing policy,
+inherited from `SearchAutocomplete`'s own events) — verified by a Vitest test
+that inspects every mocked `track()` call for the searched string.
+
+### SEO
+
+`index.html`'s baked-in title/description/OG/Twitter tags now match the new
+positioning (the effective homepage metadata, since other routes override
+and then restore them via `usePageMeta` on navigation). `HomePage` also
+calls `usePageMeta` directly for consistency and testability. Canonical path
+is `/`; already listed in `sitemap.xml`.

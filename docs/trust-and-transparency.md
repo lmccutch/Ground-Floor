@@ -119,3 +119,13 @@ interview has occurred yet, so these are commitments, not descriptions.
    contact-based process must be honored manually until they are.
 6. Securities-law review of the overall model (question solicitation,
    outreach, publishing management statements) has not been performed.
+
+## Homepage trust surface (2026-07-14)
+
+The homepage now carries its own trust note in the hero ("Management
+participation is voluntary and never guaranteed.") and a dedicated Trust
+Principles section linking to Transparency, Community Guidelines, and the
+Investment Disclaimer — see `docs/core-user-experience.md` for the full
+homepage structure. An e2e test (`e2e/homepage.spec.ts`) asserts none of the
+banned overclaiming phrases from Prompt 4 appear anywhere in the rendered
+homepage text.

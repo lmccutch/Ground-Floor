@@ -1,6 +1,6 @@
 ﻿# GroundFloor MVP
 
-GroundFloor is a shareholder campaign platform: people can discover companies, support an interview campaign, submit and vote on management questions, and follow campaign updates. Management participation is voluntary and campaign metrics are shown only when backed by stored data.
+GroundFloor is where shareholders decide what management answers next: individual shareholders combine their questions for a public company into one ranked, public request for a management interview. Management participation is voluntary and campaign metrics are shown only when backed by stored data.
 
 ## Run locally
 
@@ -90,6 +90,7 @@ Before accepting production users, publish Terms of Use, Privacy Policy, communi
 - `docs/company-universe.md` — architecture, scope, and what is/isn't built for the company directory.
 - `docs/core-user-experience.md` — campaign lifecycle, timeline/milestone rules, question permissions, feedback, notifications, Discover ranking, and the analytics event list.
 - `docs/trust-and-transparency.md` — the public trust/legal pages (About, FAQ, Transparency, Privacy, Terms, …), reporting categories, MNPI protections, contact method, and the legal-review gap list. The Privacy Policy, Terms, and Investment Disclaimer are drafts requiring professional legal review before commercial launch.
+- Homepage structure, positioning, real-data/empty-state rules, and analytics events are documented in `docs/core-user-experience.md`.
 
 ## Company directory (Phase 1)
 
