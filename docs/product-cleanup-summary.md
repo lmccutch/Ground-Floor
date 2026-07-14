@@ -137,3 +137,13 @@ No fake users, campaigns, questions, votes, milestones, or management
 activity anywhere; every new control does something real; every new view has
 loading/empty/success/error states; demo and Supabase data remain strictly
 separated; no existing RLS weakened (only added).
+
+## Trust and transparency phase (2026-07-14)
+
+Eleven public trust/legal pages (About, How It Works, FAQ, Community
+Guidelines, Voting Rules, Transparency incl. conflicts of interest,
+Moderation Policy, Contact, Privacy, Terms, Investment Disclaimer), a site
+footer linking all of them, per-route SEO metadata, an MNPI warning in the
+question form, expanded report categories, and eight new analytics events.
+Legal pages are explicitly marked as drafts requiring professional review.
+No schema changes; no RLS changes. Full detail: docs/trust-and-transparency.md.

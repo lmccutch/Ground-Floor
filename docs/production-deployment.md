@@ -265,3 +265,16 @@ placeholder Vite boilerplate) — confirmed by inspection, nothing to fix.
 4. Re-run the magic-link sign-in flow once against the production domain
    before announcing launch — the redirect-URL allow-list is a common first-
    deploy breakage point.
+
+## 10. Trust-layer launch items (added 2026-07-14)
+
+- Set `VITE_CONTACT_EMAIL` in the hosting env — the Contact page and legal
+  documents fall back to a visible placeholder address until it is set.
+- The Privacy Policy, Terms of Use, and Investment Disclaimer are drafts:
+  professional legal review is required before commercial launch (each page
+  carries this notice; see docs/trust-and-transparency.md for the full gap
+  list, including the governing-law placeholder in the Terms).
+- `sitemap.xml` now lists all trust routes — the
+  REPLACE-WITH-PRODUCTION-DOMAIN placeholder still applies.
+- Account deletion / data access requests arrive via the contact inbox and
+  must be honored manually until automated flows exist.

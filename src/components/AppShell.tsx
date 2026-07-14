@@ -95,8 +95,61 @@ export function AppShell({ children }: { children: ReactNode }) {
           </div>
         </header>
         <main className="page-content">{children}</main>
+        <SiteFooter />
         <FeedbackWidget />
       </div>
     </div>
+  )
+}
+
+const footerColumns: { heading: string; links: [string, string][] }[] = [
+  {
+    heading: 'GroundFloor',
+    links: [
+      ['/about', 'About'],
+      ['/how-it-works', 'How It Works'],
+      ['/faq', 'FAQ'],
+      ['/contact', 'Contact'],
+    ],
+  },
+  {
+    heading: 'Policies',
+    links: [
+      ['/transparency', 'Transparency'],
+      ['/guidelines', 'Community Guidelines'],
+      ['/voting-rules', 'Voting Rules'],
+      ['/moderation', 'Moderation Policy'],
+    ],
+  },
+  {
+    heading: 'Legal',
+    links: [
+      ['/privacy', 'Privacy'],
+      ['/terms', 'Terms'],
+      ['/disclaimer', 'Investment Disclaimer'],
+    ],
+  },
+]
+
+function SiteFooter() {
+  return (
+    <footer className="site-footer">
+      <nav className="footer-columns" aria-label="Footer">
+        {footerColumns.map(column => (
+          <div key={column.heading} className="footer-column">
+            <span className="footer-heading">{column.heading}</span>
+            {column.links.map(([to, label]) => (
+              <Link key={to} to={to}>
+                {label}
+              </Link>
+            ))}
+          </div>
+        ))}
+      </nav>
+      <p className="footer-note">
+        GroundFloor is not affiliated with any company shown, does not provide investment advice, and does not verify
+        share ownership. Management participation is voluntary and never guaranteed.
+      </p>
+    </footer>
   )
 }

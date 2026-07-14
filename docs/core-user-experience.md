@@ -193,3 +193,16 @@ publicly anywhere.
   expose `updated_at`).
 - Campaign statuses are advanced by admins via SQL/dashboard; there is no
   in-app admin tooling yet (unchanged from before this phase).
+
+## Trust-layer additions (2026-07-14)
+
+- Report categories expanded and centralized in `src/lib/reporting.ts`
+  (spam, abuse, manipulation, duplicate, misinformation, personal
+  information, MNPI, other) — free-text column, no migration needed.
+- The question form now shows a visible MNPI warning before submission,
+  linking to the Community Guidelines.
+- New analytics events: trust_page_viewed, faq_item_opened,
+  contact_link_clicked, disclaimer_viewed, community_guidelines_viewed,
+  transparency_viewed, report_reason_selected, account_deletion_requested.
+- Public policies documenting this experience live at /guidelines,
+  /voting-rules, /transparency, and /moderation.

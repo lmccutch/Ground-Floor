@@ -89,6 +89,7 @@ Before accepting production users, publish Terms of Use, Privacy Policy, communi
 - `e2e/` — Playwright end-to-end tests (always demo mode).
 - `docs/company-universe.md` — architecture, scope, and what is/isn't built for the company directory.
 - `docs/core-user-experience.md` — campaign lifecycle, timeline/milestone rules, question permissions, feedback, notifications, Discover ranking, and the analytics event list.
+- `docs/trust-and-transparency.md` — the public trust/legal pages (About, FAQ, Transparency, Privacy, Terms, …), reporting categories, MNPI protections, contact method, and the legal-review gap list. The Privacy Policy, Terms, and Investment Disclaimer are drafts requiring professional legal review before commercial launch.
 
 ## Company directory (Phase 1)
 

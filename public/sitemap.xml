@@ -1,29 +1,31 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <!--
-  GroundFloor — Phase 1 sitemap.
+  GroundFloor sitemap.
 
-  Deliberately minimal: only pages that exist and have real, meaningful
-  content today. Explicitly excluded:
+  Lists real, meaningful public pages: the home page, the directory, and the
+  trust/legal pages. Deliberately excluded:
     - The ~225 individual company/campaign pages (/company/:ticker,
       /companies/:slug). Nearly all currently show the honest "no campaign
-      has started" empty state — that is not meaningful indexable content,
-      and listing them would misrepresent an empty directory as active
-      campaigns. Add per-company URLs once a meaningful share of them have
-      real campaign activity, not before.
-    - About, How It Works (as a standalone page), FAQ, Community Guidelines,
-      and Transparency. None of these pages exist yet in this Phase 1
-      build (see App.tsx for the current route list). Sitemap expansion for
-      them is deferred until they're actually built — do not add entries
-      for pages that don't exist.
+      has started" empty state — that is not meaningful indexable content.
+      Add per-company URLs once a meaningful share have real activity.
+    - /companies (the private dashboard) and /request-company (a form
+      requiring sign-in to complete).
 
   REPLACE-WITH-PRODUCTION-DOMAIN before deploying — see
   docs/production-deployment.md.
 -->
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
-  <url>
-    <loc>https://REPLACE-WITH-PRODUCTION-DOMAIN/</loc>
-  </url>
-  <url>
-    <loc>https://REPLACE-WITH-PRODUCTION-DOMAIN/discover</loc>
-  </url>
+  <url><loc>https://REPLACE-WITH-PRODUCTION-DOMAIN/</loc></url>
+  <url><loc>https://REPLACE-WITH-PRODUCTION-DOMAIN/discover</loc></url>
+  <url><loc>https://REPLACE-WITH-PRODUCTION-DOMAIN/about</loc></url>
+  <url><loc>https://REPLACE-WITH-PRODUCTION-DOMAIN/how-it-works</loc></url>
+  <url><loc>https://REPLACE-WITH-PRODUCTION-DOMAIN/faq</loc></url>
+  <url><loc>https://REPLACE-WITH-PRODUCTION-DOMAIN/transparency</loc></url>
+  <url><loc>https://REPLACE-WITH-PRODUCTION-DOMAIN/guidelines</loc></url>
+  <url><loc>https://REPLACE-WITH-PRODUCTION-DOMAIN/voting-rules</loc></url>
+  <url><loc>https://REPLACE-WITH-PRODUCTION-DOMAIN/moderation</loc></url>
+  <url><loc>https://REPLACE-WITH-PRODUCTION-DOMAIN/contact</loc></url>
+  <url><loc>https://REPLACE-WITH-PRODUCTION-DOMAIN/privacy</loc></url>
+  <url><loc>https://REPLACE-WITH-PRODUCTION-DOMAIN/terms</loc></url>
+  <url><loc>https://REPLACE-WITH-PRODUCTION-DOMAIN/disclaimer</loc></url>
 </urlset>

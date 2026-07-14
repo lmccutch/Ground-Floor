@@ -22,6 +22,7 @@ import {
 } from '../lib/api'
 import { track } from '../lib/analytics'
 import { supabaseDataErrorHint } from '../lib/dataMode'
+import { REPORT_REASONS } from '../lib/reporting'
 import { companyShareContent, questionShareContent } from '../lib/share'
 import { useMvp } from '../context/useMvp'
 import { CampaignActions } from './CampaignActions'
@@ -33,7 +34,6 @@ import { Badge, EmptyState, ErrorState, Monogram, Skeleton } from './ui'
 
 const topics = ['Strategy', 'Financial performance', 'Capital allocation', 'Competition', 'Operations', 'Governance', 'Executive compensation', 'Industry conditions', 'Risk', 'Other']
 const shareholderStatuses: ShareholderStatus[] = ['Current shareholder', 'Former shareholder', 'Considering investing', 'Following the company', 'Prefer not to say']
-const reportReasons = ['Spam or promotion', 'Abusive or inappropriate', 'Misleading or false claims', 'Off topic', 'Other']
 
 type PageState = 'loading' | 'ready' | 'missing' | 'error' | 'redirect'
 type QuestionSort = 'top' | 'newest'
@@ -700,7 +700,7 @@ function ReportQuestionModal({
   userId?: string
   onClose: () => void
 }) {
-  const [reason, setReason] = useState(reportReasons[0])
+  const [reason, setReason] = useState<string>(REPORT_REASONS[0])
   const [details, setDetails] = useState('')
   const [busy, setBusy] = useState(false)
   const [sent, setSent] = useState(false)
@@ -742,8 +742,15 @@ function ReportQuestionModal({
           <p className="modal-copy">Reports are private — the author is not told who reported.</p>
           <label className="field">
             Reason
-            <select className="text-input" value={reason} onChange={event => setReason(event.target.value)}>
-              {reportReasons.map(item => (
+            <select
+              className="text-input"
+              value={reason}
+              onChange={event => {
+                setReason(event.target.value)
+                track('report_reason_selected', { reason: event.target.value })
+              }}
+            >
+              {REPORT_REASONS.map(item => (
                 <option key={item}>{item}</option>
               ))}
             </select>
@@ -842,8 +849,18 @@ function QuestionForm({
       <form onSubmit={submit}>
         <span className="eyebrow">Ask {company.ticker} management</span>
         <h2>{campaign ? 'Submit one clear question.' : 'Ask the first question.'}</h2>
-        <p className="modal-copy">
-          Your question will be public. Do not include material non-public information, personal attacks, or unsupported allegations.
+        <p className="modal-copy">Your question will be public under your display name (or anonymously, if you choose below).</p>
+        <p className="mnpi-warning" role="note">
+          <ShieldCheck size={14} aria-hidden="true" />
+          <span>
+            <b>No confidential or material non-public information.</b> If you have inside information, do not post it —
+            contact appropriate legal or compliance channels instead. Suspected MNPI is removed immediately. No personal
+            attacks or unsupported allegations. See the{' '}
+            <Link to="/guidelines" target="_blank">
+              Community Guidelines
+            </Link>
+            .
+          </span>
         </p>
         <label className="field">
           Question
