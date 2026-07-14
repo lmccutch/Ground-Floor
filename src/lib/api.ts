@@ -800,7 +800,11 @@ export async function getProfileRow(userId: string): Promise<Profile | null> {
     displayName: String(row.display_name ?? 'Shareholder'),
     country: asOptional(row.country),
     investorType: asOptional(row.investor_type),
-    complete: true,
+    // The on_auth_user_created trigger inserts a profiles row for every new user
+    // (display_name defaulted from their email), before they ever see the profile
+    // completion step. investor_type is never set by that trigger — only by
+    // completeProfile — so it is the signal that the user actually completed setup.
+    complete: row.investor_type != null,
   }
 }
 
