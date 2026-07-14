@@ -2,6 +2,7 @@ import { useEffect, useState, type ReactNode } from 'react'
 import { Link, NavLink, useLocation } from 'react-router-dom'
 import { BarChart3, LayoutDashboard, LogOut, Mail, Menu, PlusCircle, Search } from 'lucide-react'
 import { useMvp } from '../context/useMvp'
+import { FeedbackWidget } from './FeedbackWidget'
 
 const navItems = [
   { to: '/', label: 'Home', icon: LayoutDashboard, end: true },
@@ -94,6 +95,7 @@ export function AppShell({ children }: { children: ReactNode }) {
           </div>
         </header>
         <main className="page-content">{children}</main>
+        <FeedbackWidget />
       </div>
     </div>
   )

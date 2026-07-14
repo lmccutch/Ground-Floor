@@ -1,8 +1,9 @@
 import { useEffect, useId, useRef, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { Search } from 'lucide-react'
+import { Clock, Search, X } from 'lucide-react'
 import { searchCompanies, type CompanySearchResult } from '../lib/api'
 import { track } from '../lib/analytics'
+import { addRecentSearch, clearRecentSearches, getRecentSearches, type RecentSearch } from '../lib/recentSearches'
 import { useDebouncedValue } from '../lib/useDebouncedValue'
 
 type Status = 'idle' | 'loading' | 'ready' | 'error'
@@ -15,6 +16,7 @@ export function SearchAutocomplete({ placeholder = 'Search companies or tickers'
   const [results, setResults] = useState<CompanySearchResult[]>([])
   const [open, setOpen] = useState(false)
   const [activeIndex, setActiveIndex] = useState(-1)
+  const [recents, setRecents] = useState<RecentSearch[]>(() => getRecentSearches())
   const containerRef = useRef<HTMLDivElement>(null)
   const requestId = useRef(0)
   const debouncedQuery = useDebouncedValue(query, 250)
@@ -55,9 +57,23 @@ export function SearchAutocomplete({ placeholder = 'Search companies or tickers'
 
   function goToResult(result: CompanySearchResult, position: number) {
     track('search_result_clicked', { ticker: result.ticker, result_position: position, has_campaign: result.hasCampaign })
+    addRecentSearch({ ticker: result.ticker, name: result.name, path: `/company/${result.ticker}` })
+    setRecents(getRecentSearches())
     setOpen(false)
     setQuery('')
     navigate(`/company/${result.ticker}`)
+  }
+
+  function goToRecent(recent: RecentSearch) {
+    track('recent_search_selected', { ticker: recent.ticker })
+    setOpen(false)
+    navigate(recent.path)
+  }
+
+  function clearRecents() {
+    clearRecentSearches()
+    setRecents([])
+    track('recent_search_cleared', {})
   }
 
   function onKeyDown(event: React.KeyboardEvent) {
@@ -76,7 +92,8 @@ export function SearchAutocomplete({ placeholder = 'Search companies or tickers'
     }
   }
 
-  const showPanel = open && query.trim().length > 0
+  const showRecents = open && query.trim().length === 0 && recents.length > 0
+  const showPanel = (open && query.trim().length > 0) || showRecents
 
   return (
     <div className="search-autocomplete" ref={containerRef}>
@@ -101,7 +118,27 @@ export function SearchAutocomplete({ placeholder = 'Search companies or tickers'
       </label>
       {showPanel && (
         <div className="search-panel" role="listbox" id={listId}>
-          {status === 'loading' && <div className="search-panel-note">Searching…</div>}
+          {showRecents && (
+            <div className="recent-searches">
+              <div className="recent-searches-head">
+                <span className="tiny-label">
+                  <Clock size={12} /> Recent searches
+                </span>
+                <button type="button" className="link-btn" onClick={clearRecents}>
+                  <X size={12} /> Clear
+                </button>
+              </div>
+              {recents.map(recent => (
+                <button type="button" key={recent.ticker} className="search-result" onClick={() => goToRecent(recent)}>
+                  <span className="search-result-ticker">{recent.ticker}</span>
+                  <span className="search-result-main">
+                    <b>{recent.name}</b>
+                  </span>
+                </button>
+              ))}
+            </div>
+          )}
+          {!showRecents && status === 'loading' && <div className="search-panel-note">Searching…</div>}
           {status === 'error' && <div className="search-panel-note">We could not search right now. Please try again.</div>}
           {status === 'ready' && results.length === 0 && (
             <div className="search-panel-empty">

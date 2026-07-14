@@ -89,3 +89,51 @@ sharing, dashboard, authentication, and mobile navigation flows were
 off `company_id` consistently and to handle a campaign that doesn't exist
 yet. See the verification section of the implementation report for the
 regression check performed after this change.
+
+## Core-experience phase (2026-07-14)
+
+Built on the verified Phase 1 base, on branch `phase-1-company-directory`.
+Full behavior rules live in `docs/core-user-experience.md`; security review in
+`docs/security-notes.md`.
+
+### Added
+
+- **Campaign lifecycle panel** — six-stage stepper on every campaign page with
+  current stage, plain-English explanation, next step, supporter target and
+  progress, and the reaching-the-target-guarantees-nothing disclaimer. Stage
+  completion derives strictly from the persisted campaign status.
+- **Truthful campaign timeline** — launch date, supporter milestones dated by
+  the Nth supporter row, and admin-recorded outreach events via the new
+  `public_campaign_events` view. Nothing projected or invented.
+- **Question experience** — Top/Newest sorting, Unanswered filter, edit and
+  delete of your own `Open`/`Under review` questions (RLS-enforced), vote
+  removal (voting is now a toggle), private reporting, duplicate-question
+  guidance before submission, direct question URLs with scroll-and-highlight,
+  and a full share menu per question.
+- **Sharing** — one ShareMenu (company + questions): copy link, native share
+  where supported, Reddit, X, LinkedIn, email — all links UTM-tagged, all copy
+  restrained.
+- **Feedback** — persistent "Give feedback" entry on every page, categorized,
+  stored in a new RLS-protected `feedback` table (authenticated-only by
+  design).
+- **Search** — recent searches (local-only, clearable) under the existing
+  autocomplete.
+- **Discover** — real-activity highlight sections (near-target, most
+  supported, most voted, newest); hidden until real data exists.
+- **Dashboard** — recent-activity feed from persisted rows, notification
+  read/unread with mark-one/mark-all, and profile settings (display name,
+  country, investor type, public anonymity — now actually honored by
+  `public_questions`).
+- **In-app notifications** — generated only by real campaign/question status
+  changes via locked-down triggers; milestone and email notifications
+  deferred.
+- **Migration** `202607140001_core_experience.sql` (forward-only) and live
+  verification script `npm run verify:core-security` (34 checks, all passing
+  against the scratch project).
+
+### Cleanup principles preserved
+
+No fake users, campaigns, questions, votes, milestones, or management
+activity anywhere; every new control does something real; every new view has
+loading/empty/success/error states; demo and Supabase data remain strictly
+separated; no existing RLS weakened (only added).

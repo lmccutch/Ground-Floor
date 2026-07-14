@@ -65,6 +65,13 @@ export function MvpProvider({ children }: { children: ReactNode }) {
         setProfile(updated)
         track('signup_completed', { investor_type: input.investorType })
       },
+      updateProfileDetails: async input => {
+        if (!profile) return
+        const updated = await updateProfile(input, profile.id, profile.email)
+        setProfile(updated)
+        // Only non-private facts: whether optional fields are set, never their values.
+        track('profile_updated', { has_country: Boolean(input.country), public_anonymous: Boolean(input.publicAnonymous) })
+      },
       requireAuth: action => {
         if (profile) return true
         track('signup_started', { action })

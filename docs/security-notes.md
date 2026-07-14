@@ -42,3 +42,30 @@ no row. Run it against any scratch/staging project after schema changes.
 is `SECURITY DEFINER` must be followed by
 `revoke execute on function ... from public;` plus explicit grants, and
 definer functions must validate `auth.uid()` themselves.
+
+## 2026-07-14 — core-experience migration security review
+
+Migration `202607140001_core_experience.sql` added question edit/delete
+policies, the `feedback` table, notification read/update + generation
+triggers, the `public_campaign_events` view, and profile-level anonymity in
+`public_questions`. Security posture:
+
+- **New RLS**: question edit/delete are author-only and restricted to
+  `Open`/`Under review`; feedback is insert-as-self / read-own / admin-all;
+  notifications add a users-update-own policy with a **column-level grant**
+  so the authenticated role can update `read_at` only.
+- **New SECURITY DEFINER functions**: `notify_campaign_status_change()` and
+  `notify_question_status_change()` — both `set search_path = public`, both
+  trigger functions (not callable via the API), and EXECUTE is revoked from
+  PUBLIC as defense in depth. They exist because `notifications` deliberately
+  has **no INSERT policy**: rows can only come from real status changes.
+- **New view** `public_campaign_events` follows the existing owner-view
+  pattern and omits `created_by`.
+- **Live verification**: `npm run verify:core-security`
+  (`scripts/verify-core-experience-security.ts`) runs 34 checks against the
+  scratch project with real anon/authenticated/service requests: edit/delete
+  ownership + status locking, vote-removal ownership, reporter privacy,
+  feedback isolation and anti-forgery, notification isolation, title-tamper
+  rejection, direct-insert rejection, trigger generation (delta-checked),
+  event-view exposure, and profile-level anonymity. All passed on
+  2026-07-14; the script cleans up everything it creates.

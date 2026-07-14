@@ -1,5 +1,5 @@
-import { useRef, useState } from 'react'
-import { Check, Copy, Share2 } from 'lucide-react'
+import { useState } from 'react'
+import { Check } from 'lucide-react'
 import {
   followCampaign,
   supportCampaign,
@@ -11,61 +11,9 @@ import {
 import { track } from '../lib/analytics'
 import { useMvp } from '../context/useMvp'
 import { Modal } from './Modal'
-import { copyToClipboard } from '../lib/helpers'
 
 const statuses: ShareholderStatus[] = ['Current shareholder', 'Former shareholder', 'Considering investing', 'Following the company', 'Prefer not to say']
 const positionRanges: PositionRange[] = ['Under $1,000', '$1,000-$5,000', '$5,000-$25,000', '$25,000-$100,000', 'More than $100,000', 'Prefer not to say']
-
-export function ShareMenu({ company }: { company: PublicCompany }) {
-  const [copied, setCopied] = useState(false)
-  const detailsRef = useRef<HTMLDetailsElement>(null)
-  const url = `${window.location.origin}/company/${company.ticker}`
-  const text = `I want to hear directly from $${company.ticker} management. Join the campaign, ask a question, and vote on what management should answer.`
-
-  async function copy() {
-    await copyToClipboard(url)
-    setCopied(true)
-    track('company_shared', { ticker: company.ticker, method: 'copy' })
-    setTimeout(() => setCopied(false), 1800)
-    if (detailsRef.current) detailsRef.current.open = false
-  }
-
-  function closeMenu() {
-    if (detailsRef.current) detailsRef.current.open = false
-  }
-
-  return (
-    <details className="share-menu" ref={detailsRef}>
-      <summary className="btn secondary small">
-        {copied ? <Check size={14} /> : <Share2 size={14} />} {copied ? 'Link copied' : 'Share'}
-      </summary>
-      <div className="share-pop">
-        <button type="button" onClick={() => void copy()}>
-          <Copy size={13} /> Copy link
-        </button>
-        <a
-          href={`https://www.reddit.com/submit?url=${encodeURIComponent(url)}&title=${encodeURIComponent(text)}`}
-          target="_blank"
-          rel="noreferrer"
-          onClick={closeMenu}
-        >
-          Share on Reddit
-        </a>
-        <a
-          href={`https://twitter.com/intent/tweet?text=${encodeURIComponent(text)}&url=${encodeURIComponent(url)}`}
-          target="_blank"
-          rel="noreferrer"
-          onClick={closeMenu}
-        >
-          Share on X
-        </a>
-        <a href={`mailto:?subject=${encodeURIComponent(`Shareholder campaign for ${company.name}`)}&body=${encodeURIComponent(`${text}\n\n${url}`)}`} onClick={closeMenu}>
-          Share by email
-        </a>
-      </div>
-    </details>
-  )
-}
 
 export function CampaignActions({
   company,

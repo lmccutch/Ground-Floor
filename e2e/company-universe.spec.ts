@@ -28,7 +28,7 @@ test.describe('Company universe (demo mode)', () => {
     // requireAuth blocks the original click; the button must be pressed again once signed in.
     await page.click('text=Start this campaign')
     await page.waitForSelector('.campaign-metrics')
-    await expect(page.locator('.status-panel h2')).toContainText('Gathering shareholder interest')
+    await expect(page.locator('.lifecycle-panel h2')).toContainText('Gathering shareholder interest')
     await expect(page.locator('.campaign-metrics')).toBeVisible()
   })
 
@@ -46,7 +46,7 @@ test.describe('Company universe (demo mode)', () => {
     await expect(page.locator('.campaign-metrics')).toBeVisible()
   })
 
-  test('voting on a question increments the count once and disables the button', async ({ page }) => {
+  test('voting on a question increments the count once and can be removed again', async ({ page }) => {
     await page.goto('/company/ZTS')
     await page.click('text=Start this campaign')
     await signInDemo(page, `e2e-vote-${Date.now()}@test.dev`)
@@ -63,7 +63,19 @@ test.describe('Company universe (demo mode)', () => {
     await page.waitForSelector('.vote-btn.voted')
     const votesAfter = await page.locator('.vote-box b').first().innerText()
     expect(Number(votesAfter)).toBe(Number(votesBefore) + 1)
-    await expect(page.locator('.vote-btn').first()).toBeDisabled()
+    await expect(page.locator('.vote-btn').first()).toHaveAttribute('aria-pressed', 'true')
+
+    // The vote is a toggle: pressing again removes it and the count returns.
+    await page.click('.vote-btn >> nth=0')
+    await page.waitForSelector('.vote-btn:not(.voted)')
+    const votesRemoved = await page.locator('.vote-box b').first().innerText()
+    expect(Number(votesRemoved)).toBe(Number(votesBefore))
+    await expect(page.locator('.vote-btn').first()).toHaveAttribute('aria-pressed', 'false')
+
+    // Persistence: the removed vote stays removed after a reload.
+    await page.reload()
+    await page.waitForSelector('.question-card')
+    await expect(page.locator('.vote-btn').first()).toHaveAttribute('aria-pressed', 'false')
   })
 
   test('searching a former ticker finds the company and redirects to its current ticker', async ({ page }) => {

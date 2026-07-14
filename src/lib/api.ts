@@ -78,6 +78,15 @@ export type PublicQuestion = {
   createdAt: string
   votedByUser: boolean
   commentCount: number
+  /** True when the signed-in user wrote this question (drives edit/delete controls). */
+  isAuthor: boolean
+}
+
+/** Statuses in which the author may still edit or delete their own question (mirrors RLS). */
+export const EDITABLE_QUESTION_STATUSES = ['Open', 'Under review'] as const
+
+export function isQuestionEditable(question: Pick<PublicQuestion, 'isAuthor' | 'status'>): boolean {
+  return question.isAuthor && (EDITABLE_QUESTION_STATUSES as readonly string[]).includes(question.status)
 }
 
 export type Campaign = {
@@ -101,11 +110,22 @@ export type Profile = {
   displayName: string
   country?: string
   investorType?: string
+  /** When true, all of the user's questions display as "Anonymous Shareholder". */
+  publicAnonymous?: boolean
   /** True once the user has confirmed display name / investor type. */
   complete?: boolean
 }
 
 export type Notification = { id: string; title: string; body: string; createdAt: string; read: boolean }
+
+/** One entry in the dashboard's recent-activity feed — always backed by a persisted row. */
+export type ActivityItem = {
+  id: string
+  kind: 'supported' | 'followed' | 'question' | 'vote'
+  label: string
+  companyTicker?: string
+  at: string
+}
 
 export type DashboardData = {
   supported: PublicCompany[]
@@ -113,6 +133,46 @@ export type DashboardData = {
   submitted: PublicQuestion[]
   voted: PublicQuestion[]
   notifications: Notification[]
+  activity: ActivityItem[]
+}
+
+export type FeedbackCategory =
+  | 'Something is broken'
+  | 'Confusing experience'
+  | 'Feature request'
+  | 'Company request'
+  | 'General feedback'
+
+export const FEEDBACK_CATEGORIES: FeedbackCategory[] = [
+  'Something is broken',
+  'Confusing experience',
+  'Feature request',
+  'Company request',
+  'General feedback',
+]
+
+export type FeedbackInput = { category: FeedbackCategory; message: string; pagePath?: string }
+
+/**
+ * A campaign timeline entry. Every entry is derived from persisted data:
+ * launched_at, the created_at of the Nth supporter row, or an admin-recorded
+ * campaign_events row. `at` is omitted when a milestone is real but its exact
+ * date is unknown (demo mode) — the UI never invents dates.
+ */
+export type TimelineEvent = {
+  id: string
+  label: string
+  at?: string
+  kind: 'launch' | 'milestone' | 'event'
+}
+
+export const SUPPORTER_MILESTONES = [10, 25, 50, 100] as const
+
+export type DiscoverHighlights = {
+  newest: CompanySearchResult[]
+  mostSupported: CompanySearchResult[]
+  mostVoted: CompanySearchResult[]
+  nearThreshold: CompanySearchResult[]
 }
 
 export type QuestionInput = {
@@ -194,6 +254,7 @@ type LocalStore = {
   votes?: Record<string, boolean>
   questions?: LocalQuestion[]
   requests?: LocalRequest[]
+  feedback?: Array<FeedbackInput & { id: string; createdAt: string }>
 }
 
 function readLocal(): LocalStore {
@@ -612,13 +673,18 @@ export async function getQuestions(companyId: string, userId?: string): Promise<
     if (error) throw new Error(error.message)
     const rows = (data ?? []) as Row[]
     let votedIds = new Set<string>()
+    let authoredIds = new Set<string>()
     if (userId && rows.length) {
-      const { data: voteRows } = await supabase
-        .from('question_votes')
-        .select('question_id')
-        .eq('user_id', userId)
-        .in('question_id', rows.map(row => String(row.id)))
-      votedIds = new Set(((voteRows ?? []) as Row[]).map(row => String(row.question_id)))
+      const ids = rows.map(row => String(row.id))
+      // The public_questions view intentionally never exposes author_id (it would
+      // deanonymize anonymous questions), so ownership is resolved by asking for
+      // the user's own rows — RLS scopes this to questions they can already see.
+      const [voteResult, authoredResult] = await Promise.all([
+        supabase.from('question_votes').select('question_id').eq('user_id', userId).in('question_id', ids),
+        supabase.from('questions').select('id').eq('author_id', userId).in('id', ids),
+      ])
+      votedIds = new Set(((voteResult.data ?? []) as Row[]).map(row => String(row.question_id)))
+      authoredIds = new Set(((authoredResult.data ?? []) as Row[]).map(row => String(row.id)))
     }
     return rows.map(row => ({
       id: String(row.id),
@@ -631,6 +697,7 @@ export async function getQuestions(companyId: string, userId?: string): Promise<
       createdAt: String(row.created_at),
       votedByUser: votedIds.has(String(row.id)),
       commentCount: Number(row.comment_count ?? 0),
+      isAuthor: authoredIds.has(String(row.id)),
     }))
   }
 
@@ -651,6 +718,8 @@ export async function getQuestions(companyId: string, userId?: string): Promise<
       createdAt: question.createdAt,
       votedByUser: Boolean(votes[question.id]),
       commentCount: 0,
+      // Every demo-mode question was written in this browser by its single user.
+      isAuthor: Boolean(store.user),
     }))
     .sort((a, b) => b.votes - a.votes)
 }
@@ -684,6 +753,7 @@ export async function submitQuestion(companyId: string, input: QuestionInput, pr
       createdAt: String(row.created_at),
       votedByUser: false,
       commentCount: 0,
+      isAuthor: true,
     }
   }
   const store = readLocal()
@@ -714,6 +784,100 @@ export async function submitQuestion(companyId: string, input: QuestionInput, pr
     createdAt: item.createdAt,
     votedByUser: false,
     commentCount: 0,
+    isAuthor: true,
+  }
+}
+
+/**
+ * Updates the text/topic of the user's own question. Only 'Open' / 'Under review'
+ * questions are editable (enforced by RLS; mirrored client-side by
+ * isQuestionEditable). Returns the updated question, or null when the row was
+ * not editable (e.g. its status advanced since the page loaded).
+ */
+export async function updateQuestion(
+  question: PublicQuestion,
+  input: { text: string; topic: string },
+  userId?: string,
+): Promise<PublicQuestion | null> {
+  if (supabase && userId) {
+    const { data, error } = await supabase
+      .from('questions')
+      .update({ question_text: input.text, topic: input.topic })
+      .eq('id', question.id)
+      .select('id')
+    if (error) throw new Error(error.message)
+    if (!data || data.length === 0) return null
+    return { ...question, text: input.text, topic: input.topic }
+  }
+  const store = readLocal()
+  const questions = store.questions ?? []
+  const index = questions.findIndex(item => item.id === question.id)
+  if (index === -1) return null
+  questions[index] = { ...questions[index], text: input.text, topic: input.topic }
+  writeLocal({ ...store, questions })
+  return { ...question, text: input.text, topic: input.topic }
+}
+
+/**
+ * Deletes the user's own question. Votes/comments/reports cascade in the
+ * database; demo mode removes the local vote record and decrements the local
+ * campaign counters so no orphaned state is left. Returns false when the row
+ * was not deletable.
+ */
+export async function deleteQuestion(question: PublicQuestion, userId?: string): Promise<boolean> {
+  if (supabase && userId) {
+    const { data, error } = await supabase.from('questions').delete().eq('id', question.id).select('id')
+    if (error) throw new Error(error.message)
+    return Boolean(data && data.length > 0)
+  }
+  const store = readLocal()
+  const questions = store.questions ?? []
+  if (!questions.some(item => item.id === question.id)) return false
+  const votes = { ...(store.votes ?? {}) }
+  const hadVote = Boolean(votes[question.id])
+  delete votes[question.id]
+  writeLocal({ ...store, questions: questions.filter(item => item.id !== question.id), votes })
+  updateLocalCampaign(question.companyId, current => ({
+    ...current,
+    questions: Math.max(0, (current.questions ?? 0) - 1),
+    votes: Math.max(0, (current.votes ?? 0) - (hadVote ? 1 : 0)),
+  }))
+  return true
+}
+
+/** Removes the user's own vote; returns false when there was no vote to remove. */
+export async function unvoteQuestion(question: PublicQuestion, userId?: string): Promise<boolean> {
+  if (!question.votedByUser) return false
+  if (supabase && userId) {
+    const { data, error } = await supabase
+      .from('question_votes')
+      .delete()
+      .eq('question_id', question.id)
+      .eq('user_id', userId)
+      .select('id')
+    if (error) throw new Error(error.message)
+    return Boolean(data && data.length > 0)
+  }
+  const store = readLocal()
+  const votes = { ...(store.votes ?? {}) }
+  if (!votes[question.id]) return false
+  delete votes[question.id]
+  writeLocal({ ...store, votes })
+  updateLocalCampaign(question.companyId, current => ({ ...current, votes: Math.max(0, (current.votes ?? 0) - 1) }))
+  return true
+}
+
+/**
+ * Reports a question for moderation. The reporter is stored server-side but is
+ * never exposed publicly (reports has no public SELECT policy). Demo mode has no
+ * moderation queue, so the report is accepted without being persisted anywhere.
+ */
+export async function reportQuestion(questionId: string, reason: string, details?: string, userId?: string): Promise<void> {
+  if (supabase && userId) {
+    const { error } = await supabase
+      .from('reports')
+      .insert({ reporter_id: userId, question_id: questionId, reason, details: details || null })
+    if (error) throw new Error(error.message)
   }
 }
 
@@ -734,6 +898,186 @@ export async function voteQuestion(question: PublicQuestion, userId?: string): P
   writeLocal({ ...store, votes })
   updateLocalCampaign(question.companyId, current => ({ ...current, votes: (current.votes ?? 0) + 1 }))
   return true
+}
+
+/* -------------------------------- timeline -------------------------------- */
+
+/**
+ * Builds the campaign timeline strictly from persisted data: the launch date,
+ * supporter-count milestones dated by the created_at of the Nth supporter row,
+ * and admin-recorded campaign_events (outreach prepared, IR contacted, …).
+ * Nothing is fabricated: a milestone appears only once actually reached, and an
+ * event appears only if an admin recorded it.
+ */
+export async function getCampaignTimeline(campaign: Campaign): Promise<TimelineEvent[]> {
+  const events: TimelineEvent[] = [
+    { id: 'launch', label: 'Campaign started', at: campaign.launchedAt, kind: 'launch' },
+  ]
+
+  if (supabase) {
+    const [supportersResult, eventsResult] = await Promise.all([
+      supabase
+        .from('campaign_supporters')
+        .select('created_at')
+        .eq('campaign_id', campaign.id)
+        .order('created_at', { ascending: true }),
+      supabase
+        .from('public_campaign_events')
+        .select('id, event_type, label, created_at')
+        .eq('campaign_id', campaign.id)
+        .order('created_at', { ascending: true }),
+    ])
+    if (supportersResult.error) throw new Error(supportersResult.error.message)
+    if (eventsResult.error) throw new Error(eventsResult.error.message)
+    const supporterDates = ((supportersResult.data ?? []) as Row[]).map(row => String(row.created_at))
+    for (const milestone of SUPPORTER_MILESTONES) {
+      if (supporterDates.length >= milestone) {
+        events.push({
+          id: `milestone-${milestone}`,
+          label: `${milestone} supporters reached`,
+          at: supporterDates[milestone - 1],
+          kind: 'milestone',
+        })
+      }
+    }
+    for (const row of (eventsResult.data ?? []) as Row[]) {
+      events.push({ id: String(row.id), label: String(row.label), at: String(row.created_at), kind: 'event' })
+    }
+  } else {
+    // Demo mode tracks only supporter counts, not when each supporter joined, so
+    // reached milestones are shown without a date rather than with an invented one.
+    for (const milestone of SUPPORTER_MILESTONES) {
+      if (campaign.supporters >= milestone) {
+        events.push({ id: `milestone-${milestone}`, label: `${milestone} supporters reached`, kind: 'milestone' })
+      }
+    }
+  }
+
+  return events.sort((a, b) => (a.at && b.at ? a.at.localeCompare(b.at) : 0))
+}
+
+/* -------------------------------- feedback -------------------------------- */
+
+/** Persists product feedback. Requires a signed-in user in Supabase mode (see migration 202607140001). */
+export async function submitFeedback(input: FeedbackInput, userId?: string): Promise<void> {
+  if (supabase) {
+    if (!userId) throw new Error('Sign in to send feedback.')
+    const { error } = await supabase.from('feedback').insert({
+      user_id: userId,
+      category: input.category,
+      message: input.message,
+      page_path: input.pagePath || null,
+    })
+    if (error) throw new Error(error.message)
+    return
+  }
+  // Demo mode: acknowledged but stored locally only, like all other demo activity.
+  const store = readLocal()
+  const feedback = [...(store.feedback ?? []), { ...input, id: `feedback-${Date.now()}`, createdAt: new Date().toISOString() }]
+  writeLocal({ ...store, feedback })
+}
+
+/* ------------------------------ notifications ------------------------------ */
+
+export async function markNotificationRead(notificationId: string, userId?: string): Promise<void> {
+  if (supabase && userId) {
+    const { error } = await supabase
+      .from('notifications')
+      .update({ read_at: new Date().toISOString() })
+      .eq('id', notificationId)
+      .eq('user_id', userId)
+    if (error) throw new Error(error.message)
+  }
+}
+
+export async function markAllNotificationsRead(userId?: string): Promise<void> {
+  if (supabase && userId) {
+    const { error } = await supabase
+      .from('notifications')
+      .update({ read_at: new Date().toISOString() })
+      .eq('user_id', userId)
+      .is('read_at', null)
+    if (error) throw new Error(error.message)
+  }
+}
+
+/* --------------------------- discover highlights --------------------------- */
+
+function metricsToHighlight(row: Row, company: PublicCompany): CompanySearchResult {
+  return {
+    id: company.id,
+    slug: company.slug,
+    name: company.name,
+    ticker: company.ticker,
+    exchange: company.exchange,
+    sector: company.sector,
+    hasCampaign: true,
+    campaignStatus: asOptional(row.status),
+    supporters: Number(row.supporters ?? 0),
+    questions: Number(row.questions ?? 0),
+  }
+}
+
+/**
+ * Real-activity Discover sections. Every list is derived from persisted
+ * campaign metrics — a section simply has no entries (and is hidden by the UI)
+ * until real campaigns exist. Ranking rules are documented in
+ * docs/core-user-experience.md.
+ */
+export async function getDiscoverHighlights(limit = 4): Promise<DiscoverHighlights> {
+  const empty: DiscoverHighlights = { newest: [], mostSupported: [], mostVoted: [], nearThreshold: [] }
+
+  if (supabase) {
+    const { data, error } = await supabase.from('public_campaign_metrics').select('*')
+    if (error) throw new Error(error.message)
+    const rows = (data ?? []) as Row[]
+    if (!rows.length) return empty
+    const companyIds = [...new Set(rows.map(row => String(row.company_id)))]
+    const { data: companyRows, error: companyError } = await supabase.from('companies').select('*').in('id', companyIds)
+    if (companyError) throw new Error(companyError.message)
+    const companiesById = new Map(((companyRows ?? []) as Row[]).map(row => [String(row.id), mapCompany(row)]))
+    const withCompany = rows.flatMap(row => {
+      const company = companiesById.get(String(row.company_id))
+      return company ? [{ row, company }] : []
+    })
+    const toResults = (items: typeof withCompany) => items.slice(0, limit).map(({ row, company }) => metricsToHighlight(row, company))
+    return {
+      newest: toResults([...withCompany].sort((a, b) => String(b.row.launched_at).localeCompare(String(a.row.launched_at)))),
+      mostSupported: toResults(
+        withCompany.filter(({ row }) => Number(row.supporters) > 0).sort((a, b) => Number(b.row.supporters) - Number(a.row.supporters)),
+      ),
+      mostVoted: toResults(
+        withCompany.filter(({ row }) => Number(row.votes) > 0).sort((a, b) => Number(b.row.votes) - Number(a.row.votes)),
+      ),
+      nearThreshold: toResults(
+        withCompany
+          .filter(({ row }) => {
+            const supporters = Number(row.supporters ?? 0)
+            const target = Number(row.outreach_target ?? 100)
+            return supporters >= target / 2 && supporters < target
+          })
+          .sort((a, b) => Number(b.row.supporters) - Number(a.row.supporters)),
+      ),
+    }
+  }
+
+  const store = readLocal()
+  const campaigns = Object.entries(store.campaigns ?? {}).filter(([, campaign]) => campaign.exists)
+  if (!campaigns.length) return empty
+  const entriesById = new Map(companyDirectory.map(entry => [entry.key, entry]))
+  const items = campaigns.flatMap(([companyId, campaign]) => {
+    const entry = entriesById.get(companyId)
+    return entry ? [{ campaign, result: toSearchResult(entry) }] : []
+  })
+  return {
+    newest: [...items]
+      .sort((a, b) => String(b.campaign.launchedAt ?? '').localeCompare(String(a.campaign.launchedAt ?? '')))
+      .slice(0, limit)
+      .map(item => item.result),
+    mostSupported: items.filter(item => (item.campaign.supporters ?? 0) > 0).slice(0, limit).map(item => item.result),
+    mostVoted: items.filter(item => (item.campaign.votes ?? 0) > 0).slice(0, limit).map(item => item.result),
+    nearThreshold: items.filter(item => (item.campaign.supporters ?? 0) >= 50 && (item.campaign.supporters ?? 0) < 100).slice(0, limit).map(item => item.result),
+  }
 }
 
 /* --------------------------------- requests ------------------------------- */
@@ -800,6 +1144,7 @@ export async function getProfileRow(userId: string): Promise<Profile | null> {
     displayName: String(row.display_name ?? 'Shareholder'),
     country: asOptional(row.country),
     investorType: asOptional(row.investor_type),
+    publicAnonymous: Boolean(row.public_anonymous),
     // The on_auth_user_created trigger inserts a profiles row for every new user
     // (display_name defaulted from their email), before they ever see the profile
     // completion step. investor_type is never set by that trigger — only by
@@ -856,11 +1201,32 @@ export async function signOut() {
   writeLocal(store)
 }
 
-export async function updateProfile(input: { displayName: string; investorType?: string }, userId: string, email?: string): Promise<Profile> {
+export type ProfileUpdateInput = {
+  displayName: string
+  investorType?: string
+  country?: string
+  publicAnonymous?: boolean
+}
+
+export async function updateProfile(input: ProfileUpdateInput, userId: string, email?: string): Promise<Profile> {
   if (supabase) {
-    const { error } = await supabase.from('profiles').upsert({ id: userId, display_name: input.displayName, investor_type: input.investorType ?? null })
+    const { error } = await supabase.from('profiles').upsert({
+      id: userId,
+      display_name: input.displayName,
+      investor_type: input.investorType ?? null,
+      country: input.country?.trim() || null,
+      public_anonymous: input.publicAnonymous ?? false,
+    })
     if (error) throw new Error(error.message)
-    return { id: userId, email, displayName: input.displayName, investorType: input.investorType, complete: true }
+    return {
+      id: userId,
+      email,
+      displayName: input.displayName,
+      investorType: input.investorType,
+      country: input.country?.trim() || undefined,
+      publicAnonymous: input.publicAnonymous ?? false,
+      complete: true,
+    }
   }
   const store = readLocal()
   const updated: Profile = {
@@ -868,6 +1234,8 @@ export async function updateProfile(input: { displayName: string; investorType?:
     email: store.user?.email ?? email,
     displayName: input.displayName,
     investorType: input.investorType,
+    country: input.country?.trim() || undefined,
+    publicAnonymous: input.publicAnonymous ?? false,
     complete: true,
   }
   writeLocal({ ...store, user: updated })
@@ -883,10 +1251,10 @@ function tickerFor(companyId: string, lookup: Map<string, string>): string | und
 export async function getDashboardData(userId: string): Promise<DashboardData> {
   if (supabase) {
     const [supportsResult, followsResult, submittedResult, votesResult, notificationsResult] = await Promise.all([
-      supabase.from('campaign_supporters').select('campaign:campaigns(company:companies(*))').eq('user_id', userId),
-      supabase.from('campaign_followers').select('campaign:campaigns(company:companies(*))').eq('user_id', userId),
+      supabase.from('campaign_supporters').select('created_at, campaign:campaigns(company:companies(*))').eq('user_id', userId),
+      supabase.from('campaign_followers').select('created_at, campaign:campaigns(company:companies(*))').eq('user_id', userId),
       supabase.from('questions').select('*, company:companies(ticker)').eq('author_id', userId).order('created_at', { ascending: false }),
-      supabase.from('question_votes').select('question_id').eq('user_id', userId),
+      supabase.from('question_votes').select('question_id, created_at').eq('user_id', userId),
       supabase.from('notifications').select('id, title, body, created_at, read_at').eq('user_id', userId).order('created_at', { ascending: false }).limit(20),
     ])
     const extractCompany = (item: unknown): PublicCompany | null => {
@@ -908,6 +1276,7 @@ export async function getDashboardData(userId: string): Promise<DashboardData> {
       createdAt: String(row.created_at),
       votedByUser: false,
       commentCount: 0,
+      isAuthor: true,
     }))
 
     let voted: PublicQuestion[] = []
@@ -933,6 +1302,7 @@ export async function getDashboardData(userId: string): Promise<DashboardData> {
         createdAt: String(row.created_at),
         votedByUser: true,
         commentCount: Number(row.comment_count ?? 0),
+        isAuthor: false,
       }))
     }
 
@@ -944,7 +1314,38 @@ export async function getDashboardData(userId: string): Promise<DashboardData> {
       read: Boolean(row.read_at),
     }))
 
-    return { supported, followed, submitted, voted, notifications }
+    // Recent activity: each entry corresponds 1:1 to a persisted row the user created.
+    const activity: ActivityItem[] = [
+      ...((supportsResult.data ?? []) as unknown as Row[]).flatMap((row, index) => {
+        const company = extractCompany(row)
+        return company
+          ? [{ id: `support-${index}`, kind: 'supported' as const, label: `Supported the ${company.name} campaign`, companyTicker: company.ticker, at: String(row.created_at) }]
+          : []
+      }),
+      ...((followsResult.data ?? []) as unknown as Row[]).flatMap((row, index) => {
+        const company = extractCompany(row)
+        return company
+          ? [{ id: `follow-${index}`, kind: 'followed' as const, label: `Followed ${company.name}`, companyTicker: company.ticker, at: String(row.created_at) }]
+          : []
+      }),
+      ...submitted.map(question => ({
+        id: `question-${question.id}`,
+        kind: 'question' as const,
+        label: `Asked: “${question.text.length > 80 ? question.text.slice(0, 80) + '…' : question.text}”`,
+        companyTicker: question.companyTicker,
+        at: question.createdAt,
+      })),
+      ...((votesResult.data ?? []) as Row[]).map((row, index) => ({
+        id: `vote-${index}`,
+        kind: 'vote' as const,
+        label: 'Voted for a shareholder question',
+        at: String(row.created_at),
+      })),
+    ]
+      .sort((a, b) => b.at.localeCompare(a.at))
+      .slice(0, 15)
+
+    return { supported, followed, submitted, voted, notifications, activity }
   }
 
   const store = readLocal()
@@ -966,7 +1367,22 @@ export async function getDashboardData(userId: string): Promise<DashboardData> {
     createdAt: question.createdAt,
     votedByUser: votedIds.has(question.id),
     commentCount: 0,
+    isAuthor: true,
   }))
+
+  // Demo mode doesn't record when supports/follows/votes happened (only that
+  // they did), so the activity feed shows only dated events — the questions
+  // this browser actually submitted. No dates are invented.
+  const activity: ActivityItem[] = submitted
+    .map(question => ({
+      id: `question-${question.id}`,
+      kind: 'question' as const,
+      label: `Asked: “${question.text.length > 80 ? question.text.slice(0, 80) + '…' : question.text}”`,
+      companyTicker: question.companyTicker,
+      at: question.createdAt,
+    }))
+    .sort((a, b) => b.at.localeCompare(a.at))
+    .slice(0, 15)
 
   return {
     supported: companyDirectory.filter(entry => supportedIds.includes(entry.key)).map(directoryCompanyToPublic),
@@ -974,5 +1390,6 @@ export async function getDashboardData(userId: string): Promise<DashboardData> {
     submitted,
     voted: submitted.filter(question => question.votedByUser),
     notifications: [],
+    activity,
   }
 }

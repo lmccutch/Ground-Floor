@@ -52,6 +52,14 @@ npm run test:e2e    # Playwright — always runs in demo mode, no credentials ne
 npm run build
 ```
 
+Live security verification against a scratch/staging Supabase project
+(requires `SUPABASE_URL`, `SUPABASE_ANON_KEY`, `SUPABASE_SERVICE_ROLE_KEY`):
+
+```bash
+npm run verify:rpc-security    # start_campaign privilege regression
+npm run verify:core-security   # question edit/delete, feedback, notifications, reporting RLS
+```
+
 ## Product safeguards
 
 - Ownership is self-reported; position ranges are private.
@@ -80,6 +88,7 @@ Before accepting production users, publish Terms of Use, Privacy Policy, communi
 - `supabase/` — schema migrations and seed data (fictional community-activity seed for local dev, plus the generated company-directory bootstrap).
 - `e2e/` — Playwright end-to-end tests (always demo mode).
 - `docs/company-universe.md` — architecture, scope, and what is/isn't built for the company directory.
+- `docs/core-user-experience.md` — campaign lifecycle, timeline/milestone rules, question permissions, feedback, notifications, Discover ranking, and the analytics event list.
 
 ## Company directory (Phase 1)
 

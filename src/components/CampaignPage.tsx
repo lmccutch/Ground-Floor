@@ -1,13 +1,18 @@
-import { useEffect, useRef, useState } from 'react'
-import { Link, Navigate, useParams } from 'react-router-dom'
-import { ArrowUp, CalendarDays, Check, ExternalLink, Link2, MessageSquare, Plus, ShieldCheck, Users } from 'lucide-react'
+import { useEffect, useMemo, useRef, useState } from 'react'
+import { Link, Navigate, useLocation, useParams } from 'react-router-dom'
+import { ArrowUp, Check, ExternalLink, Flag, MessageSquare, Pencil, Plus, ShieldCheck, Trash2 } from 'lucide-react'
 import {
+  deleteQuestion,
   getCampaign,
+  reportQuestion,
   getCompanyBySlug,
   getCompanyByTicker,
   getQuestions,
+  isQuestionEditable,
   startCampaign,
   submitQuestion,
+  unvoteQuestion,
+  updateQuestion,
   voteQuestion,
   type Campaign,
   type CompanyLookup,
@@ -17,19 +22,26 @@ import {
 } from '../lib/api'
 import { track } from '../lib/analytics'
 import { supabaseDataErrorHint } from '../lib/dataMode'
+import { companyShareContent, questionShareContent } from '../lib/share'
 import { useMvp } from '../context/useMvp'
-import { CampaignActions, ShareMenu } from './CampaignActions'
+import { CampaignActions } from './CampaignActions'
+import { CampaignLifecycle } from './CampaignLifecycle'
+import { CampaignTimeline } from './CampaignTimeline'
 import { Modal } from './Modal'
-import { copyToClipboard } from '../lib/helpers'
+import { ShareMenu } from './ShareMenu'
 import { Badge, EmptyState, ErrorState, Monogram, Skeleton } from './ui'
 
 const topics = ['Strategy', 'Financial performance', 'Capital allocation', 'Competition', 'Operations', 'Governance', 'Executive compensation', 'Industry conditions', 'Risk', 'Other']
 const shareholderStatuses: ShareholderStatus[] = ['Current shareholder', 'Former shareholder', 'Considering investing', 'Following the company', 'Prefer not to say']
+const reportReasons = ['Spam or promotion', 'Abusive or inappropriate', 'Misleading or false claims', 'Off topic', 'Other']
 
 type PageState = 'loading' | 'ready' | 'missing' | 'error' | 'redirect'
+type QuestionSort = 'top' | 'newest'
+type QuestionFilter = 'all' | 'unanswered'
 
 export function CampaignPage() {
   const { ticker, slug } = useParams()
+  const location = useLocation()
   const { profile, requireAuth } = useMvp()
   const [company, setCompany] = useState<PublicCompany | null>(null)
   const [campaign, setCampaign] = useState<Campaign | null>(null)
@@ -39,6 +51,7 @@ export function CampaignPage() {
   const [showForm, setShowForm] = useState(false)
   const [reloadKey, setReloadKey] = useState(0)
   const trackedTicker = useRef('')
+  const highlightedRef = useRef(false)
   const profileId = profile?.id
   const routeKey = slug ?? ticker ?? ''
 
@@ -84,6 +97,21 @@ export function CampaignPage() {
     }
   }, [routeKey, slug, ticker, profileId, reloadKey])
 
+  // Direct question URLs: /company/TICKER#<questionId>. Once questions render,
+  // scroll the linked card into view and highlight it.
+  useEffect(() => {
+    if (state !== 'ready' || highlightedRef.current) return
+    const hash = location.hash.replace(/^#/, '')
+    if (!hash || !questions.some(question => question.id === hash)) return
+    const element = document.getElementById(hash)
+    if (!element) return
+    highlightedRef.current = true
+    element.scrollIntoView({ block: 'center' })
+    element.classList.add('linked-question')
+    element.setAttribute('tabindex', '-1')
+    ;(element as HTMLElement).focus({ preventScroll: true })
+  }, [state, questions, location.hash])
+
   if (state === 'redirect' && redirectTo) {
     return <Navigate to={redirectTo} replace />
   }
@@ -126,17 +154,24 @@ export function CampaignPage() {
     )
   }
 
-  const voteTotal = questions.reduce((sum, question) => sum + question.votes, 0)
-  const progress = campaign ? Math.min(100, Math.round((campaign.supporters / campaign.outreachTarget) * 100)) : 0
+  const companyUrl = `${window.location.origin}/company/${company.ticker}`
 
-  async function onVote(question: PublicQuestion) {
-    if (question.votedByUser) return
+  async function onToggleVote(question: PublicQuestion) {
     if (!requireAuth('vote on a question')) return
     try {
-      const counted = await voteQuestion(question, profileId)
-      if (!counted) return
-      setQuestions(current => current.map(item => (item.id === question.id ? { ...item, votes: item.votes + 1, votedByUser: true } : item)))
-      track('question_voted', { ticker: company!.ticker, question_id: question.id })
+      if (question.votedByUser) {
+        const removed = await unvoteQuestion(question, profileId)
+        if (!removed) return
+        setQuestions(current =>
+          current.map(item => (item.id === question.id ? { ...item, votes: Math.max(0, item.votes - 1), votedByUser: false } : item)),
+        )
+        track('question_vote_removed', { ticker: company!.ticker, question_id: question.id })
+      } else {
+        const counted = await voteQuestion(question, profileId)
+        if (!counted) return
+        setQuestions(current => current.map(item => (item.id === question.id ? { ...item, votes: item.votes + 1, votedByUser: true } : item)))
+        track('question_voted', { ticker: company!.ticker, question_id: question.id })
+      }
     } catch {
       // Leave the count unchanged; the button remains available to retry.
     }
@@ -171,7 +206,7 @@ export function CampaignPage() {
             )}
           </div>
         </div>
-        <ShareMenu company={company} />
+        <ShareMenu content={companyShareContent(company, companyUrl)} analyticsEvent="company_shared" analyticsProps={{ ticker: company.ticker }} />
       </div>
 
       {campaign ? (
@@ -179,10 +214,9 @@ export function CampaignPage() {
           company={company}
           campaign={campaign}
           questions={questions}
-          voteTotal={voteTotal}
-          progress={progress}
           onCampaignChange={setCampaign}
-          onVote={onVote}
+          onToggleVote={onToggleVote}
+          onQuestionsChange={setQuestions}
           onAskQuestion={() => {
             if (requireAuth('submit a question')) setShowForm(true)
           }}
@@ -201,6 +235,7 @@ export function CampaignPage() {
         <QuestionForm
           company={company}
           campaign={campaign}
+          existingQuestions={questions}
           onClose={() => setShowForm(false)}
           onSaved={(question, nextCampaign) => {
             setQuestions(current => (current.some(item => item.id === question.id) ? current : [question, ...current]))
@@ -273,37 +308,40 @@ function ActiveCampaign({
   company,
   campaign,
   questions,
-  voteTotal,
-  progress,
   onCampaignChange,
-  onVote,
+  onToggleVote,
+  onQuestionsChange,
   onAskQuestion,
 }: {
   company: PublicCompany
   campaign: Campaign
   questions: PublicQuestion[]
-  voteTotal: number
-  progress: number
   onCampaignChange: (campaign: Campaign | null) => void
-  onVote: (question: PublicQuestion) => void
+  onToggleVote: (question: PublicQuestion) => void
+  onQuestionsChange: (update: (current: PublicQuestion[]) => PublicQuestion[]) => void
   onAskQuestion: () => void
 }) {
+  const [sort, setSort] = useState<QuestionSort>('top')
+  const [filter, setFilter] = useState<QuestionFilter>('all')
+  const voteTotal = questions.reduce((sum, question) => sum + question.votes, 0)
+
+  const visibleQuestions = useMemo(() => {
+    const filtered = filter === 'unanswered' ? questions.filter(question => question.status !== 'Answered') : questions
+    const sorted = [...filtered]
+    if (sort === 'top') sorted.sort((a, b) => b.votes - a.votes || b.createdAt.localeCompare(a.createdAt))
+    else sorted.sort((a, b) => b.createdAt.localeCompare(a.createdAt))
+    return sorted
+  }, [questions, sort, filter])
+
   return (
     <>
-      <div className="status-panel">
-        <div>
-          <span className="eyebrow">Campaign status</span>
-          <h2>{campaign.status}</h2>
-          <p>Management participation is voluntary and has not been confirmed.</p>
-        </div>
-        <Badge tone="gold">Early campaign</Badge>
-      </div>
+      <CampaignLifecycle campaign={campaign} companyTicker={company.ticker} />
 
       <CampaignActions company={company} campaign={campaign} onCampaignChange={onCampaignChange} />
 
       <div className="campaign-metrics">
         <div>
-          <Users size={16} />
+          <ShieldCheck size={16} />
           <b>{campaign.supporters}</b>
           <span>supporters</span>
         </div>
@@ -313,7 +351,7 @@ function ActiveCampaign({
           <span>current shareholders</span>
         </div>
         <div>
-          <Users size={16} />
+          <ShieldCheck size={16} />
           <b>{campaign.followers}</b>
           <span>followers</span>
         </div>
@@ -329,21 +367,6 @@ function ActiveCampaign({
         </div>
       </div>
 
-      <div className="progress-panel">
-        <div>
-          <b>At {campaign.outreachTarget} supporters, GroundFloor makes a formal interview request to management.</b>
-          <span>We do not guarantee that management will accept.</span>
-        </div>
-        <div className="progress-meter">
-          <div className="progress-bar" role="progressbar" aria-valuenow={campaign.supporters} aria-valuemin={0} aria-valuemax={campaign.outreachTarget}>
-            <i style={{ width: `${Math.max(progress, 2)}%` }} />
-          </div>
-          <span>
-            {campaign.supporters} of {campaign.outreachTarget} supporters
-          </span>
-        </div>
-      </div>
-
       <div className="campaign-grid">
         <section>
           <div className="section-row">
@@ -356,10 +379,58 @@ function ActiveCampaign({
             </button>
           </div>
           <p className="guidance">Ask one clear question. Avoid speeches, allegations, and questions that can be answered with a basic search.</p>
+
+          {questions.length > 0 && (
+            <div className="question-controls">
+              <div className="chip-row" role="group" aria-label="Sort questions">
+                {(['top', 'newest'] as const).map(option => (
+                  <button
+                    key={option}
+                    className={sort === option ? 'chip active' : 'chip'}
+                    aria-pressed={sort === option}
+                    onClick={() => {
+                      setSort(option)
+                      track('question_sorted', { ticker: company.ticker, sort: option })
+                    }}
+                  >
+                    {option === 'top' ? 'Top' : 'Newest'}
+                  </button>
+                ))}
+              </div>
+              <div className="chip-row" role="group" aria-label="Filter questions">
+                {(['all', 'unanswered'] as const).map(option => (
+                  <button
+                    key={option}
+                    className={filter === option ? 'chip active' : 'chip'}
+                    aria-pressed={filter === option}
+                    onClick={() => {
+                      setFilter(option)
+                      track('question_filtered', { ticker: company.ticker, filter: option })
+                    }}
+                  >
+                    {option === 'all' ? 'All' : 'Unanswered'}
+                  </button>
+                ))}
+              </div>
+            </div>
+          )}
+
           {questions.length === 0 ? (
             <EmptyState icon={<MessageSquare size={22} />} title="No questions yet" copy="Be the first shareholder to put a question to management." />
+          ) : visibleQuestions.length === 0 ? (
+            <EmptyState icon={<MessageSquare size={22} />} title="No questions match this filter" copy="Try switching back to all questions." />
           ) : (
-            questions.map(question => <QuestionCard key={question.id} question={question} company={company} onVote={() => onVote(question)} />)
+            visibleQuestions.map(question => (
+              <QuestionCard
+                key={question.id}
+                question={question}
+                company={company}
+                campaign={campaign}
+                onToggleVote={() => onToggleVote(question)}
+                onQuestionsChange={onQuestionsChange}
+                onCampaignChange={onCampaignChange}
+              />
+            ))
           )}
         </section>
 
@@ -372,23 +443,7 @@ function ActiveCampaign({
               <li>Something management alone can answer — not public filings.</li>
             </ul>
           </div>
-          <div className="panel">
-            <span className="eyebrow">Campaign timeline</span>
-            <div className="timeline-row">
-              <CalendarDays size={15} />
-              <div>
-                <b>Campaign launched</b>
-                <small>{new Date(campaign.launchedAt).toLocaleDateString(undefined, { year: 'numeric', month: 'long', day: 'numeric' })}</small>
-              </div>
-            </div>
-            <div className="timeline-row">
-              <Users size={15} />
-              <div>
-                <b>Interview request</b>
-                <small>Sent when the campaign reaches {campaign.outreachTarget} supporters.</small>
-              </div>
-            </div>
-          </div>
+          <CampaignTimeline campaign={campaign} />
           <p className="ownership-disclaimer">
             <ShieldCheck size={15} /> Ownership status is self-reported. Position sizes are never displayed publicly.
           </p>
@@ -398,30 +453,42 @@ function ActiveCampaign({
   )
 }
 
-function QuestionCard({ question, company, onVote }: { question: PublicQuestion; company: PublicCompany; onVote: () => void }) {
-  const [copied, setCopied] = useState(false)
-
-  async function share() {
-    await copyToClipboard(`${window.location.origin}/company/${company.ticker}#${question.id}`)
-    setCopied(true)
-    track('question_shared', { ticker: company.ticker, question_id: question.id })
-    setTimeout(() => setCopied(false), 1800)
-  }
+function QuestionCard({
+  question,
+  company,
+  campaign,
+  onToggleVote,
+  onQuestionsChange,
+  onCampaignChange,
+}: {
+  question: PublicQuestion
+  company: PublicCompany
+  campaign: Campaign
+  onToggleVote: () => void
+  onQuestionsChange: (update: (current: PublicQuestion[]) => PublicQuestion[]) => void
+  onCampaignChange: (campaign: Campaign | null) => void
+}) {
+  const { profile, requireAuth } = useMvp()
+  const [editing, setEditing] = useState(false)
+  const [confirmingDelete, setConfirmingDelete] = useState(false)
+  const [reporting, setReporting] = useState(false)
+  const questionUrl = `${window.location.origin}/company/${company.ticker}#${question.id}`
+  const editable = isQuestionEditable(question)
 
   return (
     <article className="question-card" id={question.id}>
       <div className="vote-box">
         <button
           className={question.votedByUser ? 'vote-btn voted' : 'vote-btn'}
-          onClick={onVote}
-          disabled={question.votedByUser}
+          onClick={onToggleVote}
           aria-pressed={question.votedByUser}
-          aria-label={question.votedByUser ? 'You voted for this question' : 'Vote for this question'}
+          aria-label={question.votedByUser ? 'Remove your vote for this question' : 'Vote for this question'}
+          title={question.votedByUser ? 'Remove your vote' : 'Vote for this question'}
         >
           <ArrowUp size={17} />
         </button>
         <b>{question.votes}</b>
-        <span>votes</span>
+        <span>{question.votes === 1 ? 'vote' : 'votes'}</span>
       </div>
       <div className="question-body">
         <div className="question-meta">
@@ -432,26 +499,303 @@ function QuestionCard({ question, company, onVote }: { question: PublicQuestion;
         <h3>{question.text}</h3>
         <div className="question-footer">
           <span>{question.author}</span>
-          <span>
-            <MessageSquare size={12} /> {question.commentCount} comments
-          </span>
-          <button className="link-btn" onClick={() => void share()}>
-            {copied ? <Check size={12} /> : <Link2 size={12} />} {copied ? 'Copied' : 'Copy link'}
-          </button>
+          <ShareMenu
+            content={questionShareContent(question, company, questionUrl)}
+            analyticsEvent="question_shared"
+            analyticsProps={{ ticker: company.ticker, question_id: question.id }}
+            small
+          />
+          {editable && (
+            <>
+              <button className="link-btn" onClick={() => setEditing(true)}>
+                <Pencil size={12} /> Edit
+              </button>
+              <button className="link-btn" onClick={() => setConfirmingDelete(true)}>
+                <Trash2 size={12} /> Delete
+              </button>
+            </>
+          )}
+          {!question.isAuthor && (
+            <button
+              className="link-btn"
+              onClick={() => {
+                if (requireAuth('report a question')) setReporting(true)
+              }}
+            >
+              <Flag size={12} /> Report
+            </button>
+          )}
         </div>
       </div>
+
+      {editing && (
+        <EditQuestionModal
+          question={question}
+          userId={profile?.id}
+          companyTicker={company.ticker}
+          onClose={() => setEditing(false)}
+          onSaved={updated => {
+            onQuestionsChange(current => current.map(item => (item.id === updated.id ? updated : item)))
+            setEditing(false)
+          }}
+        />
+      )}
+      {confirmingDelete && (
+        <DeleteQuestionModal
+          question={question}
+          userId={profile?.id}
+          companyTicker={company.ticker}
+          onClose={() => setConfirmingDelete(false)}
+          onDeleted={() => {
+            onQuestionsChange(current => current.filter(item => item.id !== question.id))
+            onCampaignChange({
+              ...campaign,
+              questions: Math.max(0, campaign.questions - 1),
+              votes: Math.max(0, campaign.votes - question.votes),
+            })
+            setConfirmingDelete(false)
+          }}
+        />
+      )}
+      {reporting && <ReportQuestionModal question={question} companyTicker={company.ticker} userId={profile?.id} onClose={() => setReporting(false)} />}
     </article>
   )
+}
+
+function EditQuestionModal({
+  question,
+  userId,
+  companyTicker,
+  onClose,
+  onSaved,
+}: {
+  question: PublicQuestion
+  userId?: string
+  companyTicker: string
+  onClose: () => void
+  onSaved: (question: PublicQuestion) => void
+}) {
+  const [text, setText] = useState(question.text)
+  const [topic, setTopic] = useState(question.topic)
+  const [busy, setBusy] = useState(false)
+  const [error, setError] = useState('')
+
+  async function save(event: React.FormEvent) {
+    event.preventDefault()
+    if (busy) return
+    const trimmed = text.trim()
+    if (trimmed.length < 10 || trimmed.length > 500) {
+      setError('Questions must be between 10 and 500 characters.')
+      return
+    }
+    setBusy(true)
+    setError('')
+    try {
+      const updated = await updateQuestion(question, { text: trimmed, topic }, userId)
+      if (!updated) {
+        setError('This question can no longer be edited — its status has moved forward.')
+        setBusy(false)
+        return
+      }
+      track('question_edited', { ticker: companyTicker, question_id: question.id })
+      onSaved(updated)
+    } catch {
+      setError('We could not save your changes. Please try again.')
+      setBusy(false)
+    }
+  }
+
+  return (
+    <Modal onClose={onClose}>
+      <form onSubmit={save}>
+        <span className="eyebrow">Edit your question</span>
+        <h2>Refine what you’re asking.</h2>
+        <p className="modal-copy">You can edit your question while it is open or under review — not after it has been sent to management.</p>
+        <label className="field">
+          Question
+          <textarea maxLength={500} value={text} onChange={event => setText(event.target.value)} autoFocus />
+        </label>
+        <small className="char-count">{text.length}/500</small>
+        <label className="field">
+          Topic
+          <select className="text-input" value={topic} onChange={event => setTopic(event.target.value)}>
+            {topics.map(item => (
+              <option key={item}>{item}</option>
+            ))}
+          </select>
+        </label>
+        {error && <p className="form-error">{error}</p>}
+        <button className="btn primary full" type="submit" disabled={busy}>
+          {busy ? 'Saving…' : 'Save changes'} <Check size={15} />
+        </button>
+      </form>
+    </Modal>
+  )
+}
+
+function DeleteQuestionModal({
+  question,
+  userId,
+  companyTicker,
+  onClose,
+  onDeleted,
+}: {
+  question: PublicQuestion
+  userId?: string
+  companyTicker: string
+  onClose: () => void
+  onDeleted: () => void
+}) {
+  const [busy, setBusy] = useState(false)
+  const [error, setError] = useState('')
+
+  async function confirm() {
+    if (busy) return
+    setBusy(true)
+    setError('')
+    try {
+      const deleted = await deleteQuestion(question, userId)
+      if (!deleted) {
+        setError('This question can no longer be deleted — its status has moved forward.')
+        setBusy(false)
+        return
+      }
+      track('question_deleted', { ticker: companyTicker, question_id: question.id })
+      onDeleted()
+    } catch {
+      setError('We could not delete this question. Please try again.')
+      setBusy(false)
+    }
+  }
+
+  return (
+    <Modal onClose={onClose}>
+      <span className="eyebrow">Delete question</span>
+      <h2>Delete this question?</h2>
+      <p className="modal-copy">
+        “{question.text.length > 140 ? `${question.text.slice(0, 140)}…` : question.text}”
+      </p>
+      <p className="modal-copy">Its votes are removed with it. This cannot be undone.</p>
+      {error && <p className="form-error">{error}</p>}
+      <div className="empty-actions">
+        <button className="btn primary" onClick={() => void confirm()} disabled={busy}>
+          {busy ? 'Deleting…' : 'Delete question'}
+        </button>
+        <button className="btn secondary" onClick={onClose} disabled={busy}>
+          Keep it
+        </button>
+      </div>
+    </Modal>
+  )
+}
+
+function ReportQuestionModal({
+  question,
+  companyTicker,
+  userId,
+  onClose,
+}: {
+  question: PublicQuestion
+  companyTicker: string
+  userId?: string
+  onClose: () => void
+}) {
+  const [reason, setReason] = useState(reportReasons[0])
+  const [details, setDetails] = useState('')
+  const [busy, setBusy] = useState(false)
+  const [sent, setSent] = useState(false)
+  const [error, setError] = useState('')
+
+  async function submit(event: React.FormEvent) {
+    event.preventDefault()
+    if (busy) return
+    setBusy(true)
+    setError('')
+    try {
+      await reportQuestion(question.id, reason, details.trim() || undefined, userId)
+      track('question_reported', { ticker: companyTicker, question_id: question.id, reason })
+      setSent(true)
+    } catch {
+      setError('We could not send your report. Please try again.')
+    } finally {
+      setBusy(false)
+    }
+  }
+
+  return (
+    <Modal onClose={onClose}>
+      {sent ? (
+        <div className="success-state">
+          <div className="success-icon">
+            <Check size={22} />
+          </div>
+          <h2>Report received.</h2>
+          <p>Thanks — a moderator will review this question. Your report is private and is never shown publicly.</p>
+          <button className="btn primary" onClick={onClose}>
+            Done
+          </button>
+        </div>
+      ) : (
+        <form onSubmit={submit}>
+          <span className="eyebrow">Report question</span>
+          <h2>Flag this for review.</h2>
+          <p className="modal-copy">Reports are private — the author is not told who reported.</p>
+          <label className="field">
+            Reason
+            <select className="text-input" value={reason} onChange={event => setReason(event.target.value)}>
+              {reportReasons.map(item => (
+                <option key={item}>{item}</option>
+              ))}
+            </select>
+          </label>
+          <label className="field">
+            Details <span className="optional">Optional</span>
+            <textarea maxLength={500} value={details} onChange={event => setDetails(event.target.value)} placeholder="Anything a moderator should know." />
+          </label>
+          {error && <p className="form-error">{error}</p>}
+          <button className="btn primary full" type="submit" disabled={busy}>
+            {busy ? 'Sending…' : 'Send report'} <Flag size={15} />
+          </button>
+        </form>
+      )}
+    </Modal>
+  )
+}
+
+/** Significant-word overlap check used for pre-submission duplicate guidance. */
+function similarQuestions(draft: string, existing: PublicQuestion[]): PublicQuestion[] {
+  const words = new Set(
+    draft
+      .toLowerCase()
+      .split(/[^a-z0-9]+/)
+      .filter(word => word.length > 3),
+  )
+  if (words.size < 2) return []
+  return existing
+    .map(question => {
+      const questionWords = question.text
+        .toLowerCase()
+        .split(/[^a-z0-9]+/)
+        .filter(word => word.length > 3)
+      const overlap = questionWords.filter(word => words.has(word)).length
+      return { question, overlap }
+    })
+    .filter(item => item.overlap >= 2)
+    .sort((a, b) => b.overlap - a.overlap || b.question.votes - a.question.votes)
+    .slice(0, 3)
+    .map(item => item.question)
 }
 
 function QuestionForm({
   company,
   campaign,
+  existingQuestions,
   onClose,
   onSaved,
 }: {
   company: PublicCompany
   campaign: Campaign | null
+  existingQuestions: PublicQuestion[]
   onClose: () => void
   onSaved: (question: PublicQuestion, nextCampaign?: Campaign) => void
 }) {
@@ -462,6 +806,8 @@ function QuestionForm({
   const [anonymous, setAnonymous] = useState(false)
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState('')
+
+  const similar = useMemo(() => (text.trim().length >= 12 ? similarQuestions(text, existingQuestions) : []), [text, existingQuestions])
 
   async function submit(event: React.FormEvent) {
     event.preventDefault()
@@ -510,6 +856,16 @@ function QuestionForm({
           />
         </label>
         <small className="char-count">{text.length}/500</small>
+        {similar.length > 0 && (
+          <div className="similar-questions" role="note">
+            <b>Similar questions already exist — voting for one adds more weight than a duplicate:</b>
+            {similar.map(item => (
+              <span key={item.id} className="similar-question">
+                “{item.text.length > 90 ? `${item.text.slice(0, 90)}…` : item.text}” · {item.votes} {item.votes === 1 ? 'vote' : 'votes'}
+              </span>
+            ))}
+          </div>
+        )}
         <label className="field">
           Topic
           <select className="text-input" value={topic} onChange={event => setTopic(event.target.value)}>

@@ -1,10 +1,21 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { Link } from 'react-router-dom'
-import { Bell, ChevronRight, MessageSquare, Users } from 'lucide-react'
-import { getDashboardData, type DashboardData, type PublicCompany, type PublicQuestion } from '../lib/api'
+import { Bell, Check, ChevronRight, Clock, MessageSquare, Users } from 'lucide-react'
+import {
+  getDashboardData,
+  markAllNotificationsRead,
+  markNotificationRead,
+  type DashboardData,
+  type Notification,
+  type PublicCompany,
+  type PublicQuestion,
+} from '../lib/api'
+import { track } from '../lib/analytics'
 import { supabaseDataErrorHint } from '../lib/dataMode'
 import { useMvp } from '../context/useMvp'
 import { EmptyState, ErrorState, Monogram, PageHeading, Skeleton } from './ui'
+
+const investorTypes = ['Individual investor', 'Finance professional', 'Industry professional', 'Other']
 
 function CompanyList({ title, companies, empty }: { title: string; companies: PublicCompany[]; empty: string }) {
   return (
@@ -50,21 +61,170 @@ function QuestionRow({ question }: { question: PublicQuestion }) {
   )
 }
 
+function NotificationsPanel({
+  notifications,
+  userId,
+  demoMode,
+  onChanged,
+}: {
+  notifications: Notification[]
+  userId: string
+  demoMode: boolean
+  onChanged: (next: Notification[]) => void
+}) {
+  const [error, setError] = useState('')
+  const opened = useRef(false)
+
+  useEffect(() => {
+    if (!opened.current && notifications.length > 0) {
+      opened.current = true
+      track('notification_opened', { count: notifications.length, unread: notifications.filter(item => !item.read).length })
+    }
+  }, [notifications])
+
+  const unread = notifications.filter(item => !item.read)
+
+  async function markOne(notification: Notification) {
+    setError('')
+    try {
+      await markNotificationRead(notification.id, userId)
+      onChanged(notifications.map(item => (item.id === notification.id ? { ...item, read: true } : item)))
+      track('notification_marked_read', { scope: 'one' })
+    } catch {
+      setError('Could not update the notification. Please try again.')
+    }
+  }
+
+  async function markAll() {
+    setError('')
+    try {
+      await markAllNotificationsRead(userId)
+      onChanged(notifications.map(item => ({ ...item, read: true })))
+      track('notification_marked_read', { scope: 'all', count: unread.length })
+    } catch {
+      setError('Could not update notifications. Please try again.')
+    }
+  }
+
+  return (
+    <>
+      <div className="panel-head-row">
+        <h2>Notifications</h2>
+        {unread.length > 0 && (
+          <button className="link-btn" onClick={() => void markAll()}>
+            <Check size={12} /> Mark all read
+          </button>
+        )}
+      </div>
+      {error && <p className="form-error">{error}</p>}
+      {notifications.length ? (
+        notifications.map(notification => (
+          <div className={notification.read ? 'list-row read' : 'list-row'} key={notification.id}>
+            <span className="notification-dot">
+              <Bell size={13} />
+            </span>
+            <span className="list-row-main">
+              <b>{notification.title}</b>
+              <small>{notification.body}</small>
+            </span>
+            {!notification.read && (
+              <button className="link-btn" onClick={() => void markOne(notification)} aria-label={`Mark "${notification.title}" as read`}>
+                Mark read
+              </button>
+            )}
+          </div>
+        ))
+      ) : (
+        <p className="list-empty">
+          <Bell size={14} /> {demoMode ? 'Notifications are not available in demo mode.' : 'Notifications arrive when campaigns you support progress.'}
+        </p>
+      )}
+    </>
+  )
+}
+
+function ProfileSettings() {
+  const { profile, updateProfileDetails } = useMvp()
+  const [displayName, setDisplayName] = useState(profile?.displayName ?? '')
+  const [country, setCountry] = useState(profile?.country ?? '')
+  const [investorType, setInvestorType] = useState(profile?.investorType ?? investorTypes[0])
+  const [publicAnonymous, setPublicAnonymous] = useState(Boolean(profile?.publicAnonymous))
+  const [busy, setBusy] = useState(false)
+  const [saved, setSaved] = useState(false)
+  const [error, setError] = useState('')
+
+  async function save(event: React.FormEvent) {
+    event.preventDefault()
+    if (busy) return
+    const trimmed = displayName.trim()
+    if (!trimmed) {
+      setError('Display name cannot be empty.')
+      return
+    }
+    setBusy(true)
+    setError('')
+    setSaved(false)
+    try {
+      await updateProfileDetails({ displayName: trimmed, country: country.trim() || undefined, investorType, publicAnonymous })
+      setSaved(true)
+      setTimeout(() => setSaved(false), 2500)
+    } catch {
+      setError('We could not save your profile. Please try again.')
+    } finally {
+      setBusy(false)
+    }
+  }
+
+  return (
+    <section className="dashboard-section">
+      <h2>Profile settings</h2>
+      <form className="profile-form" onSubmit={save}>
+        <label className="field">
+          Display name
+          <input className="text-input" value={displayName} maxLength={60} onChange={event => setDisplayName(event.target.value)} />
+        </label>
+        <label className="field">
+          Country <span className="optional">Optional</span>
+          <input className="text-input" value={country} maxLength={60} onChange={event => setCountry(event.target.value)} placeholder="e.g. Canada" />
+        </label>
+        <label className="field">
+          Investor type
+          <select className="text-input" value={investorType} onChange={event => setInvestorType(event.target.value)}>
+            {investorTypes.map(item => (
+              <option key={item}>{item}</option>
+            ))}
+          </select>
+        </label>
+        <label className="check-row">
+          <input type="checkbox" checked={publicAnonymous} onChange={event => setPublicAnonymous(event.target.checked)} />
+          Show all my questions as “Anonymous Shareholder”
+        </label>
+        <p className="form-footnote">Your email address is never shown publicly.</p>
+        {error && <p className="form-error">{error}</p>}
+        <button className="btn secondary small" type="submit" disabled={busy}>
+          {busy ? 'Saving…' : saved ? 'Saved' : 'Save profile'} {saved && <Check size={13} />}
+        </button>
+      </form>
+    </section>
+  )
+}
+
 export function DashboardPage() {
   const { profile, requireAuth, demoMode } = useMvp()
   const [data, setData] = useState<DashboardData | null>(null)
   const [error, setError] = useState(false)
   const [reloadKey, setReloadKey] = useState(0)
+  const profileId = profile?.id
 
   useEffect(() => {
-    if (!profile) {
+    if (!profileId) {
       setData(null)
       return
     }
     let cancelled = false
     setError(false)
     setData(null)
-    getDashboardData(profile.id)
+    getDashboardData(profileId)
       .then(result => {
         if (!cancelled) setData(result)
       })
@@ -74,7 +234,7 @@ export function DashboardPage() {
     return () => {
       cancelled = true
     }
-  }, [profile, reloadKey])
+  }, [profileId, reloadKey])
 
   if (!profile) {
     return (
@@ -144,6 +304,7 @@ export function DashboardPage() {
         <div className="panel">
           <CompanyList title="Supported campaigns" companies={data.supported} empty="You have not supported a campaign yet." />
           <CompanyList title="Followed companies" companies={data.followed} empty="You are not following any companies yet." />
+          <ProfileSettings />
         </div>
         <div className="panel">
           <h2>Your questions</h2>
@@ -160,26 +321,33 @@ export function DashboardPage() {
           ) : (
             <p className="list-empty">Votes you cast will appear here.</p>
           )}
-        </div>
-        <div className="panel">
-          <h2>Notifications</h2>
-          {data.notifications.length ? (
-            data.notifications.map(notification => (
-              <div className={notification.read ? 'list-row read' : 'list-row'} key={notification.id}>
+          <h2 className="panel-subhead">Recent activity</h2>
+          {data.activity.length ? (
+            data.activity.map(item => (
+              <div className="list-row" key={item.id}>
                 <span className="notification-dot">
-                  <Bell size={13} />
+                  <Clock size={13} />
                 </span>
                 <span className="list-row-main">
-                  <b>{notification.title}</b>
-                  <small>{notification.body}</small>
+                  <b>{item.label}</b>
+                  <small>
+                    {new Date(item.at).toLocaleDateString()}
+                    {item.companyTicker ? ` · ${item.companyTicker}` : ''}
+                  </small>
                 </span>
               </div>
             ))
           ) : (
-            <p className="list-empty">
-              <Bell size={14} /> {demoMode ? 'Notifications are not available in demo mode.' : 'Notifications arrive when campaigns you support progress.'}
-            </p>
+            <p className="list-empty">Your campaign, question, and voting activity will appear here.</p>
           )}
+        </div>
+        <div className="panel">
+          <NotificationsPanel
+            notifications={data.notifications}
+            userId={profile.id}
+            demoMode={demoMode}
+            onChanged={next => setData(current => (current ? { ...current, notifications: next } : current))}
+          />
         </div>
       </div>
     </div>

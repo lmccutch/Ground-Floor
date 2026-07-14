@@ -232,3 +232,12 @@ otherwise:
 - **Inactive/delisted company pages** are not specially handled — nothing
   in Phase 1 can ever mark a security inactive (no live sync exists), so
   there's no reachable inactive state to design for yet.
+
+## Discover highlights (core-experience phase)
+
+Discover now shows real-activity highlight sections (near outreach target,
+most supported, most voted, newest) derived from `public_campaign_metrics`.
+Sections with no real entries are hidden — the directory below remains the
+primary browse surface. Ranking rules and the deliberate exclusion of a
+"recently requested companies" section (requests are private by RLS) are
+documented in `docs/core-user-experience.md`.

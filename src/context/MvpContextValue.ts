@@ -1,5 +1,5 @@
 import { createContext } from 'react'
-import type { Profile } from '../lib/api'
+import type { Profile, ProfileUpdateInput } from '../lib/api'
 
 export type MvpContextValue = {
   profile: Profile | null
@@ -8,6 +8,8 @@ export type MvpContextValue = {
   signIn: (email: string) => Promise<void>
   signOut: () => Promise<void>
   completeProfile: (input: { displayName: string; investorType?: string }) => Promise<void>
+  /** Full profile-settings update (display name, country, investor type, anonymity). */
+  updateProfileDetails: (input: ProfileUpdateInput) => Promise<void>
   /** Returns true when signed in; otherwise opens the sign-in dialog and returns false. */
   requireAuth: (action: string) => boolean
 }

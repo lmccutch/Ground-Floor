@@ -12,7 +12,8 @@
     "test": "vitest run",
     "test:e2e": "playwright test",
     "bootstrap:generate": "tsx scripts/generate-company-bootstrap.ts",
-    "verify:rpc-security": "tsx scripts/verify-start-campaign-security.ts"
+    "verify:rpc-security": "tsx scripts/verify-start-campaign-security.ts",
+    "verify:core-security": "tsx scripts/verify-core-experience-security.ts"
   },
   "dependencies": {
     "@hookform/resolvers": "^5.4.0",

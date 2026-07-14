@@ -2070,3 +2070,301 @@ a.list-row:hover b {
     font-size: 21px;
   }
 }
+
+/* ------------------------- campaign lifecycle panel ------------------------ */
+
+.lifecycle-panel {
+  background: var(--paper);
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  padding: 22px;
+  display: grid;
+  gap: 16px;
+  margin-top: 18px;
+}
+
+.lifecycle-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 14px;
+  flex-wrap: wrap;
+}
+
+.lifecycle-explanation {
+  color: var(--muted);
+  font-size: 13.5px;
+  line-height: 1.6;
+  max-width: 620px;
+}
+
+.lifecycle-outcome {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12.5px;
+  font-weight: 600;
+  padding: 6px 12px;
+  border-radius: 999px;
+  border: 1px solid var(--line);
+  white-space: nowrap;
+}
+
+.lifecycle-outcome.declined {
+  color: var(--red);
+}
+
+.lifecycle-outcome.paused {
+  color: var(--muted);
+}
+
+.lifecycle-outcome.completed {
+  color: var(--green, #2e7d5b);
+}
+
+.lifecycle-steps {
+  list-style: none;
+  display: grid;
+  grid-template-columns: repeat(6, minmax(0, 1fr));
+  gap: 8px;
+  padding: 0;
+  margin: 0;
+}
+
+/* Between the phone and desktop breakpoints the side rail still takes 280px,
+   so six stepper columns exceed the main column's min width — wrap to 3 + 3. */
+@media (max-width: 1080px) {
+  .lifecycle-steps {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+}
+
+.lifecycle-step {
+  display: grid;
+  justify-items: center;
+  gap: 8px;
+  text-align: center;
+  padding: 10px 6px;
+  border-radius: 10px;
+  border: 1px solid transparent;
+}
+
+.lifecycle-step.current {
+  border-color: var(--gold);
+  background: rgba(191, 147, 68, 0.07);
+}
+
+.lifecycle-marker {
+  display: grid;
+  place-items: center;
+  width: 26px;
+  height: 26px;
+  border-radius: 50%;
+  font-size: 12px;
+  font-weight: 600;
+  border: 1px solid var(--line);
+  color: var(--muted);
+  background: #fff;
+}
+
+.lifecycle-step.done .lifecycle-marker {
+  background: var(--navy-800, #1c2f3a);
+  border-color: var(--navy-800, #1c2f3a);
+  color: #fff;
+}
+
+.lifecycle-step.current .lifecycle-marker {
+  border-color: var(--gold);
+  color: var(--gold);
+}
+
+.lifecycle-title {
+  font-size: 11.5px;
+  line-height: 1.35;
+  color: var(--muted);
+}
+
+.lifecycle-step.done .lifecycle-title,
+.lifecycle-step.current .lifecycle-title {
+  color: var(--ink);
+}
+
+.lifecycle-next {
+  font-size: 13px;
+  color: var(--muted);
+  line-height: 1.6;
+  margin: 0;
+}
+
+.lifecycle-panel .progress-panel {
+  margin-top: 0;
+}
+
+/* --------------------------- question controls ----------------------------- */
+
+.question-controls {
+  display: flex;
+  gap: 14px;
+  flex-wrap: wrap;
+  margin-bottom: 14px;
+}
+
+.question-controls .chip-row {
+  margin: 0;
+}
+
+.question-footer .share-menu summary {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.linked-question {
+  outline: 2px solid var(--gold);
+  outline-offset: 3px;
+}
+
+.similar-questions {
+  display: grid;
+  gap: 6px;
+  border: 1px solid var(--line);
+  border-left: 3px solid var(--gold);
+  border-radius: 8px;
+  padding: 10px 12px;
+  margin: 6px 0 4px;
+  font-size: 12.5px;
+  color: var(--muted);
+}
+
+.similar-questions b {
+  color: var(--ink);
+  font-size: 12.5px;
+}
+
+.similar-question {
+  line-height: 1.5;
+}
+
+/* ------------------------------ timeline extra ----------------------------- */
+
+.timeline-row.upcoming {
+  opacity: 0.65;
+}
+
+/* ------------------------------ feedback entry ----------------------------- */
+
+.feedback-fab {
+  position: fixed;
+  right: 16px;
+  bottom: 16px;
+  z-index: 25;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 14px;
+  border-radius: 999px;
+  border: 1px solid var(--line);
+  background: var(--paper);
+  color: var(--muted);
+  font-size: 12.5px;
+  font-weight: 600;
+  cursor: pointer;
+  box-shadow: var(--shadow-lg, 0 8px 24px rgba(20, 37, 45, 0.12));
+  transition: color 0.15s ease, border-color 0.15s ease;
+}
+
+.feedback-fab:hover,
+.feedback-fab:focus-visible {
+  color: var(--ink);
+  border-color: var(--gold);
+}
+
+/* ------------------------------ recent searches ---------------------------- */
+
+.recent-searches {
+  display: grid;
+}
+
+.recent-searches-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 8px 12px 4px;
+}
+
+.recent-searches-head .tiny-label {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+}
+
+/* ---------------------------- discover highlights -------------------------- */
+
+.highlight-section {
+  margin: 18px 0 6px;
+}
+
+.highlight-section .section-note {
+  margin-top: 2px;
+}
+
+.highlight-loading {
+  margin: 14px 0;
+}
+
+/* ------------------------------ dashboard extras --------------------------- */
+
+.panel-head-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 10px;
+}
+
+.profile-form {
+  display: grid;
+  gap: 10px;
+}
+
+.profile-form .btn {
+  justify-self: start;
+}
+
+.list-row .link-btn {
+  flex-shrink: 0;
+}
+
+/* ----------------------- mobile: new components ---------------------------- */
+
+@media (max-width: 760px) {
+  .lifecycle-steps {
+    grid-template-columns: repeat(2, 1fr);
+  }
+
+  .lifecycle-step {
+    grid-template-columns: auto 1fr;
+    justify-items: start;
+    text-align: left;
+    align-items: center;
+    padding: 8px 10px;
+  }
+
+  .question-controls {
+    flex-direction: column;
+    gap: 8px;
+  }
+
+  .feedback-fab {
+    right: 12px;
+    bottom: 12px;
+    padding: 7px 12px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .feedback-fab,
+  .lifecycle-step,
+  .search-result {
+    transition: none;
+  }
+}
