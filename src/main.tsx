@@ -2,6 +2,7 @@ import { StrictMode } from 'react'
 import { createRoot } from 'react-dom/client'
 import './index.css'
 import { DataModeConfigError, getDataModeConfig } from './lib/dataMode'
+import { ErrorBoundary } from './components/ErrorBoundary'
 
 const root = createRoot(document.getElementById('root')!)
 
@@ -39,9 +40,11 @@ async function bootstrap() {
 
   root.render(
     <StrictMode>
-      <MvpProvider>
-        <App />
-      </MvpProvider>
+      <ErrorBoundary>
+        <MvpProvider>
+          <App />
+        </MvpProvider>
+      </ErrorBoundary>
     </StrictMode>,
   )
 }

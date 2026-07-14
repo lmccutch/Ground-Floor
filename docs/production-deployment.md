@@ -8,14 +8,58 @@ here have been run against production.
 
 ## Recommended host: Vercel
 
-Nothing in this repo is currently configured for any host (no `vercel.json`,
-`netlify.toml`, or CI deploy workflow). Vercel is recommended: this is a
-Vite + React SPA with no server-side rendering or backend code (all backend
-logic lives in Supabase), which is exactly Vercel's zero-config static-build
-case, plus it gives free preview deployments per PR/branch and simple
-per-environment env-var management (Production / Preview / Development).
-Netlify or Cloudflare Pages would work equally well if preferred — the
-settings below map directly.
+No CI deploy workflow exists yet, and the repo isn't linked to any host.
+Vercel is recommended: this is a Vite + React SPA with no server-side
+rendering or backend code (all backend logic lives in Supabase), which is
+exactly Vercel's zero-config static-build case, plus it gives free preview
+deployments per PR/branch and simple per-environment env-var management
+(Production / Preview / Development). Netlify or Cloudflare Pages would work
+equally well if preferred — the settings below map directly, though
+`vercel.json`'s rewrite syntax (§4) would need translating to that host's
+equivalent (`_redirects` for Netlify, for example).
+
+## Exact production deployment sequence
+
+1. Create or confirm a dedicated production Supabase project — distinct from
+   both `openvoice-scratch` (this verification pass's disposable project) and
+   `lmccutch's Project` (a separate pre-existing project of unconfirmed
+   purpose). Do not proceed until it's clear which project is production.
+2. Apply migrations in order: `202607100001`, `202607110001`, `202607130001`,
+   `202607130002` (`supabase link --project-ref <prod-ref>`, then
+   `supabase db push --dry-run` to confirm the plan, then `supabase db push`).
+3. Apply only the curated company bootstrap
+   (`supabase/seed/20260710000001_company_directory_bootstrap.sql`) —
+   `db.seed.enabled` in `supabase/config.toml` stays `false` by default;
+   scope `sql_paths` to that one file when applying, and never apply
+   `supabase/seed/202607100002_seed_fictional_companies.sql`.
+4. Confirm engagement tables are empty before opening signups: `campaigns`,
+   `campaign_supporters`, `campaign_followers`, `questions`, `question_votes`,
+   `company_requests`, `profiles` should all be `0` rows — a fresh production
+   project should have companies/securities/aliases only, nothing
+   user-generated.
+5. Configure custom SMTP (Authentication → Emails → SMTP Settings) — required
+   before real signups; see §2 below for why.
+6. Configure the production Site URL and redirect URLs, both in Supabase
+   Auth settings and as `VITE_SITE_URL` (see §5 below).
+7. Set all Vercel environment variables for the Production environment (see
+   §1 below for the exact names).
+8. Deploy a Vercel preview (push a branch / open a PR) and confirm it builds
+   and the SPA rewrite in `vercel.json` serves nested routes correctly.
+9. Run acceptance tests against that preview: at minimum, the 23-flow
+   checklist in `supabase-verification-checklist.md`, real magic-link
+   sign-in against the production Supabase project's SMTP, and a manual
+   check of `/discover`, a `/company/:ticker` page, and a direct reload on
+   each.
+10. Promote the verified deployment to production (Vercel: promote the
+    preview, or merge to the branch Vercel tracks for Production).
+11. Run production smoke tests against the live domain: homepage loads,
+    search works, a real magic-link sign-in completes end-to-end, and
+    `robots.txt`/`sitemap.xml` resolve with the real domain substituted in
+    (see §7 below — both ship with a placeholder domain that must be
+    replaced first).
+12. Merge `phase-1-company-directory` to `main` only after step 11 passes.
+    Merging is a separate, explicit decision — nothing in this checklist
+    merges automatically.
 
 ## 1. Production environment variables
 
@@ -92,13 +136,17 @@ real campaigns/questions/votes into the production database.
 | Install Command | `npm install` |
 | Node.js Version | 20.x or later — no `engines` field is currently pinned in `package.json`; Vite 8 requires a current Node LTS. Consider adding an `engines.node` field so local/CI Node drift is caught early. |
 
-## 4. SPA route-rewrite configuration — required
+## 4. SPA route-rewrite configuration — done
 
-`src/App.tsx` uses `react-router-dom`'s `BrowserRouter`, so routes like
-`/company/AAPL` or `/discover` must be served `index.html` on direct load or
-refresh, not a 404. Vercel's static build usually infers this for a Vite SPA,
-but don't rely on inference — add an explicit `vercel.json` at the repo root
-before the first deploy:
+`src/App.tsx` uses `react-router-dom`'s `BrowserRouter`, so every route
+(`/discover`, `/company/:ticker`, `/companies`, `/companies/:slug`,
+`/request-company`, and any future route — there is no separate
+authentication-callback path, since sign-in is a modal and magic-link
+completion lands on `/` via a URL fragment) must be served `index.html` on
+direct load or refresh, not a 404.
+
+`vercel.json` now exists at the repo root with the minimal correct
+catch-all rewrite:
 
 ```json
 {
@@ -106,10 +154,21 @@ before the first deploy:
 }
 ```
 
-This wasn't added during this pass (out of scope for verification-only work)
-but is a hard requirement before deploying — without it, every non-root URL
-a user shares or refreshes (exactly what the Share menu on `CampaignPage`
-generates) 404s.
+A single catch-all is deliberate over per-route entries: it already covers
+every route above plus any route added later (legal/informational pages,
+etc.) without touching this file again, and unmatched paths still correctly
+fall through to the client-side `NotFoundPage` (React Router's `*` route)
+once `index.html` loads.
+
+**Verified locally**, not yet on an actual Vercel deployment: `vite preview`
+serves a production build the same way a static host does, and a headless
+browser was driven directly to `/discover`, `/company/AAPL`, `/companies`,
+`/request-company`, and an unknown path — all five returned HTTP 200 and
+rendered the correct page client-side, with zero page errors. One caveat:
+Vite's dev/preview servers have their own built-in SPA fallback (`appType:
+'spa'`), so this only proves the React Router side works once `index.html`
+is served — it does not prove Vercel's rewrite engine itself, which can only
+be confirmed with an actual Vercel deploy (§ step 8 above).
 
 ## 5. Production authentication redirect URLs
 
@@ -126,32 +185,62 @@ generates) 404s.
 
 ## 6. Production error handling
 
-Current state, verified working during this pass:
-
 - Missing/invalid `VITE_DATA_MODE` (or `supabase` mode missing its URL/key)
   renders a plain-language "Configuration error" screen (`src/main.tsx`)
-  instead of a blank page or a stack trace — confirmed by design, not
-  independently re-triggered live in this pass.
+  instead of a blank page or a stack trace.
 - Per-page data-load failures (`DiscoverPage`, `CampaignPage`,
   `DashboardPage`) render an `ErrorState` with a retry action rather than
   crashing; observed zero console errors and zero failed Supabase requests
-  across the full 26-check browser walkthrough.
+  across the full 26-check browser walkthrough in the prior verification
+  pass.
+- `src/components/ErrorBoundary.tsx` now wraps `<MvpProvider><App /></MvpProvider>`
+  in `main.tsx`, catching any unexpected React render-phase error that isn't
+  already one of the two cases above. The fallback (`role="alert"`, an `<h1>`
+  so it's reachable as a landmark heading) shows a generic, credible message
+  with no stack trace or error detail exposed to the user; the actual error
+  is logged to the console only when `import.meta.env.DEV` is true. It offers
+  a "Try again" button (a full `window.location.reload()`, not just resetting
+  the boundary's local state — the crash may be caused by state living
+  outside the boundary, which a local reset wouldn't clear) and a "Return
+  home" link (a plain `<a href="/">`, not a router `Link`, so it still works
+  even if the router itself is what crashed). No feedback/contact link is
+  included — none exists anywhere else in the app either (see the browser
+  acceptance pass's finding on item #18), so adding one only here would be
+  inconsistent; add it repo-wide if/when a real contact path exists.
+  Covered by `src/components/ErrorBoundary.test.tsx` (renders children
+  normally; shows the fallback without leaking the thrown error's message;
+  both controls are present, keyboard-reachable, and functional).
 
-Gap worth addressing before or shortly after launch: there is no top-level
-React error boundary around `<App />` in `main.tsx`. An uncaught render
-error anywhere in the component tree (not a data-fetch error — those are
-already handled) unmounts to a blank white page with no recovery UI. Adding
-one is a small, low-risk change but is a judgment call left to you rather
-than made unilaterally here, since it's hardening rather than something this
-verification pass found broken.
+  This boundary intentionally does **not** catch normal API or form errors —
+  React error boundaries only catch synchronous render-phase throws, never
+  errors in event handlers, promises, or `fetch` calls, so the existing
+  per-page `ErrorState`/inline form-error handling is untouched and still
+  the first line of defense for anything data-related.
 
-## 7. robots.txt and sitemap — not present
+## 7. robots.txt and sitemap — decided and added
 
-Neither `public/robots.txt` nor a sitemap exists. For a public directory
-site this is worth adding before launch (a minimal `robots.txt` allowing
-crawl of the marketing/discovery pages, and a sitemap listing at least
-`/`, `/discover`, and static company routes) but is an SEO/growth decision,
-not a functional blocker — not added here.
+`public/robots.txt` and `public/sitemap.xml` now exist.
+
+- **robots.txt**: allows crawling by default; specifically disallows the bare
+  `/companies` route (the private "My companies" dashboard) while explicitly
+  re-allowing `/companies/<slug>` (public campaign pages, which happen to
+  share the same path prefix). There's no separate path to disallow for
+  "authentication" — sign-in is a modal, not a route, and magic-link
+  completion happens via a URL fragment on `/`, which crawlers never see.
+- **sitemap.xml**: intentionally minimal — only `/` and `/discover`. The
+  ~225 individual company/campaign pages are excluded on purpose: nearly all
+  currently show the honest "no campaign has started" empty state, which is
+  not meaningful indexable content, and listing them would misrepresent an
+  empty directory as active campaigns. About, a standalone How It Works page,
+  FAQ, Community Guidelines, and Transparency are **not** in the sitemap
+  because none of those pages exist yet in this Phase 1 build (confirmed
+  against `src/App.tsx`'s route list) — sitemap expansion for them is
+  deferred until they're actually built, not represented here.
+- Both files ship with the literal placeholder `REPLACE-WITH-PRODUCTION-DOMAIN`
+  in place of a real domain, since it isn't known yet. This must be replaced
+  with the real production domain as part of domain configuration (§9) —
+  search both files for that exact string before or immediately after the
+  first production deploy.
 
 ## 8. Favicon and metadata — present, no action needed
 

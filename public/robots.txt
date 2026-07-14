@@ -1,0 +1,16 @@
+# GroundFloor — Phase 1.
+#
+# /companies (no slug) is the private "My companies" dashboard — disallowed.
+# /companies/<slug> is a public campaign page and must stay crawlable, hence
+# the exact-match Disallow ($) plus an explicit Allow for the slug form.
+# There is no separate authentication route to disallow: sign-in is a modal
+# over the current page, and magic-link completion lands on "/" via a URL
+# fragment, which is never sent to or seen by crawlers.
+
+User-agent: *
+Allow: /
+Disallow: /companies$
+Allow: /companies/
+
+# REPLACE-WITH-PRODUCTION-DOMAIN before deploying — see docs/production-deployment.md.
+Sitemap: https://REPLACE-WITH-PRODUCTION-DOMAIN/sitemap.xml

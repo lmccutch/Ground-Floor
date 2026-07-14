@@ -1,0 +1,29 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  GroundFloor — Phase 1 sitemap.
+
+  Deliberately minimal: only pages that exist and have real, meaningful
+  content today. Explicitly excluded:
+    - The ~225 individual company/campaign pages (/company/:ticker,
+      /companies/:slug). Nearly all currently show the honest "no campaign
+      has started" empty state — that is not meaningful indexable content,
+      and listing them would misrepresent an empty directory as active
+      campaigns. Add per-company URLs once a meaningful share of them have
+      real campaign activity, not before.
+    - About, How It Works (as a standalone page), FAQ, Community Guidelines,
+      and Transparency. None of these pages exist yet in this Phase 1
+      build (see App.tsx for the current route list). Sitemap expansion for
+      them is deferred until they're actually built — do not add entries
+      for pages that don't exist.
+
+  REPLACE-WITH-PRODUCTION-DOMAIN before deploying — see
+  docs/production-deployment.md.
+-->
+<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
+  <url>
+    <loc>https://REPLACE-WITH-PRODUCTION-DOMAIN/</loc>
+  </url>
+  <url>
+    <loc>https://REPLACE-WITH-PRODUCTION-DOMAIN/discover</loc>
+  </url>
+</urlset>
