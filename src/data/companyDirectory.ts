@@ -428,6 +428,78 @@ const realEstate: DirectoryCompany[] = [
   simple('ventas', 'Ventas, Inc.', 'Real estate', 'United States', '$25B-$100B', 'VTR', 'NYSE', 'Owns and operates senior housing and healthcare real estate.'),
 ]
 
+/* --------------------------------- Automotive --------------------------------- */
+
+const automotive: DirectoryCompany[] = [
+  simple('tesla', 'Tesla, Inc.', 'Automotive', 'United States', 'Over $100B', 'TSLA', 'NASDAQ', 'Designs and manufactures electric vehicles, battery energy storage, and solar products.', { displayName: 'Tesla' }),
+]
+
+/* ----------------------- Popular-with-retail additions ----------------------- */
+//
+// These companies were added to the curated directory so the "Popular with
+// Retail Investors" beta (see docs/popular-with-retail.md) can resolve every
+// featured row to a real, canonical company page. They follow the same
+// hand-curated pattern as the rest of this file — broad market-cap bands only,
+// and each is a real U.S.-listed operating company. They are ordinary directory
+// entries: nothing here depends on the retail-popularity feature, and the
+// feature can be removed without touching these records.
+
+const retailPopularAdditions: DirectoryCompany[] = [
+  // Technology
+  simple('nebius', 'Nebius Group N.V.', 'Technology', 'Netherlands', '$25B-$100B', 'NBIS', 'NASDAQ', 'Provides AI-focused cloud computing infrastructure and data-center services.', { displayName: 'Nebius Group' }),
+  simple('iren', 'IREN Limited', 'Technology', 'Australia', '$5B-$25B', 'IREN', 'NASDAQ', 'Operates data centers for bitcoin mining and AI cloud computing.'),
+  simple('alibaba', 'Alibaba Group Holding Limited', 'Technology', 'China', 'Over $100B', 'BABA', 'NYSE', 'Operates e-commerce, cloud computing, and digital-media platforms across China and internationally.', { isAdr: true, displayName: 'Alibaba Group' }),
+  simple('applied-digital', 'Applied Digital Corporation', 'Technology', 'United States', '$5B-$25B', 'APLD', 'NASDAQ', 'Develops and operates data centers for high-performance and AI computing.', { displayName: 'Applied Digital' }),
+  simple('strategy', 'Strategy Inc.', 'Technology', 'United States', '$25B-$100B', 'MSTR', 'NASDAQ', 'Provides enterprise analytics software and holds bitcoin as a treasury reserve asset.', { displayName: 'Strategy', aliases: [{ alias: 'MicroStrategy Incorporated', aliasType: 'former_company_name' }, { alias: 'MicroStrategy', aliasType: 'brand_name' }] }),
+  simple('applied-optoelectronics', 'Applied Optoelectronics, Inc.', 'Technology', 'United States', '$5B-$25B', 'AAOI', 'NASDAQ', 'Designs and manufactures fiber-optic networking products for data centers and telecom.', { displayName: 'Applied Optoelectronics' }),
+  simple('sea-limited', 'Sea Limited', 'Technology', 'Singapore', '$25B-$100B', 'SE', 'NYSE', 'Operates digital entertainment, e-commerce, and financial-services platforms across Southeast Asia.', { isAdr: true, displayName: 'Sea Limited' }),
+  simple('arm-holdings', 'Arm Holdings plc', 'Technology', 'United Kingdom', 'Over $100B', 'ARM', 'NASDAQ', 'Designs and licenses semiconductor intellectual property and processor architectures.', { isAdr: true, displayName: 'Arm Holdings' }),
+  simple('credo-technology', 'Credo Technology Group Holding Ltd.', 'Technology', 'United States', '$25B-$100B', 'CRDO', 'NASDAQ', 'Designs high-speed connectivity semiconductors for data-center and AI infrastructure.', { displayName: 'Credo Technology' }),
+  simple('applovin', 'AppLovin Corporation', 'Technology', 'United States', 'Over $100B', 'APP', 'NASDAQ', 'Provides a software platform for mobile-app marketing and monetization.', { displayName: 'AppLovin' }),
+  simple('taiwan-semiconductor', 'Taiwan Semiconductor Manufacturing Company Limited', 'Technology', 'Taiwan', 'Over $100B', 'TSM', 'NYSE', 'Manufactures semiconductors as a dedicated foundry for fabless chip designers.', { isAdr: true, displayName: 'Taiwan Semiconductor' }),
+  simple('ast-spacemobile', 'AST SpaceMobile, Inc.', 'Technology', 'United States', '$5B-$25B', 'ASTS', 'NASDAQ', 'Develops a space-based cellular broadband network for direct-to-smartphone connectivity.', { displayName: 'AST SpaceMobile' }),
+  simple('coreweave', 'CoreWeave, Inc.', 'Technology', 'United States', '$25B-$100B', 'CRWV', 'NASDAQ', 'Provides GPU-accelerated cloud computing infrastructure for AI workloads.', { displayName: 'CoreWeave' }),
+  simple('cipher-mining', 'Cipher Mining Inc.', 'Technology', 'United States', '$5B-$25B', 'CIFR', 'NASDAQ', 'Operates data centers for bitcoin mining and high-performance computing.', { displayName: 'Cipher Mining' }),
+  simple('corning', 'Corning Incorporated', 'Technology', 'United States', 'Over $100B', 'GLW', 'NYSE', 'Manufactures specialty glass, ceramics, and optical-fiber products.', { displayName: 'Corning' }),
+  simple('astera-labs', 'Astera Labs, Inc.', 'Technology', 'United States', '$25B-$100B', 'ALAB', 'NASDAQ', 'Designs connectivity semiconductors and modules for AI and cloud infrastructure.', { displayName: 'Astera Labs' }),
+  simple('terawulf', 'TeraWulf Inc.', 'Technology', 'United States', '$5B-$25B', 'WULF', 'NASDAQ', 'Operates data centers for bitcoin mining and high-performance computing.', { displayName: 'TeraWulf' }),
+  simple('rigetti', 'Rigetti Computing, Inc.', 'Technology', 'United States', '$5B-$25B', 'RGTI', 'NASDAQ', 'Develops superconducting quantum computers and cloud quantum-computing services.', { displayName: 'Rigetti Computing' }),
+  simple('trade-desk', 'The Trade Desk, Inc.', 'Technology', 'United States', '$5B-$25B', 'TTD', 'NASDAQ', 'Operates a demand-side platform for programmatic digital advertising.', { displayName: 'The Trade Desk' }),
+  simple('enovix', 'Enovix Corporation', 'Technology', 'United States', '$1B-$5B', 'ENVX', 'NASDAQ', 'Designs and manufactures silicon-anode lithium-ion batteries.', { displayName: 'Enovix' }),
+  simple('ondas', 'Ondas Holdings Inc.', 'Technology', 'United States', '$1B-$5B', 'ONDS', 'NASDAQ', 'Provides drone and wireless data-network technology for industrial and defense uses.', { displayName: 'Ondas Holdings' }),
+  simple('rezolve', 'Rezolve AI PLC', 'Technology', 'United Kingdom', '$300M-$1B', 'RZLV', 'NASDAQ', 'Develops AI-powered commerce and engagement software for retailers.', { displayName: 'Rezolve AI' }),
+  simple('soundhound', 'SoundHound AI, Inc.', 'Technology', 'United States', '$1B-$5B', 'SOUN', 'NASDAQ', 'Develops voice artificial-intelligence and conversational-AI software.', { displayName: 'SoundHound AI' }),
+  simple('blackberry', 'BlackBerry Limited', 'Technology', 'Canada', '$5B-$25B', 'BB', 'NYSE', 'Provides cybersecurity and Internet-of-Things software, including automotive systems.', { displayName: 'BlackBerry' }),
+  // Financial services
+  simple('coinbase', 'Coinbase Global, Inc.', 'Financial services', 'United States', '$25B-$100B', 'COIN', 'NASDAQ', 'Operates a platform for trading, storing, and using cryptocurrencies.', { displayName: 'Coinbase' }),
+  simple('fiserv', 'Fiserv, Inc.', 'Financial services', 'United States', '$25B-$100B', 'FISV', 'NASDAQ', 'Provides payment processing and financial-technology services for banks and merchants.', { displayName: 'Fiserv' }),
+  simple('robinhood', 'Robinhood Markets, Inc.', 'Financial services', 'United States', 'Over $100B', 'HOOD', 'NASDAQ', 'Operates a commission-free platform for investing, options, and cryptocurrency.', { displayName: 'Robinhood' }),
+  simple('webull', 'Webull Corporation', 'Financial services', 'United States', '$1B-$5B', 'BULL', 'NASDAQ', 'Operates a digital platform for investing in stocks, options, and other assets.', { displayName: 'Webull' }),
+  simple('galaxy-digital', 'Galaxy Digital Inc.', 'Financial services', 'United States', '$1B-$5B', 'GLXY', 'NASDAQ', 'Provides financial services and infrastructure for digital assets and data centers.', { displayName: 'Galaxy Digital' }),
+  // Energy
+  simple('transocean', 'Transocean Ltd.', 'Energy', 'Switzerland', '$5B-$25B', 'RIG', 'NYSE', 'Provides offshore contract drilling services for oil and gas wells.'),
+  simple('oklo', 'Oklo Inc.', 'Energy', 'United States', '$5B-$25B', 'OKLO', 'NYSE', 'Develops advanced fission power plants and nuclear-fuel recycling.'),
+  // Mining
+  simple('tmc-metals', 'TMC the metals company Inc.', 'Mining', 'Canada', '$1B-$5B', 'TMC', 'NASDAQ', 'Explores for seafloor polymetallic nodules containing battery and industrial metals.', { displayName: 'TMC the metals company' }),
+  simple('us-antimony', 'United States Antimony Corporation', 'Mining', 'United States', '$300M-$1B', 'UAMY', 'NYSE_AMERICAN', 'Mines and produces antimony, zeolite, and related mineral products.', { displayName: 'U.S. Antimony' }),
+  simple('hecla', 'Hecla Mining Company', 'Mining', 'United States', '$5B-$25B', 'HL', 'NYSE', 'Mines silver, gold, and base metals.', { displayName: 'Hecla Mining' }),
+  // Industrials
+  simple('ge-vernova', 'GE Vernova Inc.', 'Industrials', 'United States', 'Over $100B', 'GEV', 'NYSE', 'Manufactures power-generation and grid equipment across gas, wind, and electrification.', { displayName: 'GE Vernova' }),
+  simple('rocket-lab', 'Rocket Lab Corporation', 'Industrials', 'United States', '$25B-$100B', 'RKLB', 'NASDAQ', 'Provides launch services and manufactures spacecraft and space systems.', { displayName: 'Rocket Lab' }),
+  simple('archer-aviation', 'Archer Aviation Inc.', 'Industrials', 'United States', '$1B-$5B', 'ACHR', 'NYSE', 'Develops electric vertical-takeoff-and-landing aircraft for urban air mobility.', { displayName: 'Archer Aviation' }),
+  simple('qxo', 'QXO, Inc.', 'Industrials', 'United States', '$5B-$25B', 'QXO', 'NYSE', 'Distributes building products and provides related technology to the construction industry.'),
+  simple('vertiv', 'Vertiv Holdings Co', 'Industrials', 'United States', 'Over $100B', 'VRT', 'NYSE', 'Manufactures power, cooling, and infrastructure systems for data centers.', { displayName: 'Vertiv' }),
+  simple('kratos', 'Kratos Defense & Security Solutions, Inc.', 'Industrials', 'United States', '$5B-$25B', 'KTOS', 'NASDAQ', 'Develops unmanned systems, defense electronics, and security solutions.', { displayName: 'Kratos Defense' }),
+  simple('joby', 'Joby Aviation, Inc.', 'Industrials', 'United States', '$5B-$25B', 'JOBY', 'NYSE', 'Develops electric vertical-takeoff-and-landing aircraft for air-taxi services.', { displayName: 'Joby Aviation' }),
+  // Healthcare
+  simple('nektar', 'Nektar Therapeutics', 'Healthcare', 'United States', '$1B-$5B', 'NKTR', 'NASDAQ', 'Develops immunology and immuno-oncology drug candidates.'),
+  simple('viking-therapeutics', 'Viking Therapeutics, Inc.', 'Healthcare', 'United States', '$1B-$5B', 'VKTX', 'NASDAQ', 'Develops therapies for metabolic and endocrine disorders.', { displayName: 'Viking Therapeutics' }),
+  simple('sellas', 'SELLAS Life Sciences Group, Inc.', 'Healthcare', 'United States', '$1B-$5B', 'SLS', 'NASDAQ', 'Develops targeted cancer immunotherapies.', { displayName: 'SELLAS Life Sciences' }),
+  // Consumer products
+  simple('gamestop', 'GameStop Corp.', 'Consumer products', 'United States', '$5B-$25B', 'GME', 'NYSE', 'Operates a retailer of video games, consumer electronics, and gaming merchandise.', { displayName: 'GameStop' }),
+  simple('amc-entertainment', 'AMC Entertainment Holdings, Inc.', 'Consumer products', 'United States', '$1B-$5B', 'AMC', 'NYSE', 'Operates movie theaters and entertainment venues.', { displayName: 'AMC Entertainment' }),
+]
+
 export const companyDirectory: DirectoryCompany[] = [
   ...technology,
   ...financials,
@@ -438,4 +510,6 @@ export const companyDirectory: DirectoryCompany[] = [
   ...healthcare,
   ...telecommunications,
   ...realEstate,
+  ...automotive,
+  ...retailPopularAdditions,
 ]

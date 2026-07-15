@@ -1,11 +1,12 @@
 import { Link } from 'react-router-dom'
 import { ChevronRight } from 'lucide-react'
 import type { CompanySearchResult } from '../lib/api'
+import { companyPath } from '../lib/routes'
 import { Badge, Monogram } from './ui'
 
 export function CompanyCard({ company }: { company: CompanySearchResult }) {
   return (
-    <Link to={`/company/${company.ticker}`} className="company-card">
+    <Link to={companyPath(company.ticker)} className="company-card">
       <div className="company-card-top">
         <Monogram ticker={company.ticker} />
         {company.hasCampaign ? <Badge tone="gold">Early campaign</Badge> : <Badge tone="neutral">No campaign yet</Badge>}

@@ -3,9 +3,9 @@ import { normalizeSymbol } from '../lib/companyIdentity'
 import { companyDirectory } from './companyDirectory'
 
 describe('companyDirectory data integrity', () => {
-  it('has a substantial, non-exhaustive curated set (roughly 180-230 companies)', () => {
+  it('has a substantial, non-exhaustive curated set (roughly 230-300 companies)', () => {
     expect(companyDirectory.length).toBeGreaterThanOrEqual(150)
-    expect(companyDirectory.length).toBeLessThanOrEqual(260)
+    expect(companyDirectory.length).toBeLessThanOrEqual(320)
   })
 
   it('has unique keys', () => {

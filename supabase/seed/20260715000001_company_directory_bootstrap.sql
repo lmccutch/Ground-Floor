@@ -7,8 +7,8 @@
 -- to re-run: every statement is an upsert. Apply it to a Supabase project
 -- manually (CLI, dashboard SQL editor, or psql) — it is never run automatically.
 --
--- Companies: 225
--- Generated: 2026-07-10
+-- Companies: 272
+-- Generated: 2026-07-15
 
 begin;
 
@@ -3474,6 +3474,723 @@ on conflict (ticker, exchange) do update set
 insert into public.securities (company_id, symbol, normalized_symbol, exchange, is_primary, is_active, is_adr, share_class, source)
 select c.id, 'VTR', 'VTR', 'NYSE', true, true, false, null, 'admin'
 from public.companies c where c.ticker = 'VTR' and c.exchange = 'NYSE'
+on conflict (exchange, normalized_symbol) where is_active do update set
+  company_id = excluded.company_id, symbol = excluded.symbol, is_primary = excluded.is_primary, is_adr = excluded.is_adr, share_class = excluded.share_class, updated_at = now();
+
+-- Tesla (TSLA)
+insert into public.companies (name, ticker, exchange, country, sector, description, market_cap_category, status, is_public, legal_name, display_name, slug, country_code, is_operating_company, is_directory_eligible, is_discoverable, metadata_source)
+values ('Tesla', 'TSLA', 'NASDAQ', 'United States', 'Automotive', 'Designs and manufactures electric vehicles, battery energy storage, and solar products.', 'Over $100B', 'Early shareholder campaign', true, 'Tesla, Inc.', 'Tesla', 'tesla-tesla', null, true, true, true, 'admin')
+on conflict (ticker, exchange) do update set
+  name = excluded.name, country = excluded.country, sector = excluded.sector, description = excluded.description,
+  market_cap_category = excluded.market_cap_category, legal_name = excluded.legal_name, display_name = excluded.display_name,
+  slug = excluded.slug, is_operating_company = excluded.is_operating_company, is_directory_eligible = excluded.is_directory_eligible,
+  is_discoverable = excluded.is_discoverable, metadata_source = excluded.metadata_source, updated_at = now();
+
+insert into public.securities (company_id, symbol, normalized_symbol, exchange, is_primary, is_active, is_adr, share_class, source)
+select c.id, 'TSLA', 'TSLA', 'NASDAQ', true, true, false, null, 'admin'
+from public.companies c where c.ticker = 'TSLA' and c.exchange = 'NASDAQ'
+on conflict (exchange, normalized_symbol) where is_active do update set
+  company_id = excluded.company_id, symbol = excluded.symbol, is_primary = excluded.is_primary, is_adr = excluded.is_adr, share_class = excluded.share_class, updated_at = now();
+
+-- Nebius Group (NBIS)
+insert into public.companies (name, ticker, exchange, country, sector, description, market_cap_category, status, is_public, legal_name, display_name, slug, country_code, is_operating_company, is_directory_eligible, is_discoverable, metadata_source)
+values ('Nebius Group', 'NBIS', 'NASDAQ', 'Netherlands', 'Technology', 'Provides AI-focused cloud computing infrastructure and data-center services.', '$25B-$100B', 'Early shareholder campaign', true, 'Nebius Group N.V.', 'Nebius Group', 'nebius-group-nebius', null, true, true, true, 'admin')
+on conflict (ticker, exchange) do update set
+  name = excluded.name, country = excluded.country, sector = excluded.sector, description = excluded.description,
+  market_cap_category = excluded.market_cap_category, legal_name = excluded.legal_name, display_name = excluded.display_name,
+  slug = excluded.slug, is_operating_company = excluded.is_operating_company, is_directory_eligible = excluded.is_directory_eligible,
+  is_discoverable = excluded.is_discoverable, metadata_source = excluded.metadata_source, updated_at = now();
+
+insert into public.securities (company_id, symbol, normalized_symbol, exchange, is_primary, is_active, is_adr, share_class, source)
+select c.id, 'NBIS', 'NBIS', 'NASDAQ', true, true, false, null, 'admin'
+from public.companies c where c.ticker = 'NBIS' and c.exchange = 'NASDAQ'
+on conflict (exchange, normalized_symbol) where is_active do update set
+  company_id = excluded.company_id, symbol = excluded.symbol, is_primary = excluded.is_primary, is_adr = excluded.is_adr, share_class = excluded.share_class, updated_at = now();
+
+-- IREN Limited (IREN)
+insert into public.companies (name, ticker, exchange, country, sector, description, market_cap_category, status, is_public, legal_name, display_name, slug, country_code, is_operating_company, is_directory_eligible, is_discoverable, metadata_source)
+values ('IREN Limited', 'IREN', 'NASDAQ', 'Australia', 'Technology', 'Operates data centers for bitcoin mining and AI cloud computing.', '$5B-$25B', 'Early shareholder campaign', true, 'IREN Limited', 'IREN Limited', 'iren-limited-iren', null, true, true, true, 'admin')
+on conflict (ticker, exchange) do update set
+  name = excluded.name, country = excluded.country, sector = excluded.sector, description = excluded.description,
+  market_cap_category = excluded.market_cap_category, legal_name = excluded.legal_name, display_name = excluded.display_name,
+  slug = excluded.slug, is_operating_company = excluded.is_operating_company, is_directory_eligible = excluded.is_directory_eligible,
+  is_discoverable = excluded.is_discoverable, metadata_source = excluded.metadata_source, updated_at = now();
+
+insert into public.securities (company_id, symbol, normalized_symbol, exchange, is_primary, is_active, is_adr, share_class, source)
+select c.id, 'IREN', 'IREN', 'NASDAQ', true, true, false, null, 'admin'
+from public.companies c where c.ticker = 'IREN' and c.exchange = 'NASDAQ'
+on conflict (exchange, normalized_symbol) where is_active do update set
+  company_id = excluded.company_id, symbol = excluded.symbol, is_primary = excluded.is_primary, is_adr = excluded.is_adr, share_class = excluded.share_class, updated_at = now();
+
+-- Alibaba Group (BABA)
+insert into public.companies (name, ticker, exchange, country, sector, description, market_cap_category, status, is_public, legal_name, display_name, slug, country_code, is_operating_company, is_directory_eligible, is_discoverable, metadata_source)
+values ('Alibaba Group', 'BABA', 'NYSE', 'China', 'Technology', 'Operates e-commerce, cloud computing, and digital-media platforms across China and internationally.', 'Over $100B', 'Early shareholder campaign', true, 'Alibaba Group Holding Limited', 'Alibaba Group', 'alibaba-group-alibab', null, true, true, true, 'admin')
+on conflict (ticker, exchange) do update set
+  name = excluded.name, country = excluded.country, sector = excluded.sector, description = excluded.description,
+  market_cap_category = excluded.market_cap_category, legal_name = excluded.legal_name, display_name = excluded.display_name,
+  slug = excluded.slug, is_operating_company = excluded.is_operating_company, is_directory_eligible = excluded.is_directory_eligible,
+  is_discoverable = excluded.is_discoverable, metadata_source = excluded.metadata_source, updated_at = now();
+
+insert into public.securities (company_id, symbol, normalized_symbol, exchange, is_primary, is_active, is_adr, share_class, source)
+select c.id, 'BABA', 'BABA', 'NYSE', true, true, true, null, 'admin'
+from public.companies c where c.ticker = 'BABA' and c.exchange = 'NYSE'
+on conflict (exchange, normalized_symbol) where is_active do update set
+  company_id = excluded.company_id, symbol = excluded.symbol, is_primary = excluded.is_primary, is_adr = excluded.is_adr, share_class = excluded.share_class, updated_at = now();
+
+-- Applied Digital (APLD)
+insert into public.companies (name, ticker, exchange, country, sector, description, market_cap_category, status, is_public, legal_name, display_name, slug, country_code, is_operating_company, is_directory_eligible, is_discoverable, metadata_source)
+values ('Applied Digital', 'APLD', 'NASDAQ', 'United States', 'Technology', 'Develops and operates data centers for high-performance and AI computing.', '$5B-$25B', 'Early shareholder campaign', true, 'Applied Digital Corporation', 'Applied Digital', 'applied-digital-applie', null, true, true, true, 'admin')
+on conflict (ticker, exchange) do update set
+  name = excluded.name, country = excluded.country, sector = excluded.sector, description = excluded.description,
+  market_cap_category = excluded.market_cap_category, legal_name = excluded.legal_name, display_name = excluded.display_name,
+  slug = excluded.slug, is_operating_company = excluded.is_operating_company, is_directory_eligible = excluded.is_directory_eligible,
+  is_discoverable = excluded.is_discoverable, metadata_source = excluded.metadata_source, updated_at = now();
+
+insert into public.securities (company_id, symbol, normalized_symbol, exchange, is_primary, is_active, is_adr, share_class, source)
+select c.id, 'APLD', 'APLD', 'NASDAQ', true, true, false, null, 'admin'
+from public.companies c where c.ticker = 'APLD' and c.exchange = 'NASDAQ'
+on conflict (exchange, normalized_symbol) where is_active do update set
+  company_id = excluded.company_id, symbol = excluded.symbol, is_primary = excluded.is_primary, is_adr = excluded.is_adr, share_class = excluded.share_class, updated_at = now();
+
+-- Strategy (MSTR)
+insert into public.companies (name, ticker, exchange, country, sector, description, market_cap_category, status, is_public, legal_name, display_name, slug, country_code, is_operating_company, is_directory_eligible, is_discoverable, metadata_source)
+values ('Strategy', 'MSTR', 'NASDAQ', 'United States', 'Technology', 'Provides enterprise analytics software and holds bitcoin as a treasury reserve asset.', '$25B-$100B', 'Early shareholder campaign', true, 'Strategy Inc.', 'Strategy', 'strategy-strate', null, true, true, true, 'admin')
+on conflict (ticker, exchange) do update set
+  name = excluded.name, country = excluded.country, sector = excluded.sector, description = excluded.description,
+  market_cap_category = excluded.market_cap_category, legal_name = excluded.legal_name, display_name = excluded.display_name,
+  slug = excluded.slug, is_operating_company = excluded.is_operating_company, is_directory_eligible = excluded.is_directory_eligible,
+  is_discoverable = excluded.is_discoverable, metadata_source = excluded.metadata_source, updated_at = now();
+
+insert into public.securities (company_id, symbol, normalized_symbol, exchange, is_primary, is_active, is_adr, share_class, source)
+select c.id, 'MSTR', 'MSTR', 'NASDAQ', true, true, false, null, 'admin'
+from public.companies c where c.ticker = 'MSTR' and c.exchange = 'NASDAQ'
+on conflict (exchange, normalized_symbol) where is_active do update set
+  company_id = excluded.company_id, symbol = excluded.symbol, is_primary = excluded.is_primary, is_adr = excluded.is_adr, share_class = excluded.share_class, updated_at = now();
+
+insert into public.company_aliases (company_id, alias, normalized_alias, alias_type, source)
+select c.id, 'MicroStrategy Incorporated', 'microstrategy incorporated', 'former_company_name', 'admin'
+from public.companies c where c.ticker = 'MSTR' and c.exchange = 'NASDAQ'
+on conflict (company_id, normalized_alias, alias_type) do update set
+  alias = excluded.alias, source = excluded.source;
+
+insert into public.company_aliases (company_id, alias, normalized_alias, alias_type, source)
+select c.id, 'MicroStrategy', 'microstrategy', 'brand_name', 'admin'
+from public.companies c where c.ticker = 'MSTR' and c.exchange = 'NASDAQ'
+on conflict (company_id, normalized_alias, alias_type) do update set
+  alias = excluded.alias, source = excluded.source;
+
+-- Applied Optoelectronics (AAOI)
+insert into public.companies (name, ticker, exchange, country, sector, description, market_cap_category, status, is_public, legal_name, display_name, slug, country_code, is_operating_company, is_directory_eligible, is_discoverable, metadata_source)
+values ('Applied Optoelectronics', 'AAOI', 'NASDAQ', 'United States', 'Technology', 'Designs and manufactures fiber-optic networking products for data centers and telecom.', '$5B-$25B', 'Early shareholder campaign', true, 'Applied Optoelectronics, Inc.', 'Applied Optoelectronics', 'applied-optoelectronics-applie', null, true, true, true, 'admin')
+on conflict (ticker, exchange) do update set
+  name = excluded.name, country = excluded.country, sector = excluded.sector, description = excluded.description,
+  market_cap_category = excluded.market_cap_category, legal_name = excluded.legal_name, display_name = excluded.display_name,
+  slug = excluded.slug, is_operating_company = excluded.is_operating_company, is_directory_eligible = excluded.is_directory_eligible,
+  is_discoverable = excluded.is_discoverable, metadata_source = excluded.metadata_source, updated_at = now();
+
+insert into public.securities (company_id, symbol, normalized_symbol, exchange, is_primary, is_active, is_adr, share_class, source)
+select c.id, 'AAOI', 'AAOI', 'NASDAQ', true, true, false, null, 'admin'
+from public.companies c where c.ticker = 'AAOI' and c.exchange = 'NASDAQ'
+on conflict (exchange, normalized_symbol) where is_active do update set
+  company_id = excluded.company_id, symbol = excluded.symbol, is_primary = excluded.is_primary, is_adr = excluded.is_adr, share_class = excluded.share_class, updated_at = now();
+
+-- Sea Limited (SE)
+insert into public.companies (name, ticker, exchange, country, sector, description, market_cap_category, status, is_public, legal_name, display_name, slug, country_code, is_operating_company, is_directory_eligible, is_discoverable, metadata_source)
+values ('Sea Limited', 'SE', 'NYSE', 'Singapore', 'Technology', 'Operates digital entertainment, e-commerce, and financial-services platforms across Southeast Asia.', '$25B-$100B', 'Early shareholder campaign', true, 'Sea Limited', 'Sea Limited', 'sea-limited-sealim', null, true, true, true, 'admin')
+on conflict (ticker, exchange) do update set
+  name = excluded.name, country = excluded.country, sector = excluded.sector, description = excluded.description,
+  market_cap_category = excluded.market_cap_category, legal_name = excluded.legal_name, display_name = excluded.display_name,
+  slug = excluded.slug, is_operating_company = excluded.is_operating_company, is_directory_eligible = excluded.is_directory_eligible,
+  is_discoverable = excluded.is_discoverable, metadata_source = excluded.metadata_source, updated_at = now();
+
+insert into public.securities (company_id, symbol, normalized_symbol, exchange, is_primary, is_active, is_adr, share_class, source)
+select c.id, 'SE', 'SE', 'NYSE', true, true, true, null, 'admin'
+from public.companies c where c.ticker = 'SE' and c.exchange = 'NYSE'
+on conflict (exchange, normalized_symbol) where is_active do update set
+  company_id = excluded.company_id, symbol = excluded.symbol, is_primary = excluded.is_primary, is_adr = excluded.is_adr, share_class = excluded.share_class, updated_at = now();
+
+-- Arm Holdings (ARM)
+insert into public.companies (name, ticker, exchange, country, sector, description, market_cap_category, status, is_public, legal_name, display_name, slug, country_code, is_operating_company, is_directory_eligible, is_discoverable, metadata_source)
+values ('Arm Holdings', 'ARM', 'NASDAQ', 'United Kingdom', 'Technology', 'Designs and licenses semiconductor intellectual property and processor architectures.', 'Over $100B', 'Early shareholder campaign', true, 'Arm Holdings plc', 'Arm Holdings', 'arm-holdings-armhol', null, true, true, true, 'admin')
+on conflict (ticker, exchange) do update set
+  name = excluded.name, country = excluded.country, sector = excluded.sector, description = excluded.description,
+  market_cap_category = excluded.market_cap_category, legal_name = excluded.legal_name, display_name = excluded.display_name,
+  slug = excluded.slug, is_operating_company = excluded.is_operating_company, is_directory_eligible = excluded.is_directory_eligible,
+  is_discoverable = excluded.is_discoverable, metadata_source = excluded.metadata_source, updated_at = now();
+
+insert into public.securities (company_id, symbol, normalized_symbol, exchange, is_primary, is_active, is_adr, share_class, source)
+select c.id, 'ARM', 'ARM', 'NASDAQ', true, true, true, null, 'admin'
+from public.companies c where c.ticker = 'ARM' and c.exchange = 'NASDAQ'
+on conflict (exchange, normalized_symbol) where is_active do update set
+  company_id = excluded.company_id, symbol = excluded.symbol, is_primary = excluded.is_primary, is_adr = excluded.is_adr, share_class = excluded.share_class, updated_at = now();
+
+-- Credo Technology (CRDO)
+insert into public.companies (name, ticker, exchange, country, sector, description, market_cap_category, status, is_public, legal_name, display_name, slug, country_code, is_operating_company, is_directory_eligible, is_discoverable, metadata_source)
+values ('Credo Technology', 'CRDO', 'NASDAQ', 'United States', 'Technology', 'Designs high-speed connectivity semiconductors for data-center and AI infrastructure.', '$25B-$100B', 'Early shareholder campaign', true, 'Credo Technology Group Holding Ltd.', 'Credo Technology', 'credo-technology-credot', null, true, true, true, 'admin')
+on conflict (ticker, exchange) do update set
+  name = excluded.name, country = excluded.country, sector = excluded.sector, description = excluded.description,
+  market_cap_category = excluded.market_cap_category, legal_name = excluded.legal_name, display_name = excluded.display_name,
+  slug = excluded.slug, is_operating_company = excluded.is_operating_company, is_directory_eligible = excluded.is_directory_eligible,
+  is_discoverable = excluded.is_discoverable, metadata_source = excluded.metadata_source, updated_at = now();
+
+insert into public.securities (company_id, symbol, normalized_symbol, exchange, is_primary, is_active, is_adr, share_class, source)
+select c.id, 'CRDO', 'CRDO', 'NASDAQ', true, true, false, null, 'admin'
+from public.companies c where c.ticker = 'CRDO' and c.exchange = 'NASDAQ'
+on conflict (exchange, normalized_symbol) where is_active do update set
+  company_id = excluded.company_id, symbol = excluded.symbol, is_primary = excluded.is_primary, is_adr = excluded.is_adr, share_class = excluded.share_class, updated_at = now();
+
+-- AppLovin (APP)
+insert into public.companies (name, ticker, exchange, country, sector, description, market_cap_category, status, is_public, legal_name, display_name, slug, country_code, is_operating_company, is_directory_eligible, is_discoverable, metadata_source)
+values ('AppLovin', 'APP', 'NASDAQ', 'United States', 'Technology', 'Provides a software platform for mobile-app marketing and monetization.', 'Over $100B', 'Early shareholder campaign', true, 'AppLovin Corporation', 'AppLovin', 'applovin-applov', null, true, true, true, 'admin')
+on conflict (ticker, exchange) do update set
+  name = excluded.name, country = excluded.country, sector = excluded.sector, description = excluded.description,
+  market_cap_category = excluded.market_cap_category, legal_name = excluded.legal_name, display_name = excluded.display_name,
+  slug = excluded.slug, is_operating_company = excluded.is_operating_company, is_directory_eligible = excluded.is_directory_eligible,
+  is_discoverable = excluded.is_discoverable, metadata_source = excluded.metadata_source, updated_at = now();
+
+insert into public.securities (company_id, symbol, normalized_symbol, exchange, is_primary, is_active, is_adr, share_class, source)
+select c.id, 'APP', 'APP', 'NASDAQ', true, true, false, null, 'admin'
+from public.companies c where c.ticker = 'APP' and c.exchange = 'NASDAQ'
+on conflict (exchange, normalized_symbol) where is_active do update set
+  company_id = excluded.company_id, symbol = excluded.symbol, is_primary = excluded.is_primary, is_adr = excluded.is_adr, share_class = excluded.share_class, updated_at = now();
+
+-- Taiwan Semiconductor (TSM)
+insert into public.companies (name, ticker, exchange, country, sector, description, market_cap_category, status, is_public, legal_name, display_name, slug, country_code, is_operating_company, is_directory_eligible, is_discoverable, metadata_source)
+values ('Taiwan Semiconductor', 'TSM', 'NYSE', 'Taiwan', 'Technology', 'Manufactures semiconductors as a dedicated foundry for fabless chip designers.', 'Over $100B', 'Early shareholder campaign', true, 'Taiwan Semiconductor Manufacturing Company Limited', 'Taiwan Semiconductor', 'taiwan-semiconductor-taiwan', null, true, true, true, 'admin')
+on conflict (ticker, exchange) do update set
+  name = excluded.name, country = excluded.country, sector = excluded.sector, description = excluded.description,
+  market_cap_category = excluded.market_cap_category, legal_name = excluded.legal_name, display_name = excluded.display_name,
+  slug = excluded.slug, is_operating_company = excluded.is_operating_company, is_directory_eligible = excluded.is_directory_eligible,
+  is_discoverable = excluded.is_discoverable, metadata_source = excluded.metadata_source, updated_at = now();
+
+insert into public.securities (company_id, symbol, normalized_symbol, exchange, is_primary, is_active, is_adr, share_class, source)
+select c.id, 'TSM', 'TSM', 'NYSE', true, true, true, null, 'admin'
+from public.companies c where c.ticker = 'TSM' and c.exchange = 'NYSE'
+on conflict (exchange, normalized_symbol) where is_active do update set
+  company_id = excluded.company_id, symbol = excluded.symbol, is_primary = excluded.is_primary, is_adr = excluded.is_adr, share_class = excluded.share_class, updated_at = now();
+
+-- AST SpaceMobile (ASTS)
+insert into public.companies (name, ticker, exchange, country, sector, description, market_cap_category, status, is_public, legal_name, display_name, slug, country_code, is_operating_company, is_directory_eligible, is_discoverable, metadata_source)
+values ('AST SpaceMobile', 'ASTS', 'NASDAQ', 'United States', 'Technology', 'Develops a space-based cellular broadband network for direct-to-smartphone connectivity.', '$5B-$25B', 'Early shareholder campaign', true, 'AST SpaceMobile, Inc.', 'AST SpaceMobile', 'ast-spacemobile-astspa', null, true, true, true, 'admin')
+on conflict (ticker, exchange) do update set
+  name = excluded.name, country = excluded.country, sector = excluded.sector, description = excluded.description,
+  market_cap_category = excluded.market_cap_category, legal_name = excluded.legal_name, display_name = excluded.display_name,
+  slug = excluded.slug, is_operating_company = excluded.is_operating_company, is_directory_eligible = excluded.is_directory_eligible,
+  is_discoverable = excluded.is_discoverable, metadata_source = excluded.metadata_source, updated_at = now();
+
+insert into public.securities (company_id, symbol, normalized_symbol, exchange, is_primary, is_active, is_adr, share_class, source)
+select c.id, 'ASTS', 'ASTS', 'NASDAQ', true, true, false, null, 'admin'
+from public.companies c where c.ticker = 'ASTS' and c.exchange = 'NASDAQ'
+on conflict (exchange, normalized_symbol) where is_active do update set
+  company_id = excluded.company_id, symbol = excluded.symbol, is_primary = excluded.is_primary, is_adr = excluded.is_adr, share_class = excluded.share_class, updated_at = now();
+
+-- CoreWeave (CRWV)
+insert into public.companies (name, ticker, exchange, country, sector, description, market_cap_category, status, is_public, legal_name, display_name, slug, country_code, is_operating_company, is_directory_eligible, is_discoverable, metadata_source)
+values ('CoreWeave', 'CRWV', 'NASDAQ', 'United States', 'Technology', 'Provides GPU-accelerated cloud computing infrastructure for AI workloads.', '$25B-$100B', 'Early shareholder campaign', true, 'CoreWeave, Inc.', 'CoreWeave', 'coreweave-corewe', null, true, true, true, 'admin')
+on conflict (ticker, exchange) do update set
+  name = excluded.name, country = excluded.country, sector = excluded.sector, description = excluded.description,
+  market_cap_category = excluded.market_cap_category, legal_name = excluded.legal_name, display_name = excluded.display_name,
+  slug = excluded.slug, is_operating_company = excluded.is_operating_company, is_directory_eligible = excluded.is_directory_eligible,
+  is_discoverable = excluded.is_discoverable, metadata_source = excluded.metadata_source, updated_at = now();
+
+insert into public.securities (company_id, symbol, normalized_symbol, exchange, is_primary, is_active, is_adr, share_class, source)
+select c.id, 'CRWV', 'CRWV', 'NASDAQ', true, true, false, null, 'admin'
+from public.companies c where c.ticker = 'CRWV' and c.exchange = 'NASDAQ'
+on conflict (exchange, normalized_symbol) where is_active do update set
+  company_id = excluded.company_id, symbol = excluded.symbol, is_primary = excluded.is_primary, is_adr = excluded.is_adr, share_class = excluded.share_class, updated_at = now();
+
+-- Cipher Mining (CIFR)
+insert into public.companies (name, ticker, exchange, country, sector, description, market_cap_category, status, is_public, legal_name, display_name, slug, country_code, is_operating_company, is_directory_eligible, is_discoverable, metadata_source)
+values ('Cipher Mining', 'CIFR', 'NASDAQ', 'United States', 'Technology', 'Operates data centers for bitcoin mining and high-performance computing.', '$5B-$25B', 'Early shareholder campaign', true, 'Cipher Mining Inc.', 'Cipher Mining', 'cipher-mining-cipher', null, true, true, true, 'admin')
+on conflict (ticker, exchange) do update set
+  name = excluded.name, country = excluded.country, sector = excluded.sector, description = excluded.description,
+  market_cap_category = excluded.market_cap_category, legal_name = excluded.legal_name, display_name = excluded.display_name,
+  slug = excluded.slug, is_operating_company = excluded.is_operating_company, is_directory_eligible = excluded.is_directory_eligible,
+  is_discoverable = excluded.is_discoverable, metadata_source = excluded.metadata_source, updated_at = now();
+
+insert into public.securities (company_id, symbol, normalized_symbol, exchange, is_primary, is_active, is_adr, share_class, source)
+select c.id, 'CIFR', 'CIFR', 'NASDAQ', true, true, false, null, 'admin'
+from public.companies c where c.ticker = 'CIFR' and c.exchange = 'NASDAQ'
+on conflict (exchange, normalized_symbol) where is_active do update set
+  company_id = excluded.company_id, symbol = excluded.symbol, is_primary = excluded.is_primary, is_adr = excluded.is_adr, share_class = excluded.share_class, updated_at = now();
+
+-- Corning (GLW)
+insert into public.companies (name, ticker, exchange, country, sector, description, market_cap_category, status, is_public, legal_name, display_name, slug, country_code, is_operating_company, is_directory_eligible, is_discoverable, metadata_source)
+values ('Corning', 'GLW', 'NYSE', 'United States', 'Technology', 'Manufactures specialty glass, ceramics, and optical-fiber products.', 'Over $100B', 'Early shareholder campaign', true, 'Corning Incorporated', 'Corning', 'corning-cornin', null, true, true, true, 'admin')
+on conflict (ticker, exchange) do update set
+  name = excluded.name, country = excluded.country, sector = excluded.sector, description = excluded.description,
+  market_cap_category = excluded.market_cap_category, legal_name = excluded.legal_name, display_name = excluded.display_name,
+  slug = excluded.slug, is_operating_company = excluded.is_operating_company, is_directory_eligible = excluded.is_directory_eligible,
+  is_discoverable = excluded.is_discoverable, metadata_source = excluded.metadata_source, updated_at = now();
+
+insert into public.securities (company_id, symbol, normalized_symbol, exchange, is_primary, is_active, is_adr, share_class, source)
+select c.id, 'GLW', 'GLW', 'NYSE', true, true, false, null, 'admin'
+from public.companies c where c.ticker = 'GLW' and c.exchange = 'NYSE'
+on conflict (exchange, normalized_symbol) where is_active do update set
+  company_id = excluded.company_id, symbol = excluded.symbol, is_primary = excluded.is_primary, is_adr = excluded.is_adr, share_class = excluded.share_class, updated_at = now();
+
+-- Astera Labs (ALAB)
+insert into public.companies (name, ticker, exchange, country, sector, description, market_cap_category, status, is_public, legal_name, display_name, slug, country_code, is_operating_company, is_directory_eligible, is_discoverable, metadata_source)
+values ('Astera Labs', 'ALAB', 'NASDAQ', 'United States', 'Technology', 'Designs connectivity semiconductors and modules for AI and cloud infrastructure.', '$25B-$100B', 'Early shareholder campaign', true, 'Astera Labs, Inc.', 'Astera Labs', 'astera-labs-astera', null, true, true, true, 'admin')
+on conflict (ticker, exchange) do update set
+  name = excluded.name, country = excluded.country, sector = excluded.sector, description = excluded.description,
+  market_cap_category = excluded.market_cap_category, legal_name = excluded.legal_name, display_name = excluded.display_name,
+  slug = excluded.slug, is_operating_company = excluded.is_operating_company, is_directory_eligible = excluded.is_directory_eligible,
+  is_discoverable = excluded.is_discoverable, metadata_source = excluded.metadata_source, updated_at = now();
+
+insert into public.securities (company_id, symbol, normalized_symbol, exchange, is_primary, is_active, is_adr, share_class, source)
+select c.id, 'ALAB', 'ALAB', 'NASDAQ', true, true, false, null, 'admin'
+from public.companies c where c.ticker = 'ALAB' and c.exchange = 'NASDAQ'
+on conflict (exchange, normalized_symbol) where is_active do update set
+  company_id = excluded.company_id, symbol = excluded.symbol, is_primary = excluded.is_primary, is_adr = excluded.is_adr, share_class = excluded.share_class, updated_at = now();
+
+-- TeraWulf (WULF)
+insert into public.companies (name, ticker, exchange, country, sector, description, market_cap_category, status, is_public, legal_name, display_name, slug, country_code, is_operating_company, is_directory_eligible, is_discoverable, metadata_source)
+values ('TeraWulf', 'WULF', 'NASDAQ', 'United States', 'Technology', 'Operates data centers for bitcoin mining and high-performance computing.', '$5B-$25B', 'Early shareholder campaign', true, 'TeraWulf Inc.', 'TeraWulf', 'terawulf-terawu', null, true, true, true, 'admin')
+on conflict (ticker, exchange) do update set
+  name = excluded.name, country = excluded.country, sector = excluded.sector, description = excluded.description,
+  market_cap_category = excluded.market_cap_category, legal_name = excluded.legal_name, display_name = excluded.display_name,
+  slug = excluded.slug, is_operating_company = excluded.is_operating_company, is_directory_eligible = excluded.is_directory_eligible,
+  is_discoverable = excluded.is_discoverable, metadata_source = excluded.metadata_source, updated_at = now();
+
+insert into public.securities (company_id, symbol, normalized_symbol, exchange, is_primary, is_active, is_adr, share_class, source)
+select c.id, 'WULF', 'WULF', 'NASDAQ', true, true, false, null, 'admin'
+from public.companies c where c.ticker = 'WULF' and c.exchange = 'NASDAQ'
+on conflict (exchange, normalized_symbol) where is_active do update set
+  company_id = excluded.company_id, symbol = excluded.symbol, is_primary = excluded.is_primary, is_adr = excluded.is_adr, share_class = excluded.share_class, updated_at = now();
+
+-- Rigetti Computing (RGTI)
+insert into public.companies (name, ticker, exchange, country, sector, description, market_cap_category, status, is_public, legal_name, display_name, slug, country_code, is_operating_company, is_directory_eligible, is_discoverable, metadata_source)
+values ('Rigetti Computing', 'RGTI', 'NASDAQ', 'United States', 'Technology', 'Develops superconducting quantum computers and cloud quantum-computing services.', '$5B-$25B', 'Early shareholder campaign', true, 'Rigetti Computing, Inc.', 'Rigetti Computing', 'rigetti-computing-rigett', null, true, true, true, 'admin')
+on conflict (ticker, exchange) do update set
+  name = excluded.name, country = excluded.country, sector = excluded.sector, description = excluded.description,
+  market_cap_category = excluded.market_cap_category, legal_name = excluded.legal_name, display_name = excluded.display_name,
+  slug = excluded.slug, is_operating_company = excluded.is_operating_company, is_directory_eligible = excluded.is_directory_eligible,
+  is_discoverable = excluded.is_discoverable, metadata_source = excluded.metadata_source, updated_at = now();
+
+insert into public.securities (company_id, symbol, normalized_symbol, exchange, is_primary, is_active, is_adr, share_class, source)
+select c.id, 'RGTI', 'RGTI', 'NASDAQ', true, true, false, null, 'admin'
+from public.companies c where c.ticker = 'RGTI' and c.exchange = 'NASDAQ'
+on conflict (exchange, normalized_symbol) where is_active do update set
+  company_id = excluded.company_id, symbol = excluded.symbol, is_primary = excluded.is_primary, is_adr = excluded.is_adr, share_class = excluded.share_class, updated_at = now();
+
+-- The Trade Desk (TTD)
+insert into public.companies (name, ticker, exchange, country, sector, description, market_cap_category, status, is_public, legal_name, display_name, slug, country_code, is_operating_company, is_directory_eligible, is_discoverable, metadata_source)
+values ('The Trade Desk', 'TTD', 'NASDAQ', 'United States', 'Technology', 'Operates a demand-side platform for programmatic digital advertising.', '$5B-$25B', 'Early shareholder campaign', true, 'The Trade Desk, Inc.', 'The Trade Desk', 'the-trade-desk-traded', null, true, true, true, 'admin')
+on conflict (ticker, exchange) do update set
+  name = excluded.name, country = excluded.country, sector = excluded.sector, description = excluded.description,
+  market_cap_category = excluded.market_cap_category, legal_name = excluded.legal_name, display_name = excluded.display_name,
+  slug = excluded.slug, is_operating_company = excluded.is_operating_company, is_directory_eligible = excluded.is_directory_eligible,
+  is_discoverable = excluded.is_discoverable, metadata_source = excluded.metadata_source, updated_at = now();
+
+insert into public.securities (company_id, symbol, normalized_symbol, exchange, is_primary, is_active, is_adr, share_class, source)
+select c.id, 'TTD', 'TTD', 'NASDAQ', true, true, false, null, 'admin'
+from public.companies c where c.ticker = 'TTD' and c.exchange = 'NASDAQ'
+on conflict (exchange, normalized_symbol) where is_active do update set
+  company_id = excluded.company_id, symbol = excluded.symbol, is_primary = excluded.is_primary, is_adr = excluded.is_adr, share_class = excluded.share_class, updated_at = now();
+
+-- Enovix (ENVX)
+insert into public.companies (name, ticker, exchange, country, sector, description, market_cap_category, status, is_public, legal_name, display_name, slug, country_code, is_operating_company, is_directory_eligible, is_discoverable, metadata_source)
+values ('Enovix', 'ENVX', 'NASDAQ', 'United States', 'Technology', 'Designs and manufactures silicon-anode lithium-ion batteries.', '$1B-$5B', 'Early shareholder campaign', true, 'Enovix Corporation', 'Enovix', 'enovix-enovix', null, true, true, true, 'admin')
+on conflict (ticker, exchange) do update set
+  name = excluded.name, country = excluded.country, sector = excluded.sector, description = excluded.description,
+  market_cap_category = excluded.market_cap_category, legal_name = excluded.legal_name, display_name = excluded.display_name,
+  slug = excluded.slug, is_operating_company = excluded.is_operating_company, is_directory_eligible = excluded.is_directory_eligible,
+  is_discoverable = excluded.is_discoverable, metadata_source = excluded.metadata_source, updated_at = now();
+
+insert into public.securities (company_id, symbol, normalized_symbol, exchange, is_primary, is_active, is_adr, share_class, source)
+select c.id, 'ENVX', 'ENVX', 'NASDAQ', true, true, false, null, 'admin'
+from public.companies c where c.ticker = 'ENVX' and c.exchange = 'NASDAQ'
+on conflict (exchange, normalized_symbol) where is_active do update set
+  company_id = excluded.company_id, symbol = excluded.symbol, is_primary = excluded.is_primary, is_adr = excluded.is_adr, share_class = excluded.share_class, updated_at = now();
+
+-- Ondas Holdings (ONDS)
+insert into public.companies (name, ticker, exchange, country, sector, description, market_cap_category, status, is_public, legal_name, display_name, slug, country_code, is_operating_company, is_directory_eligible, is_discoverable, metadata_source)
+values ('Ondas Holdings', 'ONDS', 'NASDAQ', 'United States', 'Technology', 'Provides drone and wireless data-network technology for industrial and defense uses.', '$1B-$5B', 'Early shareholder campaign', true, 'Ondas Holdings Inc.', 'Ondas Holdings', 'ondas-holdings-ondas', null, true, true, true, 'admin')
+on conflict (ticker, exchange) do update set
+  name = excluded.name, country = excluded.country, sector = excluded.sector, description = excluded.description,
+  market_cap_category = excluded.market_cap_category, legal_name = excluded.legal_name, display_name = excluded.display_name,
+  slug = excluded.slug, is_operating_company = excluded.is_operating_company, is_directory_eligible = excluded.is_directory_eligible,
+  is_discoverable = excluded.is_discoverable, metadata_source = excluded.metadata_source, updated_at = now();
+
+insert into public.securities (company_id, symbol, normalized_symbol, exchange, is_primary, is_active, is_adr, share_class, source)
+select c.id, 'ONDS', 'ONDS', 'NASDAQ', true, true, false, null, 'admin'
+from public.companies c where c.ticker = 'ONDS' and c.exchange = 'NASDAQ'
+on conflict (exchange, normalized_symbol) where is_active do update set
+  company_id = excluded.company_id, symbol = excluded.symbol, is_primary = excluded.is_primary, is_adr = excluded.is_adr, share_class = excluded.share_class, updated_at = now();
+
+-- Rezolve AI (RZLV)
+insert into public.companies (name, ticker, exchange, country, sector, description, market_cap_category, status, is_public, legal_name, display_name, slug, country_code, is_operating_company, is_directory_eligible, is_discoverable, metadata_source)
+values ('Rezolve AI', 'RZLV', 'NASDAQ', 'United Kingdom', 'Technology', 'Develops AI-powered commerce and engagement software for retailers.', '$300M-$1B', 'Early shareholder campaign', true, 'Rezolve AI PLC', 'Rezolve AI', 'rezolve-ai-rezolv', null, true, true, true, 'admin')
+on conflict (ticker, exchange) do update set
+  name = excluded.name, country = excluded.country, sector = excluded.sector, description = excluded.description,
+  market_cap_category = excluded.market_cap_category, legal_name = excluded.legal_name, display_name = excluded.display_name,
+  slug = excluded.slug, is_operating_company = excluded.is_operating_company, is_directory_eligible = excluded.is_directory_eligible,
+  is_discoverable = excluded.is_discoverable, metadata_source = excluded.metadata_source, updated_at = now();
+
+insert into public.securities (company_id, symbol, normalized_symbol, exchange, is_primary, is_active, is_adr, share_class, source)
+select c.id, 'RZLV', 'RZLV', 'NASDAQ', true, true, false, null, 'admin'
+from public.companies c where c.ticker = 'RZLV' and c.exchange = 'NASDAQ'
+on conflict (exchange, normalized_symbol) where is_active do update set
+  company_id = excluded.company_id, symbol = excluded.symbol, is_primary = excluded.is_primary, is_adr = excluded.is_adr, share_class = excluded.share_class, updated_at = now();
+
+-- SoundHound AI (SOUN)
+insert into public.companies (name, ticker, exchange, country, sector, description, market_cap_category, status, is_public, legal_name, display_name, slug, country_code, is_operating_company, is_directory_eligible, is_discoverable, metadata_source)
+values ('SoundHound AI', 'SOUN', 'NASDAQ', 'United States', 'Technology', 'Develops voice artificial-intelligence and conversational-AI software.', '$1B-$5B', 'Early shareholder campaign', true, 'SoundHound AI, Inc.', 'SoundHound AI', 'soundhound-ai-soundh', null, true, true, true, 'admin')
+on conflict (ticker, exchange) do update set
+  name = excluded.name, country = excluded.country, sector = excluded.sector, description = excluded.description,
+  market_cap_category = excluded.market_cap_category, legal_name = excluded.legal_name, display_name = excluded.display_name,
+  slug = excluded.slug, is_operating_company = excluded.is_operating_company, is_directory_eligible = excluded.is_directory_eligible,
+  is_discoverable = excluded.is_discoverable, metadata_source = excluded.metadata_source, updated_at = now();
+
+insert into public.securities (company_id, symbol, normalized_symbol, exchange, is_primary, is_active, is_adr, share_class, source)
+select c.id, 'SOUN', 'SOUN', 'NASDAQ', true, true, false, null, 'admin'
+from public.companies c where c.ticker = 'SOUN' and c.exchange = 'NASDAQ'
+on conflict (exchange, normalized_symbol) where is_active do update set
+  company_id = excluded.company_id, symbol = excluded.symbol, is_primary = excluded.is_primary, is_adr = excluded.is_adr, share_class = excluded.share_class, updated_at = now();
+
+-- BlackBerry (BB)
+insert into public.companies (name, ticker, exchange, country, sector, description, market_cap_category, status, is_public, legal_name, display_name, slug, country_code, is_operating_company, is_directory_eligible, is_discoverable, metadata_source)
+values ('BlackBerry', 'BB', 'NYSE', 'Canada', 'Technology', 'Provides cybersecurity and Internet-of-Things software, including automotive systems.', '$5B-$25B', 'Early shareholder campaign', true, 'BlackBerry Limited', 'BlackBerry', 'blackberry-blackb', null, true, true, true, 'admin')
+on conflict (ticker, exchange) do update set
+  name = excluded.name, country = excluded.country, sector = excluded.sector, description = excluded.description,
+  market_cap_category = excluded.market_cap_category, legal_name = excluded.legal_name, display_name = excluded.display_name,
+  slug = excluded.slug, is_operating_company = excluded.is_operating_company, is_directory_eligible = excluded.is_directory_eligible,
+  is_discoverable = excluded.is_discoverable, metadata_source = excluded.metadata_source, updated_at = now();
+
+insert into public.securities (company_id, symbol, normalized_symbol, exchange, is_primary, is_active, is_adr, share_class, source)
+select c.id, 'BB', 'BB', 'NYSE', true, true, false, null, 'admin'
+from public.companies c where c.ticker = 'BB' and c.exchange = 'NYSE'
+on conflict (exchange, normalized_symbol) where is_active do update set
+  company_id = excluded.company_id, symbol = excluded.symbol, is_primary = excluded.is_primary, is_adr = excluded.is_adr, share_class = excluded.share_class, updated_at = now();
+
+-- Coinbase (COIN)
+insert into public.companies (name, ticker, exchange, country, sector, description, market_cap_category, status, is_public, legal_name, display_name, slug, country_code, is_operating_company, is_directory_eligible, is_discoverable, metadata_source)
+values ('Coinbase', 'COIN', 'NASDAQ', 'United States', 'Financial services', 'Operates a platform for trading, storing, and using cryptocurrencies.', '$25B-$100B', 'Early shareholder campaign', true, 'Coinbase Global, Inc.', 'Coinbase', 'coinbase-coinba', null, true, true, true, 'admin')
+on conflict (ticker, exchange) do update set
+  name = excluded.name, country = excluded.country, sector = excluded.sector, description = excluded.description,
+  market_cap_category = excluded.market_cap_category, legal_name = excluded.legal_name, display_name = excluded.display_name,
+  slug = excluded.slug, is_operating_company = excluded.is_operating_company, is_directory_eligible = excluded.is_directory_eligible,
+  is_discoverable = excluded.is_discoverable, metadata_source = excluded.metadata_source, updated_at = now();
+
+insert into public.securities (company_id, symbol, normalized_symbol, exchange, is_primary, is_active, is_adr, share_class, source)
+select c.id, 'COIN', 'COIN', 'NASDAQ', true, true, false, null, 'admin'
+from public.companies c where c.ticker = 'COIN' and c.exchange = 'NASDAQ'
+on conflict (exchange, normalized_symbol) where is_active do update set
+  company_id = excluded.company_id, symbol = excluded.symbol, is_primary = excluded.is_primary, is_adr = excluded.is_adr, share_class = excluded.share_class, updated_at = now();
+
+-- Fiserv (FISV)
+insert into public.companies (name, ticker, exchange, country, sector, description, market_cap_category, status, is_public, legal_name, display_name, slug, country_code, is_operating_company, is_directory_eligible, is_discoverable, metadata_source)
+values ('Fiserv', 'FISV', 'NASDAQ', 'United States', 'Financial services', 'Provides payment processing and financial-technology services for banks and merchants.', '$25B-$100B', 'Early shareholder campaign', true, 'Fiserv, Inc.', 'Fiserv', 'fiserv-fiserv', null, true, true, true, 'admin')
+on conflict (ticker, exchange) do update set
+  name = excluded.name, country = excluded.country, sector = excluded.sector, description = excluded.description,
+  market_cap_category = excluded.market_cap_category, legal_name = excluded.legal_name, display_name = excluded.display_name,
+  slug = excluded.slug, is_operating_company = excluded.is_operating_company, is_directory_eligible = excluded.is_directory_eligible,
+  is_discoverable = excluded.is_discoverable, metadata_source = excluded.metadata_source, updated_at = now();
+
+insert into public.securities (company_id, symbol, normalized_symbol, exchange, is_primary, is_active, is_adr, share_class, source)
+select c.id, 'FISV', 'FISV', 'NASDAQ', true, true, false, null, 'admin'
+from public.companies c where c.ticker = 'FISV' and c.exchange = 'NASDAQ'
+on conflict (exchange, normalized_symbol) where is_active do update set
+  company_id = excluded.company_id, symbol = excluded.symbol, is_primary = excluded.is_primary, is_adr = excluded.is_adr, share_class = excluded.share_class, updated_at = now();
+
+-- Robinhood (HOOD)
+insert into public.companies (name, ticker, exchange, country, sector, description, market_cap_category, status, is_public, legal_name, display_name, slug, country_code, is_operating_company, is_directory_eligible, is_discoverable, metadata_source)
+values ('Robinhood', 'HOOD', 'NASDAQ', 'United States', 'Financial services', 'Operates a commission-free platform for investing, options, and cryptocurrency.', 'Over $100B', 'Early shareholder campaign', true, 'Robinhood Markets, Inc.', 'Robinhood', 'robinhood-robinh', null, true, true, true, 'admin')
+on conflict (ticker, exchange) do update set
+  name = excluded.name, country = excluded.country, sector = excluded.sector, description = excluded.description,
+  market_cap_category = excluded.market_cap_category, legal_name = excluded.legal_name, display_name = excluded.display_name,
+  slug = excluded.slug, is_operating_company = excluded.is_operating_company, is_directory_eligible = excluded.is_directory_eligible,
+  is_discoverable = excluded.is_discoverable, metadata_source = excluded.metadata_source, updated_at = now();
+
+insert into public.securities (company_id, symbol, normalized_symbol, exchange, is_primary, is_active, is_adr, share_class, source)
+select c.id, 'HOOD', 'HOOD', 'NASDAQ', true, true, false, null, 'admin'
+from public.companies c where c.ticker = 'HOOD' and c.exchange = 'NASDAQ'
+on conflict (exchange, normalized_symbol) where is_active do update set
+  company_id = excluded.company_id, symbol = excluded.symbol, is_primary = excluded.is_primary, is_adr = excluded.is_adr, share_class = excluded.share_class, updated_at = now();
+
+-- Webull (BULL)
+insert into public.companies (name, ticker, exchange, country, sector, description, market_cap_category, status, is_public, legal_name, display_name, slug, country_code, is_operating_company, is_directory_eligible, is_discoverable, metadata_source)
+values ('Webull', 'BULL', 'NASDAQ', 'United States', 'Financial services', 'Operates a digital platform for investing in stocks, options, and other assets.', '$1B-$5B', 'Early shareholder campaign', true, 'Webull Corporation', 'Webull', 'webull-webull', null, true, true, true, 'admin')
+on conflict (ticker, exchange) do update set
+  name = excluded.name, country = excluded.country, sector = excluded.sector, description = excluded.description,
+  market_cap_category = excluded.market_cap_category, legal_name = excluded.legal_name, display_name = excluded.display_name,
+  slug = excluded.slug, is_operating_company = excluded.is_operating_company, is_directory_eligible = excluded.is_directory_eligible,
+  is_discoverable = excluded.is_discoverable, metadata_source = excluded.metadata_source, updated_at = now();
+
+insert into public.securities (company_id, symbol, normalized_symbol, exchange, is_primary, is_active, is_adr, share_class, source)
+select c.id, 'BULL', 'BULL', 'NASDAQ', true, true, false, null, 'admin'
+from public.companies c where c.ticker = 'BULL' and c.exchange = 'NASDAQ'
+on conflict (exchange, normalized_symbol) where is_active do update set
+  company_id = excluded.company_id, symbol = excluded.symbol, is_primary = excluded.is_primary, is_adr = excluded.is_adr, share_class = excluded.share_class, updated_at = now();
+
+-- Galaxy Digital (GLXY)
+insert into public.companies (name, ticker, exchange, country, sector, description, market_cap_category, status, is_public, legal_name, display_name, slug, country_code, is_operating_company, is_directory_eligible, is_discoverable, metadata_source)
+values ('Galaxy Digital', 'GLXY', 'NASDAQ', 'United States', 'Financial services', 'Provides financial services and infrastructure for digital assets and data centers.', '$1B-$5B', 'Early shareholder campaign', true, 'Galaxy Digital Inc.', 'Galaxy Digital', 'galaxy-digital-galaxy', null, true, true, true, 'admin')
+on conflict (ticker, exchange) do update set
+  name = excluded.name, country = excluded.country, sector = excluded.sector, description = excluded.description,
+  market_cap_category = excluded.market_cap_category, legal_name = excluded.legal_name, display_name = excluded.display_name,
+  slug = excluded.slug, is_operating_company = excluded.is_operating_company, is_directory_eligible = excluded.is_directory_eligible,
+  is_discoverable = excluded.is_discoverable, metadata_source = excluded.metadata_source, updated_at = now();
+
+insert into public.securities (company_id, symbol, normalized_symbol, exchange, is_primary, is_active, is_adr, share_class, source)
+select c.id, 'GLXY', 'GLXY', 'NASDAQ', true, true, false, null, 'admin'
+from public.companies c where c.ticker = 'GLXY' and c.exchange = 'NASDAQ'
+on conflict (exchange, normalized_symbol) where is_active do update set
+  company_id = excluded.company_id, symbol = excluded.symbol, is_primary = excluded.is_primary, is_adr = excluded.is_adr, share_class = excluded.share_class, updated_at = now();
+
+-- Transocean Ltd. (RIG)
+insert into public.companies (name, ticker, exchange, country, sector, description, market_cap_category, status, is_public, legal_name, display_name, slug, country_code, is_operating_company, is_directory_eligible, is_discoverable, metadata_source)
+values ('Transocean Ltd.', 'RIG', 'NYSE', 'Switzerland', 'Energy', 'Provides offshore contract drilling services for oil and gas wells.', '$5B-$25B', 'Early shareholder campaign', true, 'Transocean Ltd.', 'Transocean Ltd.', 'transocean-ltd-transo', null, true, true, true, 'admin')
+on conflict (ticker, exchange) do update set
+  name = excluded.name, country = excluded.country, sector = excluded.sector, description = excluded.description,
+  market_cap_category = excluded.market_cap_category, legal_name = excluded.legal_name, display_name = excluded.display_name,
+  slug = excluded.slug, is_operating_company = excluded.is_operating_company, is_directory_eligible = excluded.is_directory_eligible,
+  is_discoverable = excluded.is_discoverable, metadata_source = excluded.metadata_source, updated_at = now();
+
+insert into public.securities (company_id, symbol, normalized_symbol, exchange, is_primary, is_active, is_adr, share_class, source)
+select c.id, 'RIG', 'RIG', 'NYSE', true, true, false, null, 'admin'
+from public.companies c where c.ticker = 'RIG' and c.exchange = 'NYSE'
+on conflict (exchange, normalized_symbol) where is_active do update set
+  company_id = excluded.company_id, symbol = excluded.symbol, is_primary = excluded.is_primary, is_adr = excluded.is_adr, share_class = excluded.share_class, updated_at = now();
+
+-- Oklo Inc. (OKLO)
+insert into public.companies (name, ticker, exchange, country, sector, description, market_cap_category, status, is_public, legal_name, display_name, slug, country_code, is_operating_company, is_directory_eligible, is_discoverable, metadata_source)
+values ('Oklo Inc.', 'OKLO', 'NYSE', 'United States', 'Energy', 'Develops advanced fission power plants and nuclear-fuel recycling.', '$5B-$25B', 'Early shareholder campaign', true, 'Oklo Inc.', 'Oklo Inc.', 'oklo-inc-oklo', null, true, true, true, 'admin')
+on conflict (ticker, exchange) do update set
+  name = excluded.name, country = excluded.country, sector = excluded.sector, description = excluded.description,
+  market_cap_category = excluded.market_cap_category, legal_name = excluded.legal_name, display_name = excluded.display_name,
+  slug = excluded.slug, is_operating_company = excluded.is_operating_company, is_directory_eligible = excluded.is_directory_eligible,
+  is_discoverable = excluded.is_discoverable, metadata_source = excluded.metadata_source, updated_at = now();
+
+insert into public.securities (company_id, symbol, normalized_symbol, exchange, is_primary, is_active, is_adr, share_class, source)
+select c.id, 'OKLO', 'OKLO', 'NYSE', true, true, false, null, 'admin'
+from public.companies c where c.ticker = 'OKLO' and c.exchange = 'NYSE'
+on conflict (exchange, normalized_symbol) where is_active do update set
+  company_id = excluded.company_id, symbol = excluded.symbol, is_primary = excluded.is_primary, is_adr = excluded.is_adr, share_class = excluded.share_class, updated_at = now();
+
+-- TMC the metals company (TMC)
+insert into public.companies (name, ticker, exchange, country, sector, description, market_cap_category, status, is_public, legal_name, display_name, slug, country_code, is_operating_company, is_directory_eligible, is_discoverable, metadata_source)
+values ('TMC the metals company', 'TMC', 'NASDAQ', 'Canada', 'Mining', 'Explores for seafloor polymetallic nodules containing battery and industrial metals.', '$1B-$5B', 'Early shareholder campaign', true, 'TMC the metals company Inc.', 'TMC the metals company', 'tmc-the-metals-company-tmcmet', null, true, true, true, 'admin')
+on conflict (ticker, exchange) do update set
+  name = excluded.name, country = excluded.country, sector = excluded.sector, description = excluded.description,
+  market_cap_category = excluded.market_cap_category, legal_name = excluded.legal_name, display_name = excluded.display_name,
+  slug = excluded.slug, is_operating_company = excluded.is_operating_company, is_directory_eligible = excluded.is_directory_eligible,
+  is_discoverable = excluded.is_discoverable, metadata_source = excluded.metadata_source, updated_at = now();
+
+insert into public.securities (company_id, symbol, normalized_symbol, exchange, is_primary, is_active, is_adr, share_class, source)
+select c.id, 'TMC', 'TMC', 'NASDAQ', true, true, false, null, 'admin'
+from public.companies c where c.ticker = 'TMC' and c.exchange = 'NASDAQ'
+on conflict (exchange, normalized_symbol) where is_active do update set
+  company_id = excluded.company_id, symbol = excluded.symbol, is_primary = excluded.is_primary, is_adr = excluded.is_adr, share_class = excluded.share_class, updated_at = now();
+
+-- U.S. Antimony (UAMY)
+insert into public.companies (name, ticker, exchange, country, sector, description, market_cap_category, status, is_public, legal_name, display_name, slug, country_code, is_operating_company, is_directory_eligible, is_discoverable, metadata_source)
+values ('U.S. Antimony', 'UAMY', 'NYSE_AMERICAN', 'United States', 'Mining', 'Mines and produces antimony, zeolite, and related mineral products.', '$300M-$1B', 'Early shareholder campaign', true, 'United States Antimony Corporation', 'U.S. Antimony', 'u-s-antimony-usanti', null, true, true, true, 'admin')
+on conflict (ticker, exchange) do update set
+  name = excluded.name, country = excluded.country, sector = excluded.sector, description = excluded.description,
+  market_cap_category = excluded.market_cap_category, legal_name = excluded.legal_name, display_name = excluded.display_name,
+  slug = excluded.slug, is_operating_company = excluded.is_operating_company, is_directory_eligible = excluded.is_directory_eligible,
+  is_discoverable = excluded.is_discoverable, metadata_source = excluded.metadata_source, updated_at = now();
+
+insert into public.securities (company_id, symbol, normalized_symbol, exchange, is_primary, is_active, is_adr, share_class, source)
+select c.id, 'UAMY', 'UAMY', 'NYSE_AMERICAN', true, true, false, null, 'admin'
+from public.companies c where c.ticker = 'UAMY' and c.exchange = 'NYSE_AMERICAN'
+on conflict (exchange, normalized_symbol) where is_active do update set
+  company_id = excluded.company_id, symbol = excluded.symbol, is_primary = excluded.is_primary, is_adr = excluded.is_adr, share_class = excluded.share_class, updated_at = now();
+
+-- Hecla Mining (HL)
+insert into public.companies (name, ticker, exchange, country, sector, description, market_cap_category, status, is_public, legal_name, display_name, slug, country_code, is_operating_company, is_directory_eligible, is_discoverable, metadata_source)
+values ('Hecla Mining', 'HL', 'NYSE', 'United States', 'Mining', 'Mines silver, gold, and base metals.', '$5B-$25B', 'Early shareholder campaign', true, 'Hecla Mining Company', 'Hecla Mining', 'hecla-mining-hecla', null, true, true, true, 'admin')
+on conflict (ticker, exchange) do update set
+  name = excluded.name, country = excluded.country, sector = excluded.sector, description = excluded.description,
+  market_cap_category = excluded.market_cap_category, legal_name = excluded.legal_name, display_name = excluded.display_name,
+  slug = excluded.slug, is_operating_company = excluded.is_operating_company, is_directory_eligible = excluded.is_directory_eligible,
+  is_discoverable = excluded.is_discoverable, metadata_source = excluded.metadata_source, updated_at = now();
+
+insert into public.securities (company_id, symbol, normalized_symbol, exchange, is_primary, is_active, is_adr, share_class, source)
+select c.id, 'HL', 'HL', 'NYSE', true, true, false, null, 'admin'
+from public.companies c where c.ticker = 'HL' and c.exchange = 'NYSE'
+on conflict (exchange, normalized_symbol) where is_active do update set
+  company_id = excluded.company_id, symbol = excluded.symbol, is_primary = excluded.is_primary, is_adr = excluded.is_adr, share_class = excluded.share_class, updated_at = now();
+
+-- GE Vernova (GEV)
+insert into public.companies (name, ticker, exchange, country, sector, description, market_cap_category, status, is_public, legal_name, display_name, slug, country_code, is_operating_company, is_directory_eligible, is_discoverable, metadata_source)
+values ('GE Vernova', 'GEV', 'NYSE', 'United States', 'Industrials', 'Manufactures power-generation and grid equipment across gas, wind, and electrification.', 'Over $100B', 'Early shareholder campaign', true, 'GE Vernova Inc.', 'GE Vernova', 'ge-vernova-gevern', null, true, true, true, 'admin')
+on conflict (ticker, exchange) do update set
+  name = excluded.name, country = excluded.country, sector = excluded.sector, description = excluded.description,
+  market_cap_category = excluded.market_cap_category, legal_name = excluded.legal_name, display_name = excluded.display_name,
+  slug = excluded.slug, is_operating_company = excluded.is_operating_company, is_directory_eligible = excluded.is_directory_eligible,
+  is_discoverable = excluded.is_discoverable, metadata_source = excluded.metadata_source, updated_at = now();
+
+insert into public.securities (company_id, symbol, normalized_symbol, exchange, is_primary, is_active, is_adr, share_class, source)
+select c.id, 'GEV', 'GEV', 'NYSE', true, true, false, null, 'admin'
+from public.companies c where c.ticker = 'GEV' and c.exchange = 'NYSE'
+on conflict (exchange, normalized_symbol) where is_active do update set
+  company_id = excluded.company_id, symbol = excluded.symbol, is_primary = excluded.is_primary, is_adr = excluded.is_adr, share_class = excluded.share_class, updated_at = now();
+
+-- Rocket Lab (RKLB)
+insert into public.companies (name, ticker, exchange, country, sector, description, market_cap_category, status, is_public, legal_name, display_name, slug, country_code, is_operating_company, is_directory_eligible, is_discoverable, metadata_source)
+values ('Rocket Lab', 'RKLB', 'NASDAQ', 'United States', 'Industrials', 'Provides launch services and manufactures spacecraft and space systems.', '$25B-$100B', 'Early shareholder campaign', true, 'Rocket Lab Corporation', 'Rocket Lab', 'rocket-lab-rocket', null, true, true, true, 'admin')
+on conflict (ticker, exchange) do update set
+  name = excluded.name, country = excluded.country, sector = excluded.sector, description = excluded.description,
+  market_cap_category = excluded.market_cap_category, legal_name = excluded.legal_name, display_name = excluded.display_name,
+  slug = excluded.slug, is_operating_company = excluded.is_operating_company, is_directory_eligible = excluded.is_directory_eligible,
+  is_discoverable = excluded.is_discoverable, metadata_source = excluded.metadata_source, updated_at = now();
+
+insert into public.securities (company_id, symbol, normalized_symbol, exchange, is_primary, is_active, is_adr, share_class, source)
+select c.id, 'RKLB', 'RKLB', 'NASDAQ', true, true, false, null, 'admin'
+from public.companies c where c.ticker = 'RKLB' and c.exchange = 'NASDAQ'
+on conflict (exchange, normalized_symbol) where is_active do update set
+  company_id = excluded.company_id, symbol = excluded.symbol, is_primary = excluded.is_primary, is_adr = excluded.is_adr, share_class = excluded.share_class, updated_at = now();
+
+-- Archer Aviation (ACHR)
+insert into public.companies (name, ticker, exchange, country, sector, description, market_cap_category, status, is_public, legal_name, display_name, slug, country_code, is_operating_company, is_directory_eligible, is_discoverable, metadata_source)
+values ('Archer Aviation', 'ACHR', 'NYSE', 'United States', 'Industrials', 'Develops electric vertical-takeoff-and-landing aircraft for urban air mobility.', '$1B-$5B', 'Early shareholder campaign', true, 'Archer Aviation Inc.', 'Archer Aviation', 'archer-aviation-archer', null, true, true, true, 'admin')
+on conflict (ticker, exchange) do update set
+  name = excluded.name, country = excluded.country, sector = excluded.sector, description = excluded.description,
+  market_cap_category = excluded.market_cap_category, legal_name = excluded.legal_name, display_name = excluded.display_name,
+  slug = excluded.slug, is_operating_company = excluded.is_operating_company, is_directory_eligible = excluded.is_directory_eligible,
+  is_discoverable = excluded.is_discoverable, metadata_source = excluded.metadata_source, updated_at = now();
+
+insert into public.securities (company_id, symbol, normalized_symbol, exchange, is_primary, is_active, is_adr, share_class, source)
+select c.id, 'ACHR', 'ACHR', 'NYSE', true, true, false, null, 'admin'
+from public.companies c where c.ticker = 'ACHR' and c.exchange = 'NYSE'
+on conflict (exchange, normalized_symbol) where is_active do update set
+  company_id = excluded.company_id, symbol = excluded.symbol, is_primary = excluded.is_primary, is_adr = excluded.is_adr, share_class = excluded.share_class, updated_at = now();
+
+-- QXO, Inc. (QXO)
+insert into public.companies (name, ticker, exchange, country, sector, description, market_cap_category, status, is_public, legal_name, display_name, slug, country_code, is_operating_company, is_directory_eligible, is_discoverable, metadata_source)
+values ('QXO, Inc.', 'QXO', 'NYSE', 'United States', 'Industrials', 'Distributes building products and provides related technology to the construction industry.', '$5B-$25B', 'Early shareholder campaign', true, 'QXO, Inc.', 'QXO, Inc.', 'qxo-inc-qxo', null, true, true, true, 'admin')
+on conflict (ticker, exchange) do update set
+  name = excluded.name, country = excluded.country, sector = excluded.sector, description = excluded.description,
+  market_cap_category = excluded.market_cap_category, legal_name = excluded.legal_name, display_name = excluded.display_name,
+  slug = excluded.slug, is_operating_company = excluded.is_operating_company, is_directory_eligible = excluded.is_directory_eligible,
+  is_discoverable = excluded.is_discoverable, metadata_source = excluded.metadata_source, updated_at = now();
+
+insert into public.securities (company_id, symbol, normalized_symbol, exchange, is_primary, is_active, is_adr, share_class, source)
+select c.id, 'QXO', 'QXO', 'NYSE', true, true, false, null, 'admin'
+from public.companies c where c.ticker = 'QXO' and c.exchange = 'NYSE'
+on conflict (exchange, normalized_symbol) where is_active do update set
+  company_id = excluded.company_id, symbol = excluded.symbol, is_primary = excluded.is_primary, is_adr = excluded.is_adr, share_class = excluded.share_class, updated_at = now();
+
+-- Vertiv (VRT)
+insert into public.companies (name, ticker, exchange, country, sector, description, market_cap_category, status, is_public, legal_name, display_name, slug, country_code, is_operating_company, is_directory_eligible, is_discoverable, metadata_source)
+values ('Vertiv', 'VRT', 'NYSE', 'United States', 'Industrials', 'Manufactures power, cooling, and infrastructure systems for data centers.', 'Over $100B', 'Early shareholder campaign', true, 'Vertiv Holdings Co', 'Vertiv', 'vertiv-vertiv', null, true, true, true, 'admin')
+on conflict (ticker, exchange) do update set
+  name = excluded.name, country = excluded.country, sector = excluded.sector, description = excluded.description,
+  market_cap_category = excluded.market_cap_category, legal_name = excluded.legal_name, display_name = excluded.display_name,
+  slug = excluded.slug, is_operating_company = excluded.is_operating_company, is_directory_eligible = excluded.is_directory_eligible,
+  is_discoverable = excluded.is_discoverable, metadata_source = excluded.metadata_source, updated_at = now();
+
+insert into public.securities (company_id, symbol, normalized_symbol, exchange, is_primary, is_active, is_adr, share_class, source)
+select c.id, 'VRT', 'VRT', 'NYSE', true, true, false, null, 'admin'
+from public.companies c where c.ticker = 'VRT' and c.exchange = 'NYSE'
+on conflict (exchange, normalized_symbol) where is_active do update set
+  company_id = excluded.company_id, symbol = excluded.symbol, is_primary = excluded.is_primary, is_adr = excluded.is_adr, share_class = excluded.share_class, updated_at = now();
+
+-- Kratos Defense (KTOS)
+insert into public.companies (name, ticker, exchange, country, sector, description, market_cap_category, status, is_public, legal_name, display_name, slug, country_code, is_operating_company, is_directory_eligible, is_discoverable, metadata_source)
+values ('Kratos Defense', 'KTOS', 'NASDAQ', 'United States', 'Industrials', 'Develops unmanned systems, defense electronics, and security solutions.', '$5B-$25B', 'Early shareholder campaign', true, 'Kratos Defense & Security Solutions, Inc.', 'Kratos Defense', 'kratos-defense-kratos', null, true, true, true, 'admin')
+on conflict (ticker, exchange) do update set
+  name = excluded.name, country = excluded.country, sector = excluded.sector, description = excluded.description,
+  market_cap_category = excluded.market_cap_category, legal_name = excluded.legal_name, display_name = excluded.display_name,
+  slug = excluded.slug, is_operating_company = excluded.is_operating_company, is_directory_eligible = excluded.is_directory_eligible,
+  is_discoverable = excluded.is_discoverable, metadata_source = excluded.metadata_source, updated_at = now();
+
+insert into public.securities (company_id, symbol, normalized_symbol, exchange, is_primary, is_active, is_adr, share_class, source)
+select c.id, 'KTOS', 'KTOS', 'NASDAQ', true, true, false, null, 'admin'
+from public.companies c where c.ticker = 'KTOS' and c.exchange = 'NASDAQ'
+on conflict (exchange, normalized_symbol) where is_active do update set
+  company_id = excluded.company_id, symbol = excluded.symbol, is_primary = excluded.is_primary, is_adr = excluded.is_adr, share_class = excluded.share_class, updated_at = now();
+
+-- Joby Aviation (JOBY)
+insert into public.companies (name, ticker, exchange, country, sector, description, market_cap_category, status, is_public, legal_name, display_name, slug, country_code, is_operating_company, is_directory_eligible, is_discoverable, metadata_source)
+values ('Joby Aviation', 'JOBY', 'NYSE', 'United States', 'Industrials', 'Develops electric vertical-takeoff-and-landing aircraft for air-taxi services.', '$5B-$25B', 'Early shareholder campaign', true, 'Joby Aviation, Inc.', 'Joby Aviation', 'joby-aviation-joby', null, true, true, true, 'admin')
+on conflict (ticker, exchange) do update set
+  name = excluded.name, country = excluded.country, sector = excluded.sector, description = excluded.description,
+  market_cap_category = excluded.market_cap_category, legal_name = excluded.legal_name, display_name = excluded.display_name,
+  slug = excluded.slug, is_operating_company = excluded.is_operating_company, is_directory_eligible = excluded.is_directory_eligible,
+  is_discoverable = excluded.is_discoverable, metadata_source = excluded.metadata_source, updated_at = now();
+
+insert into public.securities (company_id, symbol, normalized_symbol, exchange, is_primary, is_active, is_adr, share_class, source)
+select c.id, 'JOBY', 'JOBY', 'NYSE', true, true, false, null, 'admin'
+from public.companies c where c.ticker = 'JOBY' and c.exchange = 'NYSE'
+on conflict (exchange, normalized_symbol) where is_active do update set
+  company_id = excluded.company_id, symbol = excluded.symbol, is_primary = excluded.is_primary, is_adr = excluded.is_adr, share_class = excluded.share_class, updated_at = now();
+
+-- Nektar Therapeutics (NKTR)
+insert into public.companies (name, ticker, exchange, country, sector, description, market_cap_category, status, is_public, legal_name, display_name, slug, country_code, is_operating_company, is_directory_eligible, is_discoverable, metadata_source)
+values ('Nektar Therapeutics', 'NKTR', 'NASDAQ', 'United States', 'Healthcare', 'Develops immunology and immuno-oncology drug candidates.', '$1B-$5B', 'Early shareholder campaign', true, 'Nektar Therapeutics', 'Nektar Therapeutics', 'nektar-therapeutics-nektar', null, true, true, true, 'admin')
+on conflict (ticker, exchange) do update set
+  name = excluded.name, country = excluded.country, sector = excluded.sector, description = excluded.description,
+  market_cap_category = excluded.market_cap_category, legal_name = excluded.legal_name, display_name = excluded.display_name,
+  slug = excluded.slug, is_operating_company = excluded.is_operating_company, is_directory_eligible = excluded.is_directory_eligible,
+  is_discoverable = excluded.is_discoverable, metadata_source = excluded.metadata_source, updated_at = now();
+
+insert into public.securities (company_id, symbol, normalized_symbol, exchange, is_primary, is_active, is_adr, share_class, source)
+select c.id, 'NKTR', 'NKTR', 'NASDAQ', true, true, false, null, 'admin'
+from public.companies c where c.ticker = 'NKTR' and c.exchange = 'NASDAQ'
+on conflict (exchange, normalized_symbol) where is_active do update set
+  company_id = excluded.company_id, symbol = excluded.symbol, is_primary = excluded.is_primary, is_adr = excluded.is_adr, share_class = excluded.share_class, updated_at = now();
+
+-- Viking Therapeutics (VKTX)
+insert into public.companies (name, ticker, exchange, country, sector, description, market_cap_category, status, is_public, legal_name, display_name, slug, country_code, is_operating_company, is_directory_eligible, is_discoverable, metadata_source)
+values ('Viking Therapeutics', 'VKTX', 'NASDAQ', 'United States', 'Healthcare', 'Develops therapies for metabolic and endocrine disorders.', '$1B-$5B', 'Early shareholder campaign', true, 'Viking Therapeutics, Inc.', 'Viking Therapeutics', 'viking-therapeutics-viking', null, true, true, true, 'admin')
+on conflict (ticker, exchange) do update set
+  name = excluded.name, country = excluded.country, sector = excluded.sector, description = excluded.description,
+  market_cap_category = excluded.market_cap_category, legal_name = excluded.legal_name, display_name = excluded.display_name,
+  slug = excluded.slug, is_operating_company = excluded.is_operating_company, is_directory_eligible = excluded.is_directory_eligible,
+  is_discoverable = excluded.is_discoverable, metadata_source = excluded.metadata_source, updated_at = now();
+
+insert into public.securities (company_id, symbol, normalized_symbol, exchange, is_primary, is_active, is_adr, share_class, source)
+select c.id, 'VKTX', 'VKTX', 'NASDAQ', true, true, false, null, 'admin'
+from public.companies c where c.ticker = 'VKTX' and c.exchange = 'NASDAQ'
+on conflict (exchange, normalized_symbol) where is_active do update set
+  company_id = excluded.company_id, symbol = excluded.symbol, is_primary = excluded.is_primary, is_adr = excluded.is_adr, share_class = excluded.share_class, updated_at = now();
+
+-- SELLAS Life Sciences (SLS)
+insert into public.companies (name, ticker, exchange, country, sector, description, market_cap_category, status, is_public, legal_name, display_name, slug, country_code, is_operating_company, is_directory_eligible, is_discoverable, metadata_source)
+values ('SELLAS Life Sciences', 'SLS', 'NASDAQ', 'United States', 'Healthcare', 'Develops targeted cancer immunotherapies.', '$1B-$5B', 'Early shareholder campaign', true, 'SELLAS Life Sciences Group, Inc.', 'SELLAS Life Sciences', 'sellas-life-sciences-sellas', null, true, true, true, 'admin')
+on conflict (ticker, exchange) do update set
+  name = excluded.name, country = excluded.country, sector = excluded.sector, description = excluded.description,
+  market_cap_category = excluded.market_cap_category, legal_name = excluded.legal_name, display_name = excluded.display_name,
+  slug = excluded.slug, is_operating_company = excluded.is_operating_company, is_directory_eligible = excluded.is_directory_eligible,
+  is_discoverable = excluded.is_discoverable, metadata_source = excluded.metadata_source, updated_at = now();
+
+insert into public.securities (company_id, symbol, normalized_symbol, exchange, is_primary, is_active, is_adr, share_class, source)
+select c.id, 'SLS', 'SLS', 'NASDAQ', true, true, false, null, 'admin'
+from public.companies c where c.ticker = 'SLS' and c.exchange = 'NASDAQ'
+on conflict (exchange, normalized_symbol) where is_active do update set
+  company_id = excluded.company_id, symbol = excluded.symbol, is_primary = excluded.is_primary, is_adr = excluded.is_adr, share_class = excluded.share_class, updated_at = now();
+
+-- GameStop (GME)
+insert into public.companies (name, ticker, exchange, country, sector, description, market_cap_category, status, is_public, legal_name, display_name, slug, country_code, is_operating_company, is_directory_eligible, is_discoverable, metadata_source)
+values ('GameStop', 'GME', 'NYSE', 'United States', 'Consumer products', 'Operates a retailer of video games, consumer electronics, and gaming merchandise.', '$5B-$25B', 'Early shareholder campaign', true, 'GameStop Corp.', 'GameStop', 'gamestop-gamest', null, true, true, true, 'admin')
+on conflict (ticker, exchange) do update set
+  name = excluded.name, country = excluded.country, sector = excluded.sector, description = excluded.description,
+  market_cap_category = excluded.market_cap_category, legal_name = excluded.legal_name, display_name = excluded.display_name,
+  slug = excluded.slug, is_operating_company = excluded.is_operating_company, is_directory_eligible = excluded.is_directory_eligible,
+  is_discoverable = excluded.is_discoverable, metadata_source = excluded.metadata_source, updated_at = now();
+
+insert into public.securities (company_id, symbol, normalized_symbol, exchange, is_primary, is_active, is_adr, share_class, source)
+select c.id, 'GME', 'GME', 'NYSE', true, true, false, null, 'admin'
+from public.companies c where c.ticker = 'GME' and c.exchange = 'NYSE'
+on conflict (exchange, normalized_symbol) where is_active do update set
+  company_id = excluded.company_id, symbol = excluded.symbol, is_primary = excluded.is_primary, is_adr = excluded.is_adr, share_class = excluded.share_class, updated_at = now();
+
+-- AMC Entertainment (AMC)
+insert into public.companies (name, ticker, exchange, country, sector, description, market_cap_category, status, is_public, legal_name, display_name, slug, country_code, is_operating_company, is_directory_eligible, is_discoverable, metadata_source)
+values ('AMC Entertainment', 'AMC', 'NYSE', 'United States', 'Consumer products', 'Operates movie theaters and entertainment venues.', '$1B-$5B', 'Early shareholder campaign', true, 'AMC Entertainment Holdings, Inc.', 'AMC Entertainment', 'amc-entertainment-amcent', null, true, true, true, 'admin')
+on conflict (ticker, exchange) do update set
+  name = excluded.name, country = excluded.country, sector = excluded.sector, description = excluded.description,
+  market_cap_category = excluded.market_cap_category, legal_name = excluded.legal_name, display_name = excluded.display_name,
+  slug = excluded.slug, is_operating_company = excluded.is_operating_company, is_directory_eligible = excluded.is_directory_eligible,
+  is_discoverable = excluded.is_discoverable, metadata_source = excluded.metadata_source, updated_at = now();
+
+insert into public.securities (company_id, symbol, normalized_symbol, exchange, is_primary, is_active, is_adr, share_class, source)
+select c.id, 'AMC', 'AMC', 'NYSE', true, true, false, null, 'admin'
+from public.companies c where c.ticker = 'AMC' and c.exchange = 'NYSE'
 on conflict (exchange, normalized_symbol) where is_active do update set
   company_id = excluded.company_id, symbol = excluded.symbol, is_primary = excluded.is_primary, is_adr = excluded.is_adr, share_class = excluded.share_class, updated_at = now();
 

@@ -1,4 +1,5 @@
 import { companyDirectory, type DirectoryCompany, type DirectorySecurity } from '../data/companyDirectory'
+import { retailPopularity, retailPopularityMeta, type RetailPopularityMeta } from '../data/retailPopularity'
 import { buildCompanySlug, normalizeName, normalizeSymbol } from './companyIdentity'
 import { getDataModeConfig } from './dataMode'
 import { supabase } from './supabase'
@@ -1078,6 +1079,98 @@ export async function getDiscoverHighlights(limit = 4): Promise<DiscoverHighligh
     mostVoted: items.filter(item => (item.campaign.votes ?? 0) > 0).slice(0, limit).map(item => item.result),
     nearThreshold: items.filter(item => (item.campaign.supporters ?? 0) >= 50 && (item.campaign.supporters ?? 0) < 100).slice(0, limit).map(item => item.result),
   }
+}
+
+/* ------------------------- popular with retail ---------------------------- */
+
+export type FeaturedRetailCompany = CompanySearchResult & { featureRank: number }
+export type FeaturedRetailResult = { companies: FeaturedRetailCompany[]; meta: RetailPopularityMeta }
+
+/**
+ * The curated "Popular with Retail Investors" ranking (Discover beta), ordered by
+ * feature_rank. This is an editorial snapshot from a third-party linked-broker
+ * investor panel — NOT a measure of total retail ownership, and never a live
+ * lookup. Only featured records are returned, and every entry maps to a real
+ * canonical company page; a record whose company can't be resolved is excluded
+ * (not rendered as a broken link) rather than throwing. Panel provenance fields
+ * (owner count, tracked value, …) are never exposed here.
+ */
+export async function getFeaturedRetailCompanies(limit = 100): Promise<FeaturedRetailResult> {
+  if (supabase) {
+    const { data, error } = await supabase
+      .from('public_retail_popularity')
+      .select('company_id, feature_rank, source_name, source_url, source_as_of')
+      .eq('is_featured', true)
+      .order('feature_rank', { ascending: true })
+      .limit(limit)
+    if (error) throw new Error(error.message)
+    const rankRows = (data ?? []) as Row[]
+    if (!rankRows.length) return { companies: [], meta: retailPopularityMeta }
+
+    const rankByCompany = new Map<string, number>()
+    for (const row of rankRows) rankByCompany.set(String(row.company_id), Number(row.feature_rank))
+    const companyIds = [...rankByCompany.keys()]
+
+    const [companiesResult, metricsResult] = await Promise.all([
+      supabase
+        .from('companies')
+        .select('*, securities!inner(symbol, exchange, is_primary)')
+        .in('id', companyIds)
+        .eq('is_discoverable', true)
+        .eq('securities.is_primary', true),
+      supabase.from('public_campaign_metrics').select('*').in('company_id', companyIds),
+    ])
+    if (companiesResult.error) throw new Error(companiesResult.error.message)
+
+    const metricsByCompany = new Map<string, Row>()
+    for (const row of (metricsResult.data ?? []) as Row[]) metricsByCompany.set(String(row.company_id), row)
+
+    const companies: FeaturedRetailCompany[] = ((companiesResult.data ?? []) as Row[])
+      .flatMap(row => {
+        const id = String(row.id)
+        const rank = rankByCompany.get(id)
+        if (rank === undefined) return []
+        const embedded = row.securities as Row[] | Row | undefined
+        const security = (Array.isArray(embedded) ? embedded[0] : embedded) ?? {}
+        const metrics = metricsByCompany.get(id)
+        return [
+          {
+            id,
+            slug: String(row.slug ?? id),
+            name: String(row.display_name ?? row.name),
+            ticker: String((security as Row).symbol ?? row.ticker),
+            exchange: String((security as Row).exchange ?? row.exchange),
+            sector: asOptional(row.sector),
+            hasCampaign: Boolean(metrics),
+            campaignStatus: asOptional(metrics?.status),
+            supporters: Number(metrics?.supporters ?? 0),
+            questions: Number(metrics?.questions ?? 0),
+            featureRank: rank,
+          },
+        ]
+      })
+      .sort((a, b) => a.featureRank - b.featureRank)
+
+    const first = rankRows[0]
+    const meta: RetailPopularityMeta = {
+      sourceName: String(first.source_name ?? retailPopularityMeta.sourceName),
+      sourceUrl: asOptional(first.source_url) ?? retailPopularityMeta.sourceUrl,
+      sourceAsOf: asOptional(first.source_as_of) ?? retailPopularityMeta.sourceAsOf,
+    }
+    return { companies, meta }
+  }
+
+  const entriesByKey = new Map(companyDirectory.map(entry => [entry.key, entry]))
+  const companies: FeaturedRetailCompany[] = retailPopularity
+    .filter(record => record.isFeatured)
+    .flatMap(record => {
+      const entry = entriesByKey.get(record.companyKey)
+      if (!entry) return []
+      return [{ ...toSearchResult(entry), featureRank: record.featureRank }]
+    })
+    .sort((a, b) => a.featureRank - b.featureRank)
+    .slice(0, limit)
+  return { companies, meta: retailPopularityMeta }
 }
 
 /* --------------------------------- requests ------------------------------- */

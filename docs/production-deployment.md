@@ -25,12 +25,16 @@ equivalent (`_redirects` for Netlify, for example).
    `lmccutch's Project` (a separate pre-existing project of unconfirmed
    purpose). Do not proceed until it's clear which project is production.
 2. Apply migrations in order: `202607100001`, `202607110001`, `202607130001`,
-   `202607130002` (`supabase link --project-ref <prod-ref>`, then
-   `supabase db push --dry-run` to confirm the plan, then `supabase db push`).
-3. Apply only the curated company bootstrap
-   (`supabase/seed/20260710000001_company_directory_bootstrap.sql`) —
-   `db.seed.enabled` in `supabase/config.toml` stays `false` by default;
-   scope `sql_paths` to that one file when applying, and never apply
+   `202607130002`, `202607140001`, `202607150001` (`supabase link --project-ref
+   <prod-ref>`, then `supabase db push --dry-run` to confirm the plan, then
+   `supabase db push`).
+3. Apply the curated company bootstrap FIRST
+   (`supabase/seed/20260715000001_company_directory_bootstrap.sql`), then the
+   retail-popularity seed (`supabase/seed/20260715000002_retail_popularity.sql`)
+   — the retail seed resolves companies by (ticker, exchange), so it must run
+   after the bootstrap or its rows silently insert nothing.
+   `db.seed.enabled` in `supabase/config.toml` stays `false` by default; scope
+   `sql_paths` to those files when applying, and never apply
    `supabase/seed/202607100002_seed_fictional_companies.sql`.
 4. Confirm engagement tables are empty before opening signups: `campaigns`,
    `campaign_supporters`, `campaign_followers`, `questions`, `question_votes`,

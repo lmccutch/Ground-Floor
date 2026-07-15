@@ -14,6 +14,7 @@ import {
 import { supabaseDataErrorHint } from '../lib/dataMode'
 import { useDebouncedValue } from '../lib/useDebouncedValue'
 import { CompanyCard } from '../components/CompanyCard'
+import { PopularRetailSection } from '../components/PopularRetailSection'
 import { EmptyState, ErrorState, PageHeading, Skeleton } from '../components/ui'
 
 const ALL = 'All'
@@ -100,6 +101,8 @@ export function DiscoverPage() {
         title="Find your companies."
         copy="Search the launch directory and see which campaigns already have shareholder momentum."
       />
+
+      <PopularRetailSection />
 
       <HighlightSections highlights={highlights} />
 

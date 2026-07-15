@@ -34,10 +34,15 @@ Apply the migrations in `supabase/migrations/` (in filename order) to a Supabase
 
 1. `202607100001_grround_floor_mvp.sql` — profiles, campaigns, questions, votes, requests, notifications, attribution, referrals, and RLS policies.
 2. `202607110001_company_universe_core.sql` — extends `companies` and adds `securities`/`company_aliases`, real search (`search_companies`), and on-demand campaign creation (`start_campaign`). See `docs/company-universe.md`.
+3. `202607150001_retail_popularity.sql` — adds the `company_retail_popularity` table plus the public-safe `public_retail_popularity` view for the "Popular with Retail Investors" Discover beta. See `docs/popular-with-retail.md`.
+
+(Apply the remaining `supabase/migrations/*.sql` in filename order too — the list above highlights the ones with their own docs.)
 
 These migrations were written and reviewed carefully but have not been applied to or tested against a live Supabase project in this environment — verify them against a scratch project before using them in production.
 
 Populate the company directory by running `npm run bootstrap:generate`, which reads `src/data/companyDirectory.ts` and writes an idempotent SQL file to `supabase/seed/`. Apply that file to your Supabase project yourself (CLI, dashboard SQL editor, or `psql`) — it is never run automatically, and it only ever creates companies/securities/aliases, never campaigns, questions, or users.
+
+Populate the retail-popularity ranking by running `npm run retail:import`, which reads the curated CSV (`groundfloor_popular_retail_stocks_fintel_2026-07-15.csv`) and writes the generated demo dataset (`src/data/retailPopularity.ts`) plus an idempotent SQL seed to `supabase/seed/`. Apply that seed as an admin/service role — the public app only ever reads featured rankings, and never the underlying panel figures. See `docs/popular-with-retail.md`.
 
 Never ship service-role or provider API credentials to the browser.
 
@@ -84,6 +89,7 @@ Before accepting production users, publish Terms of Use, Privacy Policy, communi
 - `src/lib/` — Supabase client, API layer (Supabase with a localStorage demo fallback), `dataMode.ts` (the single place `VITE_DATA_MODE` is resolved and validated), analytics, helpers.
 - `src/data/companyDirectory.ts` — the curated Phase 1 company/security/alias directory (see `docs/company-universe.md`); the single source of truth for demo mode, tests, and the bootstrap generator.
 - `scripts/generate-company-bootstrap.ts` — generates the Supabase bootstrap SQL from `companyDirectory.ts` (`npm run bootstrap:generate`).
+- `scripts/import-retail-popularity.ts` — imports the curated retail CSV into `src/data/retailPopularity.ts` + a SQL seed (`npm run retail:import`); matching logic lives in `src/lib/retailPopularityImport.ts`. See `docs/popular-with-retail.md`.
 - `src/index.css` — design tokens and base styles; `src/App.css` — component and page styles.
 - `supabase/` — schema migrations and seed data (fictional community-activity seed for local dev, plus the generated company-directory bootstrap).
 - `e2e/` — Playwright end-to-end tests (always demo mode).

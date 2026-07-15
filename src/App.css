@@ -2327,6 +2327,70 @@ a.list-row:hover b {
   margin: 14px 0;
 }
 
+/* -------------------------- popular with retail ---------------------------- */
+
+.retail-section {
+  margin: 8px 0 26px;
+}
+
+.retail-header {
+  margin-bottom: 16px;
+}
+
+.retail-header .section-note {
+  margin-top: 4px;
+}
+
+.retail-disclosure {
+  margin-top: 8px;
+  max-width: 760px;
+  color: var(--faint);
+  font-size: 12px;
+  line-height: 1.55;
+}
+
+.retail-card {
+  padding: 0;
+  overflow: hidden;
+}
+
+.retail-card-body {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  padding: 18px 20px 14px;
+  color: inherit;
+}
+
+.retail-card-id {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin: 4px 0 2px;
+}
+
+.retail-card-id h3 {
+  margin: 0 0 2px;
+  font-size: 15.5px;
+}
+
+.retail-rank {
+  color: var(--navy-700);
+  font: 600 13px var(--mono);
+  letter-spacing: 0.02em;
+}
+
+.retail-cta {
+  margin-top: 0;
+  padding: 13px 20px;
+  border-top: 1px solid var(--line);
+  color: var(--navy-700);
+}
+
+.retail-card:hover .retail-cta {
+  color: var(--gold-deep);
+}
+
 /* ------------------------------ dashboard extras --------------------------- */
 
 .panel-head-row {
