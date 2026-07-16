@@ -1,42 +1,62 @@
-import { useCallback, useEffect, useMemo, useState } from 'react'
-import { Link } from 'react-router-dom'
-import { ChevronRight, Search } from 'lucide-react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import { Link, useSearchParams } from 'react-router-dom'
+import { ChevronRight, Search, X } from 'lucide-react'
 import {
   discoverCompanies,
   getDiscoverHighlights,
   getKnownSectors,
-  KNOWN_EXCHANGES,
   MARKET_CAP_BANDS,
   type CompanySearchResult,
   type DiscoverFilters,
   type DiscoverHighlights,
 } from '../lib/api'
+import { track } from '../lib/analytics'
 import { supabaseDataErrorHint } from '../lib/dataMode'
 import { useDebouncedValue } from '../lib/useDebouncedValue'
 import { CompanyCard } from '../components/CompanyCard'
 import { PopularRetailSection } from '../components/PopularRetailSection'
+import { DiscoverFilterControl } from '../components/DiscoverFilterControl'
+import { countActiveFilters, type FilterSelection } from '../lib/discoverFilters'
 import { EmptyState, ErrorState, PageHeading, Skeleton } from '../components/ui'
 
-const ALL = 'All'
 const PAGE_SIZE = 24
+const EXCHANGE_VALUES = ['NASDAQ', 'NYSE', 'NYSE_AMERICAN']
 
 type LoadState = 'loading' | 'ready' | 'error'
 
+const exchangeLabel = (value: string) => (value === 'NYSE_AMERICAN' ? 'NYSE American' : value)
+const campaignLabel = (value: string) => (value === 'has-campaign' ? 'Has a campaign' : 'No campaign yet')
+const bandLabel = (value: string) => value.replace('-', '–')
+
+/** Reads a validated filter selection from URL params — unknown/invalid values fall back to "All". */
+function readSelection(params: URLSearchParams, sectors: string[]): FilterSelection {
+  const sector = params.get('sector') ?? ''
+  const exchange = params.get('exchange') ?? ''
+  const mcap = params.get('mcap') ?? ''
+  const campaign = params.get('campaign') ?? ''
+  return {
+    sector: sectors.includes(sector) ? sector : '',
+    exchange: EXCHANGE_VALUES.includes(exchange) ? exchange : '',
+    marketCapCategory: (MARKET_CAP_BANDS as readonly string[]).includes(mcap) ? mcap : '',
+    campaignState: campaign === 'has-campaign' || campaign === 'no-campaign' ? campaign : '',
+  }
+}
+
 export function DiscoverPage() {
-  const [query, setQuery] = useState('')
+  const sectors = useMemo(() => getKnownSectors(), [])
+  const [searchParams, setSearchParams] = useSearchParams()
+
+  const applied = useMemo(() => readSelection(searchParams, sectors), [searchParams, sectors])
+  const urlQuery = searchParams.get('q') ?? ''
+  const [query, setQuery] = useState(urlQuery)
   const debouncedQuery = useDebouncedValue(query, 300)
-  const [sector, setSector] = useState(ALL)
-  const [exchange, setExchange] = useState(ALL)
-  const [marketCapCategory, setMarketCapCategory] = useState(ALL)
-  const [campaignState, setCampaignState] = useState<'All' | 'has-campaign' | 'no-campaign'>('All')
+  const selfWroteQuery = useRef(false)
 
   const [results, setResults] = useState<CompanySearchResult[]>([])
   const [hasMore, setHasMore] = useState(false)
   const [state, setState] = useState<LoadState>('loading')
   const [loadingMore, setLoadingMore] = useState(false)
   const [highlights, setHighlights] = useState<DiscoverHighlights | null | 'error'>(null)
-
-  const sectors = useMemo(() => getKnownSectors(), [])
 
   useEffect(() => {
     let cancelled = false
@@ -45,8 +65,6 @@ export function DiscoverPage() {
         if (!cancelled) setHighlights(data)
       })
       .catch(() => {
-        // Highlights are supplementary — the directory below still works, so a
-        // failed highlights fetch degrades to simply not showing the sections.
         if (!cancelled) setHighlights('error')
       })
     return () => {
@@ -54,15 +72,40 @@ export function DiscoverPage() {
     }
   }, [])
 
+  // Search text ⇆ URL. The debounced value is written to `q` with replace (no
+  // per-keystroke history), and external navigation (back/forward) syncs the input.
+  useEffect(() => {
+    const next = debouncedQuery.trim()
+    if (next === urlQuery) return
+    selfWroteQuery.current = true
+    setSearchParams(
+      previous => {
+        const params = new URLSearchParams(previous)
+        if (next) params.set('q', next)
+        else params.delete('q')
+        return params
+      },
+      { replace: true },
+    )
+  }, [debouncedQuery, urlQuery, setSearchParams])
+
+  useEffect(() => {
+    if (selfWroteQuery.current) {
+      selfWroteQuery.current = false
+      return
+    }
+    setQuery(urlQuery)
+  }, [urlQuery])
+
   const filters: DiscoverFilters = useMemo(
     () => ({
       query: debouncedQuery.trim() || undefined,
-      sector: sector === ALL ? undefined : sector,
-      exchange: exchange === ALL ? undefined : exchange,
-      marketCapCategory: marketCapCategory === ALL ? undefined : marketCapCategory,
-      campaignState: campaignState === 'All' ? undefined : campaignState,
+      sector: applied.sector || undefined,
+      exchange: applied.exchange || undefined,
+      marketCapCategory: applied.marketCapCategory || undefined,
+      campaignState: applied.campaignState || undefined,
     }),
-    [debouncedQuery, sector, exchange, marketCapCategory, campaignState],
+    [debouncedQuery, applied],
   )
 
   const load = useCallback((activeFilters: DiscoverFilters) => {
@@ -94,6 +137,49 @@ export function DiscoverPage() {
     }
   }
 
+  const updateFilterParams = useCallback(
+    (mutate: (params: URLSearchParams) => void) => {
+      const params = new URLSearchParams(searchParams)
+      mutate(params)
+      setSearchParams(params)
+    },
+    [searchParams, setSearchParams],
+  )
+
+  function applyFilters(next: FilterSelection) {
+    updateFilterParams(params => {
+      setOrDelete(params, 'sector', next.sector)
+      setOrDelete(params, 'exchange', next.exchange)
+      setOrDelete(params, 'mcap', next.marketCapCategory)
+      setOrDelete(params, 'campaign', next.campaignState)
+    })
+    track('discover_filters_applied', { active_filters: countActiveFilters(next), groups: activeGroupNames(next) })
+  }
+
+  function clearAllFilters() {
+    updateFilterParams(params => {
+      for (const key of ['sector', 'exchange', 'mcap', 'campaign']) params.delete(key)
+    })
+    track('discover_filters_cleared', {})
+  }
+
+  function removeFilter(group: keyof FilterSelection) {
+    updateFilterParams(params => params.delete(PARAM_FOR[group]))
+    track('discover_filter_removed', { group })
+  }
+
+  const activeChips = useMemo(() => {
+    const chips: { group: keyof FilterSelection; label: string }[] = []
+    if (applied.sector) chips.push({ group: 'sector', label: applied.sector })
+    if (applied.exchange) chips.push({ group: 'exchange', label: exchangeLabel(applied.exchange) })
+    if (applied.marketCapCategory) chips.push({ group: 'marketCapCategory', label: bandLabel(applied.marketCapCategory) })
+    if (applied.campaignState) chips.push({ group: 'campaignState', label: campaignLabel(applied.campaignState) })
+    return chips
+  }, [applied])
+
+  const activeCount = countActiveFilters(applied)
+  const trimmedQuery = debouncedQuery.trim()
+
   return (
     <>
       <PageHeading
@@ -106,49 +192,51 @@ export function DiscoverPage() {
 
       <HighlightSections highlights={highlights} />
 
-      <label className="search-field">
-        <Search size={17} />
-        <input value={query} onChange={event => setQuery(event.target.value)} placeholder="Search companies, tickers, or sectors" />
-      </label>
+      <div className="discover-controls">
+        <label className="search-field">
+          <Search size={17} />
+          <input
+            value={query}
+            onChange={event => setQuery(event.target.value)}
+            placeholder="Search companies, tickers, or sectors"
+            aria-label="Search companies"
+          />
+        </label>
+        <DiscoverFilterControl
+          selection={applied}
+          sectors={sectors}
+          onApply={applyFilters}
+          onClear={clearAllFilters}
+          onOpen={() => track('discover_filters_opened', { active_filters: activeCount })}
+        />
+      </div>
 
-      <div className="chip-row" role="group" aria-label="Filter by sector">
-        {[ALL, ...sectors].map(item => (
-          <button key={item} className={sector === item ? 'chip active' : 'chip'} aria-pressed={sector === item} onClick={() => setSector(item)}>
-            {item}
+      {activeChips.length > 0 && (
+        <div className="active-filters" aria-label="Active filters">
+          {activeChips.map(chip => (
+            <button
+              key={chip.group}
+              type="button"
+              className="filter-chip"
+              onClick={() => removeFilter(chip.group)}
+              aria-label={`Remove ${chip.label} filter`}
+            >
+              {chip.label}
+              <X size={13} aria-hidden="true" />
+            </button>
+          ))}
+          <button type="button" className="link-btn clear-filters" onClick={clearAllFilters}>
+            Clear all
           </button>
-        ))}
-      </div>
-      <div className="chip-row" role="group" aria-label="Filter by exchange">
-        {[ALL, ...KNOWN_EXCHANGES].map(item => (
-          <button key={item} className={exchange === item ? 'chip active' : 'chip'} aria-pressed={exchange === item} onClick={() => setExchange(item)}>
-            {item === 'NYSE_AMERICAN' ? 'NYSE American' : item}
-          </button>
-        ))}
-      </div>
-      <div className="chip-row" role="group" aria-label="Filter by market-cap band">
-        {[ALL, ...MARKET_CAP_BANDS].map(item => (
-          <button
-            key={item}
-            className={marketCapCategory === item ? 'chip active' : 'chip'}
-            aria-pressed={marketCapCategory === item}
-            onClick={() => setMarketCapCategory(item)}
-          >
-            {item}
-          </button>
-        ))}
-      </div>
-      <div className="chip-row" role="group" aria-label="Filter by campaign status">
-        {(['All', 'has-campaign', 'no-campaign'] as const).map(item => (
-          <button
-            key={item}
-            className={campaignState === item ? 'chip active' : 'chip'}
-            aria-pressed={campaignState === item}
-            onClick={() => setCampaignState(item)}
-          >
-            {item === 'All' ? 'All companies' : item === 'has-campaign' ? 'Has a campaign' : 'No campaign yet'}
-          </button>
-        ))}
-      </div>
+        </div>
+      )}
+
+      {state === 'ready' && results.length > 0 && (
+        <p className="results-count" role="status">
+          {results.length}
+          {hasMore ? '+' : ''} {results.length === 1 ? 'company' : 'companies'}
+        </p>
+      )}
 
       {state === 'error' ? (
         <ErrorState
@@ -162,15 +250,37 @@ export function DiscoverPage() {
           ))}
         </div>
       ) : results.length === 0 ? (
-        <EmptyState
-          title="No companies match"
-          copy="Try a different search or filter — or request the company and we’ll review it for the directory."
-          action={
-            <Link className="btn primary" to="/request-company">
-              Request a company
-            </Link>
-          }
-        />
+        activeCount > 0 ? (
+          <EmptyState
+            title="No companies match these filters."
+            copy="Try removing a filter to widen the results."
+            action={
+              <button className="btn secondary" onClick={clearAllFilters}>
+                Clear filters
+              </button>
+            }
+          />
+        ) : trimmedQuery ? (
+          <EmptyState
+            title={`No companies match “${trimmedQuery}”.`}
+            copy="Try a different name or ticker — or request the company and we’ll review it for the directory."
+            action={
+              <Link className="btn primary" to="/request-company">
+                Request a company
+              </Link>
+            }
+          />
+        ) : (
+          <EmptyState
+            title="No companies to show."
+            copy="The directory could not be loaded right now."
+            action={
+              <button className="btn secondary" onClick={() => load(filters)}>
+                Try again
+              </button>
+            }
+          />
+        )
       ) : (
         <>
           <div className="company-grid">
@@ -199,6 +309,27 @@ export function DiscoverPage() {
       </div>
     </>
   )
+}
+
+const PARAM_FOR: Record<keyof FilterSelection, string> = {
+  sector: 'sector',
+  exchange: 'exchange',
+  marketCapCategory: 'mcap',
+  campaignState: 'campaign',
+}
+
+function setOrDelete(params: URLSearchParams, key: string, value: string) {
+  if (value) params.set(key, value)
+  else params.delete(key)
+}
+
+function activeGroupNames(selection: FilterSelection): string[] {
+  const groups: string[] = []
+  if (selection.sector) groups.push('sector')
+  if (selection.exchange) groups.push('exchange')
+  if (selection.marketCapCategory) groups.push('market_cap')
+  if (selection.campaignState) groups.push('campaign_status')
+  return groups
 }
 
 /**

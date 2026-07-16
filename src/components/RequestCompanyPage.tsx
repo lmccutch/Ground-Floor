@@ -1,24 +1,25 @@
-import { useState } from 'react'
+import { useRef, useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { useForm } from 'react-hook-form'
 import { z } from 'zod'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { Check, ChevronRight, Search } from 'lucide-react'
 import { useMvp } from '../context/useMvp'
-import { requestCompany, type PublicCompany, type ShareholderStatus } from '../lib/api'
+import { requestCompany, type PublicCompany } from '../lib/api'
 import { track } from '../lib/analytics'
 import { Monogram } from './ui'
 
-const statuses: ShareholderStatus[] = ['Current shareholder', 'Former shareholder', 'Considering investing', 'Following the company', 'Prefer not to say']
-
+// The form collects only what a reviewer needs to identify the company. A ticker
+// is a short symbol — letters, digits, and the dot/hyphen used by class shares
+// (e.g. BRK.B). It is normalised to upper case before submission.
 const requestSchema = z.object({
-  name: z.string().min(2),
-  ticker: z.string().min(1).max(10),
-  exchange: z.string().min(2),
-  reason: z.string().min(20).max(1000),
-  shareholderStatus: z.enum(statuses as [ShareholderStatus, ...ShareholderStatus[]]),
-  suggestedTopic: z.string().max(300).optional(),
-  consent: z.boolean().refine(value => value),
+  name: z.string().trim().min(2, 'Enter the company name.').max(120),
+  ticker: z
+    .string()
+    .trim()
+    .min(1)
+    .max(10)
+    .regex(/^[A-Za-z0-9.-]+$/, 'Enter a valid ticker (letters and numbers).'),
 })
 
 type RequestValues = z.infer<typeof requestSchema>
@@ -27,28 +28,40 @@ export function RequestCompanyPage() {
   const navigate = useNavigate()
   const { profile, requireAuth } = useMvp()
   const [done, setDone] = useState(false)
+  const [duplicate, setDuplicate] = useState(false)
   const [matchedCompany, setMatchedCompany] = useState<PublicCompany | null>(null)
   const [submitError, setSubmitError] = useState('')
+  const startedRef = useRef(false)
   const {
     register,
     handleSubmit,
     formState: { errors, isSubmitting },
-  } = useForm<RequestValues>({
-    resolver: zodResolver(requestSchema),
-    defaultValues: { shareholderStatus: 'Current shareholder', exchange: 'NASDAQ' },
-  })
+  } = useForm<RequestValues>({ resolver: zodResolver(requestSchema) })
+
+  // Fire "started" once, on the first real interaction — not on mount, so it is
+  // unaffected by Strict Mode's double effect invocation and reflects genuine intent.
+  function markStarted() {
+    if (startedRef.current) return
+    startedRef.current = true
+    track('company_request_started')
+  }
 
   async function submit(values: RequestValues) {
     if (!requireAuth('request a company')) return
     setSubmitError('')
     try {
-      const result = await requestCompany(values, profile?.id)
+      const result = await requestCompany({ name: values.name, ticker: values.ticker }, profile?.id)
       if ('matchedCompany' in result) {
-        track('missing_company_suggested', { ticker: values.ticker.toUpperCase(), matched_existing: true })
+        track('company_request_existing_company')
         setMatchedCompany(result.matchedCompany)
         return
       }
-      track('missing_company_suggested', { ticker: values.ticker.toUpperCase(), matched_existing: false })
+      if ('duplicate' in result) {
+        track('company_request_duplicate_blocked')
+        setDuplicate(true)
+        return
+      }
+      track('company_request_submitted')
       setDone(true)
     } catch {
       setSubmitError('We could not save your request. Please try again.')
@@ -62,8 +75,8 @@ export function RequestCompanyPage() {
           <Search size={24} />
         </div>
         <span className="eyebrow">Already in the directory</span>
-        <h1>We found this company.</h1>
-        <p>{matchedCompany.name} is already part of the Open Floor directory — no need to submit a duplicate request.</p>
+        <h1>This company is already here.</h1>
+        <p>{matchedCompany.name} is already part of the Open Floor directory — you can open it now instead of requesting it.</p>
         <Link to={`/company/${matchedCompany.ticker}`} className="matched-company-card">
           <Monogram ticker={matchedCompany.ticker} accent={matchedCompany.accent} />
           <span>
@@ -75,8 +88,26 @@ export function RequestCompanyPage() {
           <ChevronRight size={16} />
         </Link>
         <div className="empty-actions">
-          <button className="btn secondary" onClick={() => navigate('/')}>
-            Back home
+          <button className="btn secondary" onClick={() => navigate('/discover')}>
+            Back to Discover
+          </button>
+        </div>
+      </div>
+    )
+  }
+
+  if (duplicate) {
+    return (
+      <div className="request-confirmation">
+        <div className="success-icon">
+          <Check size={24} />
+        </div>
+        <span className="eyebrow">Already requested</span>
+        <h1>You’ve already requested this company.</h1>
+        <p>We have your earlier request on file for review — there’s no need to send it again.</p>
+        <div className="empty-actions">
+          <button className="btn primary" onClick={() => navigate('/discover')}>
+            Back to Discover <ChevronRight size={15} />
           </button>
         </div>
       </div>
@@ -90,14 +121,11 @@ export function RequestCompanyPage() {
           <Check size={24} />
         </div>
         <span className="eyebrow">Request received</span>
-        <h1>Your request has been added.</h1>
-        <p>The more shareholders who join, the stronger the case for adding it to the directory.</p>
+        <h1>We’ll review it within 24 hours.</h1>
+        <p>Submitting a request does not guarantee that the company will be added.</p>
         <div className="empty-actions">
           <button className="btn primary" onClick={() => navigate('/discover')}>
-            Find another company <ChevronRight size={15} />
-          </button>
-          <button className="btn secondary" onClick={() => navigate('/')}>
-            Back home
+            Back to Discover <ChevronRight size={15} />
           </button>
         </div>
       </div>
@@ -107,57 +135,31 @@ export function RequestCompanyPage() {
   return (
     <div className="request-page">
       <div className="request-intro">
-        <span className="eyebrow">Suggest a company</span>
+        <span className="eyebrow">Request a company</span>
         <h1>Can’t find the company?</h1>
-        <p>Suggest it for review. Once it's added to the directory, any shareholder can start a campaign and build a clear signal of demand.</p>
+        <p>Tell us its name and ticker. We review new requests and add companies that fit the directory.</p>
       </div>
-      <form className="panel request-form" onSubmit={handleSubmit(submit)} noValidate>
+      <form className="panel request-form" onSubmit={handleSubmit(submit)} onInput={markStarted} noValidate>
         <label className="field">
           Company name
-          <input className="text-input" {...register('name')} placeholder="Example: Instacart" />
-          {errors.name && <small className="form-error">Enter the company name.</small>}
-        </label>
-        <div className="field-row">
-          <label className="field">
-            Ticker
-            <input className="text-input" {...register('ticker')} placeholder="CART" />
-            {errors.ticker && <small className="form-error">Enter a ticker.</small>}
-          </label>
-          <label className="field">
-            Exchange
-            <select className="text-input" {...register('exchange')}>
-              <option>NASDAQ</option>
-              <option>NYSE</option>
-              <option>TSX</option>
-              <option>LSE</option>
-              <option>Other</option>
-            </select>
-          </label>
-        </div>
-        <label className="field">
-          Why should management be interviewed?
-          <textarea {...register('reason')} placeholder="What would you want leadership to address?" />
-          {errors.reason && <small className="form-error">Please give at least 20 characters.</small>}
+          <input className="text-input" {...register('name')} placeholder="Example: Instacart" autoComplete="off" />
+          {errors.name && <small className="form-error">{errors.name.message ?? 'Enter the company name.'}</small>}
         </label>
         <label className="field">
-          Suggested topic <span className="optional">Optional</span>
-          <input className="text-input" {...register('suggestedTopic')} placeholder="Margins, competition, capital allocation…" />
+          Ticker
+          <input
+            className="text-input"
+            {...register('ticker')}
+            placeholder="CART"
+            autoComplete="off"
+            autoCapitalize="characters"
+            spellCheck={false}
+          />
+          {errors.ticker && <small className="form-error">{errors.ticker.message ?? 'Enter a ticker.'}</small>}
         </label>
-        <label className="field">
-          Your status
-          <select className="text-input" {...register('shareholderStatus')}>
-            {statuses.map(item => (
-              <option key={item}>{item}</option>
-            ))}
-          </select>
-        </label>
-        <label className="check-row">
-          <input type="checkbox" {...register('consent')} /> Email me updates about this campaign
-        </label>
-        {errors.consent && <p className="form-error">Please confirm you’d like campaign updates so we can follow up.</p>}
         {submitError && <p className="form-error">{submitError}</p>}
         <button className="btn primary full" disabled={isSubmitting} type="submit">
-          {isSubmitting ? 'Adding request…' : 'Request this company'} <ChevronRight size={15} />
+          {isSubmitting ? 'Sending request…' : 'Request this company'} <ChevronRight size={15} />
         </button>
         <p className="form-footnote">By submitting, you agree to the community guidelines. Open Floor does not provide investment advice.</p>
       </form>

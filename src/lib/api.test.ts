@@ -121,27 +121,23 @@ describe('on-demand campaign creation (demo mode)', () => {
 
 describe('requestCompany matching (demo mode)', () => {
   it('matches an existing company by ticker instead of creating a duplicate request', async () => {
-    const result = await requestCompany({
-      name: 'Apple',
-      ticker: 'AAPL',
-      exchange: 'NASDAQ',
-      reason: 'Would like to see this company added to the directory for discussion.',
-      shareholderStatus: 'Current shareholder',
-      consent: true,
-    })
+    const result = await requestCompany({ name: 'Apple', ticker: 'AAPL' })
     expect('matchedCompany' in result).toBe(true)
     if ('matchedCompany' in result) expect(result.matchedCompany.ticker).toBe('AAPL')
   })
 
-  it('creates a request when no match exists', async () => {
-    const result = await requestCompany({
-      name: 'Totally Fictional Test Co',
-      ticker: 'ZZZFAKE',
-      exchange: 'NASDAQ',
-      reason: 'This is a genuinely new company not in the directory yet.',
-      shareholderStatus: 'Considering investing',
-      consent: true,
-    })
-    expect('requestId' in result).toBe(true)
+  it('matches an existing company even when the ticker is lower-case and padded', async () => {
+    const result = await requestCompany({ name: '  apple ', ticker: '  aapl ' })
+    expect('matchedCompany' in result).toBe(true)
+    if ('matchedCompany' in result) expect(result.matchedCompany.ticker).toBe('AAPL')
+  })
+
+  it('creates a request when no match exists, then blocks an identical re-request', async () => {
+    const ticker = `ZZZ${Date.now().toString(36).toUpperCase()}`
+    const first = await requestCompany({ name: 'Totally Fictional Test Co', ticker })
+    expect('requestId' in first).toBe(true)
+
+    const second = await requestCompany({ name: 'Totally Fictional Test Co', ticker: ticker.toLowerCase() })
+    expect('duplicate' in second).toBe(true)
   })
 })

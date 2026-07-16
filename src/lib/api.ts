@@ -186,17 +186,18 @@ export type QuestionInput = {
   anonymous: boolean
 }
 
+// The request form collects only what a reviewer needs to identify the company:
+// its name and ticker. The legacy exchange/reason/shareholder_status/consent
+// fields are no longer collected and are left NULL rather than fabricated.
 export type CompanyRequestInput = {
   name: string
   ticker: string
-  exchange: string
-  reason: string
-  shareholderStatus: ShareholderStatus
-  suggestedTopic?: string
-  consent: boolean
 }
 
-export type RequestCompanyResult = { matchedCompany: PublicCompany } | { requestId: string }
+export type RequestCompanyResult =
+  | { matchedCompany: PublicCompany }
+  | { duplicate: true }
+  | { requestId: string }
 
 export type DiscoverFilters = {
   query?: string
@@ -1203,33 +1204,39 @@ async function findMatchingCompany(name: string, ticker: string): Promise<Public
 }
 
 export async function requestCompany(input: CompanyRequestInput, userId?: string): Promise<RequestCompanyResult> {
-  const matched = await findMatchingCompany(input.name, input.ticker)
+  const name = input.name.trim()
+  const ticker = input.ticker.trim().toUpperCase()
+
+  const matched = await findMatchingCompany(name, ticker)
   if (matched) return { matchedCompany: matched }
 
-  const ticker = input.ticker.toUpperCase()
   if (supabase && userId) {
     const { data, error } = await supabase
       .from('company_requests')
       .insert({
         requested_by: userId,
-        company_name: input.name,
+        company_name: name,
         ticker,
-        exchange: input.exchange,
-        reason: input.reason,
-        shareholder_status: input.shareholderStatus,
-        suggested_topic: input.suggestedTopic || null,
-        consent: input.consent,
+        // exchange / reason / shareholder_status / consent are no longer
+        // collected; they are left to their column defaults (NULL / false)
+        // rather than populated with fabricated values.
       })
       .select('id')
       .single()
-    if (error) throw new Error(error.message)
+    if (error) {
+      // 23505 = unique_violation on the per-user dedupe index: this shareholder
+      // has already requested this company.
+      if (error.code === '23505') return { duplicate: true }
+      throw new Error(error.message)
+    }
     return { requestId: String((data as Row).id) }
   }
+
   const store = readLocal()
   const requests = store.requests ?? []
   const existing = requests.find(request => request.ticker.toUpperCase() === ticker)
-  if (existing) return { requestId: existing.id }
-  const item: LocalRequest = { ...input, ticker, id: `request-${Date.now()}`, createdAt: new Date().toISOString() }
+  if (existing) return { duplicate: true }
+  const item: LocalRequest = { name, ticker, id: `request-${Date.now()}`, createdAt: new Date().toISOString() }
   writeLocal({ ...store, requests: [...requests, item] })
   return { requestId: item.id }
 }
