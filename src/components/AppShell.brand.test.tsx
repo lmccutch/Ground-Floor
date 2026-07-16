@@ -19,7 +19,7 @@ function renderShell() {
 describe('AppShell — Open Floor branding', () => {
   it('renders the Open Floor wordmark and footer branding', () => {
     renderShell()
-    // Wordmark (sidebar) + mobile topbar brand + footer heading all read "Open Floor".
+    // Top-nav wordmark + footer heading both read "Open Floor".
     expect(screen.getAllByText('Open Floor').length).toBeGreaterThanOrEqual(2)
     // Home wordmark link is labelled for assistive tech.
     expect(screen.getByRole('link', { name: /open floor home/i })).toBeInTheDocument()

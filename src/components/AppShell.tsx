@@ -1,103 +1,196 @@
-import { useEffect, useState, type ReactNode } from 'react'
+import { useEffect, useRef, useState, type ReactNode } from 'react'
 import { Link, NavLink, useLocation } from 'react-router-dom'
-import { BarChart3, LayoutDashboard, LogOut, Mail, Menu, PlusCircle, Search } from 'lucide-react'
+import { LogOut, Menu, Search, X } from 'lucide-react'
 import { useMvp } from '../context/useMvp'
 import { FeedbackWidget } from './FeedbackWidget'
 
-const navItems = [
-  { to: '/', label: 'Home', icon: LayoutDashboard, end: true },
-  { to: '/discover', label: 'Discover', icon: Search, end: false },
-  { to: '/companies', label: 'My companies', icon: BarChart3, end: false },
-  { to: '/request-company', label: 'Request a company', icon: PlusCircle, end: false },
+const primaryNav = [
+  { to: '/discover', label: 'Discover' },
+  { to: '/companies', label: 'My companies' },
+  { to: '/how-it-works', label: 'How it works' },
 ]
+
+const DEMO_HINT = 'No backend is configured — activity is stored in this browser only.'
 
 export function AppShell({ children }: { children: ReactNode }) {
   const [menuOpen, setMenuOpen] = useState(false)
   const { profile, demoMode, requireAuth, signOut } = useMvp()
   const location = useLocation()
+  const menuRef = useRef<HTMLDivElement>(null)
+  const toggleRef = useRef<HTMLButtonElement>(null)
 
+  // Close the mobile menu on navigation.
   useEffect(() => {
     setMenuOpen(false)
   }, [location.pathname])
 
+  // Mobile-menu dialog behaviour: body-scroll lock, focus trap, Escape-to-close,
+  // and focus return to the trigger on close.
+  useEffect(() => {
+    if (!menuOpen) return
+    const previousOverflow = document.body.style.overflow
+    document.body.style.overflow = 'hidden'
+    const menu = menuRef.current
+    const focusable = () =>
+      menu
+        ? Array.from(menu.querySelectorAll<HTMLElement>('a[href], button:not([disabled]), [tabindex]:not([tabindex="-1"])'))
+        : []
+    focusable()[0]?.focus()
+
+    const onKeyDown = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') {
+        setMenuOpen(false)
+        toggleRef.current?.focus()
+        return
+      }
+      if (event.key !== 'Tab') return
+      const items = focusable()
+      if (items.length === 0) return
+      const first = items[0]
+      const last = items[items.length - 1]
+      if (event.shiftKey && document.activeElement === first) {
+        event.preventDefault()
+        last.focus()
+      } else if (!event.shiftKey && document.activeElement === last) {
+        event.preventDefault()
+        first.focus()
+      }
+    }
+    document.addEventListener('keydown', onKeyDown)
+    return () => {
+      document.removeEventListener('keydown', onKeyDown)
+      document.body.style.overflow = previousOverflow
+    }
+  }, [menuOpen])
+
   const initials = profile ? profile.displayName.slice(0, 2).toUpperCase() : 'GU'
-  const demoHint = 'No backend is configured — activity is stored in this browser only.'
+
+  const navLinks = primaryNav.map(({ to, label }) => (
+    <NavLink key={to} to={to} className={({ isActive }) => (isActive ? 'nav-link active' : 'nav-link')}>
+      {label}
+    </NavLink>
+  ))
 
   return (
     <div className="app-shell">
-      {menuOpen && <div className="sidebar-backdrop" onClick={() => setMenuOpen(false)} />}
-      <aside className={menuOpen ? 'sidebar open' : 'sidebar'}>
-        <Link to="/" className="logo-mark" aria-label="Open Floor home">
-          <span aria-hidden="true">O</span>
-          <b>Open Floor</b>
-        </Link>
-        <nav aria-label="Primary">
-          {navItems.map(({ to, label, icon: Icon, end }) => (
-            <NavLink key={to} to={to} end={end}>
-              <Icon size={17} />
-              {label}
-            </NavLink>
-          ))}
-        </nav>
-        <div className="sidebar-bottom">
-          {demoMode && (
-            <div className="demo-pill" title={demoHint}>
-              Demo mode · data stays in this browser
-            </div>
-          )}
-          <div className="profile-row">
-            <span className="avatar">{initials}</span>
-            <span className="profile-name">
-              <strong>{profile ? profile.displayName : 'Guest'}</strong>
-              <small>{profile ? (profile.email ?? 'Signed in') : 'Browsing freely'}</small>
+      <header className="topnav">
+        <div className="topnav-inner">
+          <Link to="/" className="brand" aria-label="Open Floor home">
+            <span className="brand-mark" aria-hidden="true">
+              O
             </span>
-          </div>
-          {profile ? (
-            <button className="btn ghost small full" onClick={() => void signOut()}>
-              <LogOut size={14} /> Sign out
-            </button>
-          ) : (
-            <button className="btn gold small full" onClick={() => requireAuth('participate in campaigns')}>
-              <Mail size={14} /> Sign in
-            </button>
-          )}
-        </div>
-      </aside>
-      <div className="main">
-        <header className="topbar">
-          <button
-            className="icon-btn mobile-menu"
-            onClick={() => setMenuOpen(open => !open)}
-            aria-label="Toggle navigation menu"
-            aria-expanded={menuOpen}
-          >
-            <Menu size={18} />
-          </button>
-          <Link to="/" className="topbar-brand">
-            Open Floor
+            <span className="brand-name">Open Floor</span>
           </Link>
-          <div className="topbar-right">
+
+          <nav className="topnav-links" aria-label="Primary">
+            {navLinks}
+          </nav>
+
+          <div className="topnav-actions">
             {demoMode && (
-              <span className="badge neutral" title={demoHint}>
+              <span className="badge neutral" title={DEMO_HINT}>
                 Demo data
               </span>
             )}
+            <Link to="/discover" className="icon-btn nav-search" aria-label="Find a company">
+              <Search size={17} />
+            </Link>
             {profile ? (
-              <span className="topbar-user">
-                <span className="avatar small">{initials}</span>
-                <span className="topbar-user-name">{profile.displayName}</span>
+              <span className="account">
+                <span className="avatar small" aria-hidden="true">
+                  {initials}
+                </span>
+                <span className="account-name">{profile.displayName}</span>
+                <button className="btn ghost small" onClick={() => void signOut()}>
+                  <LogOut size={14} /> Sign out
+                </button>
               </span>
             ) : (
-              <button className="btn primary small" onClick={() => requireAuth('participate in campaigns')}>
+              <button className="btn primary small nav-signin" onClick={() => requireAuth('participate in campaigns')}>
                 Sign in
               </button>
             )}
           </div>
-        </header>
-        <main className="page-content">{children}</main>
-        <SiteFooter />
-        <FeedbackWidget />
-      </div>
+
+          <button
+            ref={toggleRef}
+            className="icon-btn nav-toggle"
+            aria-label="Open menu"
+            aria-expanded={menuOpen}
+            aria-controls="mobile-menu"
+            onClick={() => setMenuOpen(open => !open)}
+          >
+            <Menu size={20} />
+          </button>
+        </div>
+      </header>
+
+      {menuOpen && (
+        <>
+          <div className="menu-backdrop" onClick={() => setMenuOpen(false)} />
+          <div id="mobile-menu" ref={menuRef} className="mobile-menu open" role="dialog" aria-modal="true" aria-label="Menu">
+            <div className="mobile-menu-head">
+              <span className="brand-name">Menu</span>
+              <button
+                className="icon-btn"
+                aria-label="Close menu"
+                onClick={() => {
+                  setMenuOpen(false)
+                  toggleRef.current?.focus()
+                }}
+              >
+                <X size={18} />
+              </button>
+            </div>
+            <nav className="mobile-nav" aria-label="Mobile primary">
+              {navLinks}
+              <NavLink to="/request-company" className={({ isActive }) => (isActive ? 'nav-link active' : 'nav-link')}>
+                Request a company
+              </NavLink>
+            </nav>
+            <div className="mobile-menu-account">
+              {demoMode && (
+                <span className="badge neutral" title={DEMO_HINT}>
+                  Demo data
+                </span>
+              )}
+              {profile ? (
+                <>
+                  <span className="account-name">
+                    <span className="avatar small" aria-hidden="true">
+                      {initials}
+                    </span>
+                    {profile.displayName}
+                  </span>
+                  <button
+                    className="btn ghost full"
+                    onClick={() => {
+                      setMenuOpen(false)
+                      void signOut()
+                    }}
+                  >
+                    <LogOut size={14} /> Sign out
+                  </button>
+                </>
+              ) : (
+                <button
+                  className="btn primary full"
+                  onClick={() => {
+                    setMenuOpen(false)
+                    requireAuth('participate in campaigns')
+                  }}
+                >
+                  Sign in
+                </button>
+              )}
+            </div>
+          </div>
+        </>
+      )}
+
+      <main className="page-content">{children}</main>
+      <SiteFooter />
+      <FeedbackWidget />
     </div>
   )
 }
@@ -107,7 +200,7 @@ const footerColumns: { heading: string; links: [string, string][] }[] = [
     heading: 'Open Floor',
     links: [
       ['/about', 'About'],
-      ['/how-it-works', 'How It Works'],
+      ['/how-it-works', 'How it works'],
       ['/faq', 'FAQ'],
       ['/contact', 'Contact'],
     ],
@@ -134,22 +227,24 @@ const footerColumns: { heading: string; links: [string, string][] }[] = [
 function SiteFooter() {
   return (
     <footer className="site-footer">
-      <nav className="footer-columns" aria-label="Footer">
-        {footerColumns.map(column => (
-          <div key={column.heading} className="footer-column">
-            <span className="footer-heading">{column.heading}</span>
-            {column.links.map(([to, label]) => (
-              <Link key={to} to={to}>
-                {label}
-              </Link>
-            ))}
-          </div>
-        ))}
-      </nav>
-      <p className="footer-note">
-        Open Floor is not affiliated with any company shown, does not provide investment advice, and does not verify
-        share ownership. Management participation is voluntary and never guaranteed.
-      </p>
+      <div className="footer-inner">
+        <nav className="footer-columns" aria-label="Footer">
+          {footerColumns.map(column => (
+            <div key={column.heading} className="footer-column">
+              <span className="footer-heading">{column.heading}</span>
+              {column.links.map(([to, label]) => (
+                <Link key={to} to={to}>
+                  {label}
+                </Link>
+              ))}
+            </div>
+          ))}
+        </nav>
+        <p className="footer-note">
+          Open Floor is not affiliated with any company shown, does not provide investment advice, and does not verify
+          share ownership. Management participation is voluntary and never guaranteed.
+        </p>
+      </div>
     </footer>
   )
 }

@@ -1,5 +1,5 @@
 import { expect, test } from '@playwright/test'
-import { openSidebarIfCollapsed, signInDemo } from './helpers'
+import { shellSignIn, signInDemo } from './helpers'
 
 // Core-experience flows (demo mode): campaign lifecycle, timeline, question
 // sort/filter/edit/delete, vote removal UI, sharing, feedback, recent searches,
@@ -121,10 +121,8 @@ test.describe('Question experience', () => {
 test.describe('Feedback', () => {
   test('signed-in user submits feedback and sees the success state', async ({ page }) => {
     await page.goto('/')
-    // Sign in first via the sidebar entry.
-    await openSidebarIfCollapsed(page)
-    await page.click('.sidebar-bottom button:has-text("Sign in")')
-    await signInDemo(page, `e2e-feedback-${Date.now()}@test.dev`)
+    // Sign in via the shell (top nav on desktop, mobile menu on small screens).
+    await shellSignIn(page, `e2e-feedback-${Date.now()}@test.dev`)
 
     await page.click('.feedback-fab')
     await page.waitForSelector('.modal >> text=What should we know?')
