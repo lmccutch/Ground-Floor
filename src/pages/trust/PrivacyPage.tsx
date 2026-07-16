@@ -23,7 +23,23 @@ export function PrivacyPage() {
         <li><b>Self-reported shareholder status:</b> the status you select when supporting a campaign or asking a question, and an optional coarse position-size range. Position ranges are never displayed publicly or shown with your name.</li>
         <li><b>Questions and votes:</b> questions you submit are public (under your display name, or “Anonymous Shareholder” if you choose). Your individual votes are stored so counts are accurate and so you can remove them; vote counts are public, your identity behind a vote is not displayed.</li>
         <li><b>Feedback and reports:</b> feedback you send and reports you file, stored privately — visible to you (feedback) and to administrators, never to other users.</li>
-        <li><b>Search and analytics data:</b> recent searches are stored only in your browser (localStorage) and never sent to our servers. If product analytics are enabled (PostHog), we record product events — page and feature usage — but never email addresses, feedback text, report text, or position sizes in event data.</li>
+        <li>
+          <b>Search and analytics data:</b> recent searches are stored only in your browser (localStorage) and never
+          sent to our servers. We use two separate, limited analytics layers:
+          <ul>
+            <li>
+              <b>Vercel Web Analytics</b> measures aggregate website traffic — page views, visitors, routes, referrers,
+              and device/browser type. It receives only the page path; query strings and URL fragments are stripped
+              before sending, so sign-in links and tokens are never included, and no custom product events are sent to it.
+            </li>
+            <li>
+              <b>PostHog</b> (only when configured on a deployment) records explicit product events — which features you
+              use, such as supporting a campaign or voting — linked to a pseudonymous account identifier (your Supabase
+              user ID, not your email). It is never sent your email address, display name, question or search text,
+              feedback or report text, or position sizes.
+            </li>
+          </ul>
+        </li>
       </ul>
 
       <h2>Cookies and local storage</h2>
@@ -35,7 +51,8 @@ export function PrivacyPage() {
       <h2>Where your data lives</h2>
       <ul>
         <li><b>Supabase</b> hosts the database and authentication. Access to your rows is controlled by database-level row security, which we test against a live project as part of our release checks.</li>
-        <li><b>PostHog</b> (only if enabled on a deployment) receives product analytics events as described above.</li>
+        <li><b>PostHog</b> (only if enabled on a deployment) receives explicit product-interaction events, keyed to a pseudonymous account identifier rather than your email, as described above.</li>
+        <li><b>Vercel Web Analytics</b> receives aggregate, path-level traffic metrics only — no email, no custom product events, and no query strings or URL fragments.</li>
         <li><b>Email delivery:</b> magic-link sign-in emails are sent through the email provider configured for the deployment (Supabase's sender or a custom SMTP provider). Your email address is shared with that provider solely to deliver those messages.</li>
       </ul>
 

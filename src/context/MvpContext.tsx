@@ -1,5 +1,5 @@
-import { useEffect, useMemo, useState, type ReactNode } from 'react'
-import { identify, track } from '../lib/analytics'
+import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react'
+import { identify, resetAnalytics, track } from '../lib/analytics'
 import {
   buildSupabaseProfile,
   getSessionProfile,
@@ -17,10 +17,19 @@ export function MvpProvider({ children }: { children: ReactNode }) {
   const [profile, setProfile] = useState<Profile | null>(null)
   const [loading, setLoading] = useState(true)
   const [authAction, setAuthAction] = useState<string | null>(null)
+  // The last id passed to PostHog identify(), so an auth-state change that fires
+  // repeatedly (e.g. token refresh) does not re-identify the same user.
+  const identifiedId = useRef<string | null>(null)
 
   useEffect(() => {
     getSessionProfile()
-      .then(setProfile)
+      .then(profile => {
+        setProfile(profile)
+        if (profile?.id && identifiedId.current !== profile.id) {
+          identifiedId.current = profile.id
+          identify(profile.id)
+        }
+      })
       .catch(() => setProfile(null))
       .finally(() => setLoading(false))
     if (!supabase) return
@@ -32,7 +41,11 @@ export function MvpProvider({ children }: { children: ReactNode }) {
       }
       void buildSupabaseProfile(user.id, user.email).then(next => {
         setProfile(next)
-        identify(next.id, { email: next.email })
+        // Identify with the pseudonymous Supabase user id only — never email.
+        if (identifiedId.current !== next.id) {
+          identifiedId.current = next.id
+          identify(next.id)
+        }
       })
     })
     return () => data.subscription.unsubscribe()
@@ -62,12 +75,19 @@ export function MvpProvider({ children }: { children: ReactNode }) {
         track('magic_link_requested', { demo: !supabase })
         if (next) {
           setProfile(next)
-          identify(next.id, { email: next.email })
+          if (identifiedId.current !== next.id) {
+            identifiedId.current = next.id
+            identify(next.id)
+          }
         }
       },
       signOut: async () => {
         await apiSignOut()
         setProfile(null)
+        // Clear the analytics identity so the next visitor on this device is not
+        // attributed to the account that just signed out.
+        identifiedId.current = null
+        resetAnalytics()
       },
       completeProfile: async input => {
         if (!profile) return

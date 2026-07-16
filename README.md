@@ -46,6 +46,14 @@ Populate the retail-popularity ranking by running `npm run retail:import`, which
 
 Never ship service-role or provider API credentials to the browser.
 
+## Analytics
+
+Two independent layers, kept deliberately separate:
+
+- **Vercel Web Analytics** — aggregate website traffic only (page views, visitors, routes, referrers, devices/browsers). Mounted once at the app root via `<Analytics />` from `@vercel/analytics/react`; it needs **no** application secret or env var. Enable it manually in the Vercel dashboard (Project → Analytics → Web Analytics); data appears after a deployment and real visits. A `beforeSend` handler (`src/lib/analyticsUrl.ts`) strips query strings and URL fragments and suppresses auth/recovery URLs, so tokens are never sent. **No custom product events are sent to Vercel.**
+- **PostHog** — explicit product-interaction events only (campaign support/start, questions, voting, search, company clicks, popular-retail interactions, auth-state context), sent through `track()` in `src/lib/analytics.ts`. It loads lazily and only when `VITE_POSTHOG_KEY` (the public `phc_…` project key) is set — otherwise every event safely no-ops. Autocapture, automatic page views/leaves, and session recording are all disabled. `identify()` uses the **pseudonymous** Supabase user ID as the distinct id and sends no person properties (never email/name); `resetAnalytics()` clears the identity on logout.
+
+Product events go to PostHog only; page/traffic analytics go to Vercel only — the two pipelines never duplicate each other.
 
 ## Quality checks
 

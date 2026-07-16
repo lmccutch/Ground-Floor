@@ -1,5 +1,7 @@
 import { lazy, Suspense, useEffect, type ComponentType } from 'react'
 import { BrowserRouter, Route, Routes, useLocation } from 'react-router-dom'
+import { Analytics } from '@vercel/analytics/react'
+import { sanitizeAnalyticsUrl } from './lib/analyticsUrl'
 import { AppShell } from './components/AppShell'
 import { CampaignPage } from './components/CampaignPage'
 import { DashboardPage } from './components/DashboardPage'
@@ -44,6 +46,17 @@ const lazyFallback = <Skeleton height={420} />
 function App() {
   return (
     <BrowserRouter>
+      {/* Vercel Web Analytics: aggregate traffic only (page views/visitors/routes).
+          Mounted once at the root so it persists across SPA route changes. No
+          custom product events are sent here — those go to PostHog via track().
+          beforeSend strips query strings and fragments and suppresses auth/recovery
+          URLs so tokens never reach analytics. */}
+      <Analytics
+        beforeSend={event => {
+          const url = sanitizeAnalyticsUrl(event.url)
+          return url ? { ...event, url } : null
+        }}
+      />
       <ScrollToTop />
       <AppShell>
         <Suspense fallback={lazyFallback}>

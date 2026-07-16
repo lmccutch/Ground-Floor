@@ -11,9 +11,20 @@ export function initAnalytics() {
   const key = posthogKey
   loading = true
   // Loaded on demand so the analytics bundle is never shipped when no key is configured.
+  // PostHog is scoped to EXPLICIT product events only: page views and aggregate
+  // traffic are handled by Vercel Web Analytics, so autocapture, automatic page
+  // views, and session recording are all off. This keeps PostHog free of
+  // incidental text/DOM/URL capture and avoids duplicating Vercel's page views.
   import('posthog-js')
     .then(({ default: posthog }) => {
-      posthog.init(key, { api_host: posthogHost, capture_pageview: false, persistence: 'localStorage' })
+      posthog.init(key, {
+        api_host: posthogHost,
+        capture_pageview: false,
+        capture_pageleave: false,
+        autocapture: false,
+        disable_session_recording: true,
+        persistence: 'localStorage',
+      })
       client = posthog
       pending.forEach(callback => callback(posthog))
       pending = []
@@ -34,8 +45,24 @@ export function track(event: string, properties: Record<string, unknown> = {}) {
   enqueue(posthog => posthog.capture(event, properties))
 }
 
-export function identify(userId: string, properties?: Record<string, unknown>) {
-  enqueue(posthog => posthog.identify(userId, properties))
+/**
+ * Links subsequent events to a stable, pseudonymous account identifier (the
+ * Supabase user id). Pseudonymous — not anonymous: the id can be correlated back
+ * to an account through Supabase, but it is not directly identifying on its own.
+ * Deliberately sends NO person properties — never email, name, or any other
+ * directly identifying field.
+ */
+export function identify(userId: string) {
+  enqueue(posthog => posthog.identify(userId))
+}
+
+/**
+ * Clears the current analytics identity (call on logout) so the next visitor on
+ * this device is not attributed to the previous account. Safely no-ops when
+ * PostHog is not configured, preserving the lazy/no-key behaviour.
+ */
+export function resetAnalytics() {
+  enqueue(posthog => posthog.reset())
 }
 
 const ATTRIBUTION_KEY = 'groundfloor-attribution'
