@@ -65,14 +65,20 @@ export function resetAnalytics() {
   enqueue(posthog => posthog.reset())
 }
 
-const ATTRIBUTION_KEY = 'groundfloor-attribution'
-const LEGACY_ATTRIBUTION_KEY = 'grround-floor-attribution'
+const ATTRIBUTION_KEY = 'open-floor-attribution'
+// Pre-Open-Floor attribution keys, newest first, migrated forward on first read.
+const LEGACY_ATTRIBUTION_KEYS = ['groundfloor-attribution', 'grround-floor-attribution']
 
-// One-time migration: carry forward attribution stored under the pre-rename key.
+// One-time migration: carry forward attribution stored under a pre-rename key.
 function migrateLegacyAttribution() {
   if (localStorage.getItem(ATTRIBUTION_KEY) !== null) return
-  const legacy = localStorage.getItem(LEGACY_ATTRIBUTION_KEY)
-  if (legacy !== null) localStorage.setItem(ATTRIBUTION_KEY, legacy)
+  for (const legacyKey of LEGACY_ATTRIBUTION_KEYS) {
+    const legacy = localStorage.getItem(legacyKey)
+    if (legacy !== null) {
+      localStorage.setItem(ATTRIBUTION_KEY, legacy)
+      return
+    }
+  }
 }
 
 export function getAttribution() {

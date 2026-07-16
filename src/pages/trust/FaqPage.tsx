@@ -7,26 +7,26 @@ type Faq = { q: string; a: React.ReactNode }
 
 const faqs: Faq[] = [
   {
-    q: 'What is GroundFloor?',
-    a: 'A platform where individual shareholders combine their questions for a public company into one ranked list, and GroundFloor uses that collective signal to request a management interview. The questions, support, outcome, and any interview are all public.',
+    q: 'What is Open Floor?',
+    a: 'A platform where individual shareholders combine their questions for a public company into one ranked list, and Open Floor uses that collective signal to request a management interview. The questions, support, outcome, and any interview are all public.',
   },
   {
-    q: 'Is GroundFloor investment advice?',
+    q: 'Is Open Floor investment advice?',
     a: (
       <>
-        No. Nothing on GroundFloor is investment advice, a recommendation, or an offer to buy or sell securities. User
+        No. Nothing on Open Floor is investment advice, a recommendation, or an offer to buy or sell securities. User
         questions and votes reflect curiosity, not analysis you should rely on. See the{' '}
         <Link to="/disclaimer">Investment Disclaimer</Link>.
       </>
     ),
   },
   {
-    q: 'Does GroundFloor represent public companies?',
-    a: 'No. GroundFloor has no affiliation, partnership, or agreement with any company in the directory. Companies do not approve, sponsor, or endorse their campaign pages.',
+    q: 'Does Open Floor represent public companies?',
+    a: 'No. Open Floor has no affiliation, partnership, or agreement with any company in the directory. Companies do not approve, sponsor, or endorse their campaign pages.',
   },
   {
     q: 'Are management interviews guaranteed?',
-    a: 'No. Participation is entirely the company’s choice. Reaching a supporter target only means GroundFloor prepares and sends an interview request. As of now, no interview has yet been conducted or published.',
+    a: 'No. Participation is entirely the company’s choice. Reaching a supporter target only means Open Floor prepares and sends an interview request. As of now, no interview has yet been conducted or published.',
   },
   {
     q: 'How are companies selected?',
@@ -53,10 +53,10 @@ const faqs: Faq[] = [
   },
   {
     q: 'Can management choose which questions to answer?',
-    a: 'Yes. Management may decline any question, and GroundFloor cannot compel an answer. A published transcript shows what was asked and what was and wasn’t addressed.',
+    a: 'Yes. Management may decline any question, and Open Floor cannot compel an answer. A published transcript shows what was asked and what was and wasn’t addressed.',
   },
   {
-    q: 'Can GroundFloor edit or merge questions?',
+    q: 'Can Open Floor edit or merge questions?',
     a: (
       <>
         Yes, within limits: duplicates may be merged so votes concentrate, and wording may be edited for clarity —
@@ -66,10 +66,10 @@ const faqs: Faq[] = [
   },
   {
     q: 'What does “self-reported shareholder” mean?',
-    a: 'When you support a campaign or ask a question, you choose a status like “Current shareholder” yourself. GroundFloor records what you selected. It is an honesty-based signal, not a verified fact.',
+    a: 'When you support a campaign or ask a question, you choose a status like “Current shareholder” yourself. Open Floor records what you selected. It is an honesty-based signal, not a verified fact.',
   },
   {
-    q: 'Does GroundFloor verify holdings?',
+    q: 'Does Open Floor verify holdings?',
     a: 'No. There is no brokerage connection and no ownership verification. Optional position-size ranges are collected privately for aggregate context and are never displayed with your name.',
   },
   {
@@ -81,7 +81,7 @@ const faqs: Faq[] = [
     a: 'The campaign page says so plainly, and the record of shareholder support and questions stays public. Outreach may be revisited later. Silence is treated the same way — we never imply participation that didn’t happen.',
   },
   {
-    q: 'How does GroundFloor make money?',
+    q: 'How does Open Floor make money?',
     a: 'Right now, it doesn’t — there is no revenue: no ads, no subscriptions, no paid placements, and no payments from companies. If that changes, this FAQ and the Transparency page will be updated first.',
   },
   {
@@ -146,7 +146,7 @@ const faqs: Faq[] = [
     ),
   },
   {
-    q: 'How do I contact GroundFloor?',
+    q: 'How do I contact Open Floor?',
     a: (
       <>
         See the <Link to="/contact">Contact page</Link> — it lists addresses for general, press, legal/privacy,
@@ -162,7 +162,7 @@ export function FaqPage() {
       slug="faq"
       path="/faq"
       title="FAQ"
-      metaDescription="Frequently asked questions about GroundFloor: what it is, what it isn't, how campaigns and voting work, and how your data is handled."
+      metaDescription="Frequently asked questions about Open Floor: what it is, what it isn't, how campaigns and voting work, and how your data is handled."
       eyebrow="FAQ"
       heading="Questions we actually get."
       intro="Plain answers. Where a feature doesn't exist yet, we say so."

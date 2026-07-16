@@ -2,7 +2,7 @@
 
 A curated Discover section that ranks companies by their standing in a
 third-party linked-broker investor panel. It exists to make Discover
-immediately interesting before GroundFloor has its own proprietary rankings.
+immediately interesting before Open Floor has its own proprietary rankings.
 It is a **point-in-time editorial snapshot**, not a live integration: there
 is no scraper, no API credentials, no scheduled refresh, and no
 ownership-calculation engine.
@@ -26,11 +26,11 @@ The on-page disclosure states:
 
 We deliberately **do not** describe this as most-retail-owned, exact or
 verified retail ownership, a retail-shareholder count, or a percentage owned
-by all retail investors. Fintel does not endorse GroundFloor.
+by all retail investors. Fintel does not endorse Open Floor.
 
 ## CSV
 
-- **Location:** `groundfloor_popular_retail_stocks_fintel_2026-07-15.csv`
+- **Location:** `open_floor_popular_retail_stocks_fintel_2026-07-15.csv`
   (repo root).
 - **Columns (all required, order-independent):** `feature_rank`,
   `fintel_source_rank`, `ticker`, `company_name`, `market_cap_usd_mm`,

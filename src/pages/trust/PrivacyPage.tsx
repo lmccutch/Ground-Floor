@@ -9,7 +9,7 @@ export function PrivacyPage() {
       slug="privacy"
       path="/privacy"
       title="Privacy Policy"
-      metaDescription="Draft GroundFloor Privacy Policy: what data is collected, where it lives, how long it's kept, and how to request access or deletion."
+      metaDescription="Draft Open Floor Privacy Policy: what data is collected, where it lives, how long it's kept, and how to request access or deletion."
       eyebrow="Privacy Policy"
       heading="What we collect and why."
       intro="Written to be read, not skimmed past. Last updated: July 2026."
@@ -90,7 +90,7 @@ export function PrivacyPage() {
       <h2>International users</h2>
       <p>
         Data is hosted in the region of the configured Supabase project (currently North America for this deployment).
-        If you use GroundFloor from elsewhere, your data is transferred there. A formal international-transfer
+        If you use Open Floor from elsewhere, your data is transferred there. A formal international-transfer
         framework (e.g. SCCs) has not yet been put in place — one of the items requiring legal review below.
       </p>
 

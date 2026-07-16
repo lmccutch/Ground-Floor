@@ -6,7 +6,7 @@ import { TrustPage } from './TrustPage'
 const enquiries: { type: EnquiryType; copy: string }[] = [
   { type: 'general', copy: 'Anything that doesn’t fit the categories below.' },
   { type: 'investor-relations', copy: 'For company Investor Relations teams responding to or asking about an outreach request.' },
-  { type: 'press', copy: 'Media and interview requests about GroundFloor itself.' },
+  { type: 'press', copy: 'Media and interview requests about Open Floor itself.' },
   { type: 'legal-privacy', copy: 'Legal notices, privacy questions, and data-protection requests.' },
   { type: 'moderation-appeal', copy: 'Appeal a moderation decision — include a link to the content.' },
   { type: 'security', copy: 'Report a vulnerability or suspected security issue. Please include reproduction steps.' },
@@ -18,7 +18,7 @@ export function ContactPage() {
       slug="contact"
       path="/contact"
       title="Contact"
-      metaDescription="How to reach GroundFloor: general, Investor Relations, press, legal and privacy, moderation appeals, and security reports."
+      metaDescription="How to reach Open Floor: general, Investor Relations, press, legal and privacy, moderation appeals, and security reports."
       eyebrow="Contact"
       heading="Talk to a person."
       intro="There is no contact form yet — these are direct email addresses with pre-filled subjects so the right thing happens with your message. A person reads everything."

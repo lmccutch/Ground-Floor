@@ -250,7 +250,7 @@ be confirmed with an actual Vercel deploy (§ step 8 above).
 
 `public/favicon.svg` exists and is linked in `index.html`. `index.html`
 already has a real `<title>`, meta description, `theme-color`, and
-Open Graph / Twitter card tags pointing at GroundFloor's actual copy (not
+Open Graph / Twitter card tags pointing at Open Floor's actual copy (not
 placeholder Vite boilerplate) — confirmed by inspection, nothing to fix.
 
 ## 9. Domain configuration

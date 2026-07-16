@@ -25,7 +25,7 @@ test.describe('Trust routes', () => {
     test(`${route.path} renders with its own heading and metadata`, async ({ page }) => {
       await page.goto(route.path)
       await expect(page.locator('.page-heading h1')).toContainText(route.heading)
-      await expect(page).toHaveTitle(`${route.title} | GroundFloor`)
+      await expect(page).toHaveTitle(`${route.title} | Open Floor`)
       const canonical = await page.locator('link[rel="canonical"]').getAttribute('href')
       expect(canonical?.endsWith(route.path)).toBe(true)
     })

@@ -8,7 +8,7 @@ is the first written record and is now the source of truth going forward.
 
 ## Cleanup phase (prior work)
 
-Renamed the product from its earlier working name to **GroundFloor**,
+Renamed the product from its earlier working name to **Open Floor**,
 removed decorative/non-functional UI (dead routes, inert buttons, fake
 "live" metrics), rebuilt the design system (tokens, buttons, cards, modals,
 empty/loading/error states) for consistency, and fixed a set of functional
@@ -166,6 +166,6 @@ matters → trust principles (linking to Transparency/Guidelines/Disclaimer) →
 final CTA. Full detail: `docs/core-user-experience.md`.
 
 Removed the old four-step marketing summary and the dark "traditional vs.
-GroundFloor" comparison block (and their now-unused CSS) since the new
+Open Floor" comparison block (and their now-unused CSS) since the new
 "how it works" and "why this matters" sections replace them with the real
 lifecycle and non-activist framing the new copy requires.

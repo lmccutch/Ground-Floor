@@ -10,7 +10,7 @@ export function ModerationPolicyPage() {
       slug="moderation"
       path="/moderation"
       title="Moderation Policy"
-      metaDescription="How GroundFloor moderates content: what may be removed, editing versus changing meaning, duplicate merging, report handling, and appeals."
+      metaDescription="How Open Floor moderates content: what may be removed, editing versus changing meaning, duplicate merging, report handling, and appeals."
       eyebrow="Moderation Policy"
       heading="How moderation works here."
       intro="Moderation exists to keep questions credible for management and fair for shareholders — not to filter viewpoints."

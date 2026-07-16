@@ -19,7 +19,7 @@ export function GuidelinesPage() {
       slug="guidelines"
       path="/guidelines"
       title="Community Guidelines"
-      metaDescription="GroundFloor's community rules: what makes a good shareholder question, what content is prohibited, and how reports and enforcement work."
+      metaDescription="Open Floor's community rules: what makes a good shareholder question, what content is prohibited, and how reports and enforcement work."
       eyebrow="Community Guidelines"
       heading="Keep it sharp, keep it fair."
       intro="These rules exist so that management takes shareholder questions seriously — and so this stays a place worth participating in."
@@ -46,16 +46,16 @@ export function GuidelinesPage() {
       <h2 id="mnpi">Material non-public information (MNPI)</h2>
       <p>
         Do not submit confidential information or information that a reasonable investor would consider material and
-        that is not public — whether it's yours, your employer's, or something you were told. GroundFloor may remove
+        that is not public — whether it's yours, your employer's, or something you were told. Open Floor may remove
         suspected MNPI immediately and without notice. If you believe you hold MNPI, contact appropriate legal or
-        compliance channels; do not post it here. GroundFloor cannot and does not advise on whether any specific
+        compliance channels; do not post it here. Open Floor cannot and does not advise on whether any specific
         information is material or public.
       </p>
 
       <h2>Enforcement</h2>
       <ul>
         <li>Reports are reviewed privately — the reported author never learns who reported.</li>
-        <li>GroundFloor may remove, edit for clarity, merge, archive, or restrict content that breaks these rules.</li>
+        <li>Open Floor may remove, edit for clarity, merge, archive, or restrict content that breaks these rules.</li>
         <li>Repeated or serious violations can lead to account suspension or removal.</li>
         <li>
           We review reports as promptly as a small team can; we deliberately do not promise response times we can't

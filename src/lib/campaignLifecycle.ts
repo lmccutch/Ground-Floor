@@ -6,8 +6,8 @@
 export const LIFECYCLE_STAGES = [
   'Shareholders build support',
   'Shareholders submit and rank questions',
-  'GroundFloor prepares outreach',
-  'GroundFloor contacts Investor Relations',
+  'Open Floor prepares outreach',
+  'Open Floor contacts Investor Relations',
   'Management decides whether to participate',
   'Interview and transcript published',
 ] as const
@@ -41,18 +41,18 @@ export function lifecycleForStatus(status: string): LifecycleView {
       return build(
         ['current', 'current', 'upcoming', 'upcoming', 'upcoming', 'upcoming'],
         'Shareholders are adding self-reported support and submitting and voting on the questions they most want answered.',
-        `When the campaign reaches its supporter target, GroundFloor will prepare a formal outreach request. ${VOLUNTARY}`,
+        `When the campaign reaches its supporter target, Open Floor will prepare a formal outreach request. ${VOLUNTARY}`,
       )
     case 'Preparing management outreach':
       return build(
         ['done', 'done', 'current', 'upcoming', 'upcoming', 'upcoming'],
-        'GroundFloor is preparing the formal interview request, including the top shareholder-ranked questions.',
-        'Next, GroundFloor contacts the company’s Investor Relations team. ' + VOLUNTARY,
+        'Open Floor is preparing the formal interview request, including the top shareholder-ranked questions.',
+        'Next, Open Floor contacts the company’s Investor Relations team. ' + VOLUNTARY,
       )
     case 'Management contacted':
       return build(
         ['done', 'done', 'done', 'current', 'upcoming', 'upcoming'],
-        'GroundFloor has sent the interview request to the company’s Investor Relations team.',
+        'Open Floor has sent the interview request to the company’s Investor Relations team.',
         'Management decides whether to participate. ' + VOLUNTARY,
       )
     case 'Management reviewing request':

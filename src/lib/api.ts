@@ -218,16 +218,24 @@ const SEARCH_LIMIT_DEFAULT = 10
 /* ------------------------------ demo storage ------------------------------ */
 
 const storageKey = getDataModeConfig().storageKey
-const legacyStorageKey = 'grround-floor-mvp'
+// Pre-Open-Floor demo keys, newest first. Carried forward for backwards
+// compatibility so a returning user's local demo data is not stranded by the
+// rebrand: 'groundfloor-mvp' (previous name) and 'grround-floor-mvp' (original).
+const legacyStorageKeys = ['groundfloor-mvp', 'grround-floor-mvp']
 
-// One-time migration: carry forward demo-mode data stored under the pre-rename key.
+// One-time migration: carry forward demo-mode data stored under a pre-rename key.
 // Never runs in test mode — test mode's storage namespace must never be seeded
 // from whatever demo data exists in a developer's browser.
 function migrateLegacyStorage() {
   if (getDataModeConfig().isTestMode) return
   if (localStorage.getItem(storageKey) !== null) return
-  const legacy = localStorage.getItem(legacyStorageKey)
-  if (legacy !== null) localStorage.setItem(storageKey, legacy)
+  for (const legacyKey of legacyStorageKeys) {
+    const legacy = localStorage.getItem(legacyKey)
+    if (legacy !== null) {
+      localStorage.setItem(storageKey, legacy)
+      return
+    }
+  }
 }
 
 type LocalQuestion = {

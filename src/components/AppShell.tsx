@@ -27,9 +27,9 @@ export function AppShell({ children }: { children: ReactNode }) {
     <div className="app-shell">
       {menuOpen && <div className="sidebar-backdrop" onClick={() => setMenuOpen(false)} />}
       <aside className={menuOpen ? 'sidebar open' : 'sidebar'}>
-        <Link to="/" className="logo-mark">
-          <span>G</span>
-          <b>GroundFloor</b>
+        <Link to="/" className="logo-mark" aria-label="Open Floor home">
+          <span aria-hidden="true">O</span>
+          <b>Open Floor</b>
         </Link>
         <nav aria-label="Primary">
           {navItems.map(({ to, label, icon: Icon, end }) => (
@@ -74,7 +74,7 @@ export function AppShell({ children }: { children: ReactNode }) {
             <Menu size={18} />
           </button>
           <Link to="/" className="topbar-brand">
-            GroundFloor
+            Open Floor
           </Link>
           <div className="topbar-right">
             {demoMode && (
@@ -104,7 +104,7 @@ export function AppShell({ children }: { children: ReactNode }) {
 
 const footerColumns: { heading: string; links: [string, string][] }[] = [
   {
-    heading: 'GroundFloor',
+    heading: 'Open Floor',
     links: [
       ['/about', 'About'],
       ['/how-it-works', 'How It Works'],
@@ -147,7 +147,7 @@ function SiteFooter() {
         ))}
       </nav>
       <p className="footer-note">
-        GroundFloor is not affiliated with any company shown, does not provide investment advice, and does not verify
+        Open Floor is not affiliated with any company shown, does not provide investment advice, and does not verify
         share ownership. Management participation is voluntary and never guaranteed.
       </p>
     </footer>

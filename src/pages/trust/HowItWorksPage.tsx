@@ -5,8 +5,8 @@ const steps: [string, string][] = [
   ['Find a company', 'Browse the directory or search by name or ticker. If a company is missing, request it for review.'],
   ['Start or support a campaign', 'Any signed-in user can start a company’s campaign or add self-reported support to an existing one.'],
   ['Submit and rank questions', 'Shareholders write the questions they want answered and vote on each other’s. Votes rank the list.'],
-  ['GroundFloor prepares outreach', 'Once a campaign shows meaningful support, we assemble the top-ranked questions into a formal interview request.'],
-  ['We may contact Investor Relations', 'GroundFloor sends the request to the company’s Investor Relations team.'],
+  ['Open Floor prepares outreach', 'Once a campaign shows meaningful support, we assemble the top-ranked questions into a formal interview request.'],
+  ['We may contact Investor Relations', 'Open Floor sends the request to the company’s Investor Relations team.'],
   ['Management decides', 'Participation is entirely the company’s choice. They may accept, decline, ask for changes, or not respond.'],
   ['If management participates', 'The interview and its transcript are published on the campaign page for everyone.'],
   ['If management declines or does not respond', 'We say so on the campaign page, plainly. The campaign record — support and questions — stays public.'],
@@ -18,7 +18,7 @@ export function HowItWorksPage() {
       slug="how-it-works"
       path="/how-it-works"
       title="How It Works"
-      metaDescription="The real GroundFloor process, step by step: campaigns, question ranking, outreach, and what happens when management participates — or doesn't."
+      metaDescription="The real Open Floor process, step by step: campaigns, question ranking, outreach, and what happens when management participates — or doesn't."
       eyebrow="How It Works"
       heading="The process, step by step."
       intro="No hidden mechanics: this is exactly what happens between finding a company and (potentially) a published interview."
@@ -41,7 +41,7 @@ export function HowItWorksPage() {
           explicitly states otherwise. We ask for it honestly; we do not check brokerage accounts.
         </li>
         <li>
-          <b>Reaching the outreach target guarantees nothing.</b> It triggers GroundFloor preparing and sending a
+          <b>Reaching the outreach target guarantees nothing.</b> It triggers Open Floor preparing and sending a
           request. It does not guarantee the company will be contacted successfully, respond, or participate.
         </li>
         <li>

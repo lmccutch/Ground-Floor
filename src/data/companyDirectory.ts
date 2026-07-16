@@ -1,7 +1,7 @@
-// GroundFloor curated launch directory (Phase 1).
+// Open Floor curated launch directory (Phase 1).
 //
 // This is a hand-curated list of recognizable, real U.S.-listed operating
-// companies used as a launch directory while GroundFloor has no live provider
+// companies used as a launch directory while Open Floor has no live provider
 // integration. It is NOT a comprehensive or exhaustive screen of every
 // U.S.-listed company above any market-cap threshold — see docs/company-universe.md.
 //

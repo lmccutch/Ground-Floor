@@ -1,4 +1,4 @@
-# GroundFloor — Phase 1.
+# Open Floor — Phase 1.
 #
 # /companies (no slug) is the private "My companies" dashboard — disallowed.
 # /companies/<slug> is a public campaign page and must stay crawlable, hence

@@ -63,7 +63,7 @@ export function RequestCompanyPage() {
         </div>
         <span className="eyebrow">Already in the directory</span>
         <h1>We found this company.</h1>
-        <p>{matchedCompany.name} is already part of the GroundFloor directory — no need to submit a duplicate request.</p>
+        <p>{matchedCompany.name} is already part of the Open Floor directory — no need to submit a duplicate request.</p>
         <Link to={`/company/${matchedCompany.ticker}`} className="matched-company-card">
           <Monogram ticker={matchedCompany.ticker} accent={matchedCompany.accent} />
           <span>
@@ -159,7 +159,7 @@ export function RequestCompanyPage() {
         <button className="btn primary full" disabled={isSubmitting} type="submit">
           {isSubmitting ? 'Adding request…' : 'Request this company'} <ChevronRight size={15} />
         </button>
-        <p className="form-footnote">By submitting, you agree to the community guidelines. GroundFloor does not provide investment advice.</p>
+        <p className="form-footnote">By submitting, you agree to the community guidelines. Open Floor does not provide investment advice.</p>
       </form>
     </div>
   )

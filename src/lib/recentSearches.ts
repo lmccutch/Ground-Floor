@@ -16,7 +16,24 @@ function storageKey(): string {
   return `${getDataModeConfig().storageKey}-recent-searches`
 }
 
+// Pre-Open-Floor base storage keys, so recent searches survive the rebrand.
+const LEGACY_BASE_KEYS = ['groundfloor-mvp', 'grround-floor-mvp']
+
+// One-time migration: carry forward recent searches stored under a pre-rename key.
+function migrateLegacyRecentSearches(): void {
+  const key = storageKey()
+  if (getDataModeConfig().isTestMode || localStorage.getItem(key) !== null) return
+  for (const base of LEGACY_BASE_KEYS) {
+    const legacy = localStorage.getItem(`${base}-recent-searches`)
+    if (legacy !== null) {
+      localStorage.setItem(key, legacy)
+      return
+    }
+  }
+}
+
 export function getRecentSearches(): RecentSearch[] {
+  migrateLegacyRecentSearches()
   try {
     const parsed = JSON.parse(localStorage.getItem(storageKey()) || '[]') as RecentSearch[]
     return Array.isArray(parsed) ? parsed.filter(item => item && item.ticker && item.path) : []

@@ -55,7 +55,7 @@ export function DraftNotice() {
     <p className="draft-notice" role="note">
       <FileWarning size={15} aria-hidden="true" />
       <b>Draft — professional legal review required before commercial launch.</b> This document was prepared without
-      legal counsel and is published for transparency while GroundFloor is in pre-launch testing. It is not legal
+      legal counsel and is published for transparency while Open Floor is in pre-launch testing. It is not legal
       advice.
     </p>
   )

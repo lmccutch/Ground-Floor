@@ -1,7 +1,7 @@
 import { useEffect } from 'react'
 import { getSiteUrl } from './siteUrl'
 
-const BASE_TITLE = 'GroundFloor'
+const BASE_TITLE = 'Open Floor'
 
 /**
  * Per-route document metadata for an SPA: title, meta description, and a

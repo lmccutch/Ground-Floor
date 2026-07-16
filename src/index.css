@@ -21,11 +21,30 @@
   --green-soft: #e3efe7;
   --red: #a8432f;
   --red-soft: #f7e8e4;
+  --amber: #9a6b1f;
+  --amber-soft: #f6ecd7;
+  --info: #2f6f9e;
+  --info-soft: #e6eef5;
+
+  /* Brand accent (semantic aliases over the gold accent) */
+  --brand: var(--gold);
+  --brand-hover: var(--gold-deep);
+  --brand-active: #7c5f26;
+  --focus-ring: var(--gold);
 
   /* Type */
   --sans: 'DM Sans', 'Segoe UI', system-ui, sans-serif;
   --mono: 'DM Mono', ui-monospace, Consolas, monospace;
   --serif: 'Playfair Display', Georgia, serif;
+
+  /* Spacing scale */
+  --space-1: 4px;
+  --space-2: 8px;
+  --space-3: 12px;
+  --space-4: 16px;
+  --space-5: 24px;
+  --space-6: 32px;
+  --space-8: 48px;
 
   /* Shape */
   --radius-sm: 5px;
@@ -35,7 +54,21 @@
   --shadow-md: 0 8px 24px rgba(20, 37, 45, 0.1);
   --shadow-lg: 0 24px 60px rgba(20, 37, 45, 0.2);
 
+  /* Layout */
   --nav-width: 240px;
+  --content-width: 1200px;
+  --header-height: 60px;
+
+  /* Motion */
+  --transition-fast: 120ms;
+  --transition: 160ms;
+  --transition-slow: 220ms;
+
+  /* Layering */
+  --z-header: 20;
+  --z-sidebar: 30;
+  --z-backdrop: 40;
+  --z-modal: 100;
 
   color-scheme: light;
 }
@@ -109,11 +142,25 @@ a:focus-visible,
 input:focus-visible,
 textarea:focus-visible,
 select:focus-visible,
-summary:focus-visible {
-  outline: 2px solid var(--gold);
+summary:focus-visible,
+[tabindex]:focus-visible {
+  outline: 2px solid var(--focus-ring);
   outline-offset: 2px;
+  border-radius: 3px;
 }
 
 ::selection {
   background: var(--gold-soft);
+}
+
+/* Respect users who prefer reduced motion: keep state changes instant. */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
 }

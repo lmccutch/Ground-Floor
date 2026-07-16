@@ -138,7 +138,7 @@ describe('feedback (demo mode)', () => {
   it('accepts and stores feedback locally', async () => {
     const profile = await signedInUser()
     await submitFeedback({ category: 'Feature request', message: 'Add sector pages', pagePath: '/discover' }, profile.id)
-    const stored = JSON.parse(localStorage.getItem('groundfloor-mvp') || '{}') as { feedback?: unknown[] }
+    const stored = JSON.parse(localStorage.getItem('open-floor-mvp') || '{}') as { feedback?: unknown[] }
     expect(stored.feedback).toHaveLength(1)
   })
 })

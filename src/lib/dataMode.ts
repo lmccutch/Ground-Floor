@@ -70,7 +70,7 @@ export function resolveDataModeConfig(env: DataModeEnv): DataModeConfig {
     isDemoMode: mode === 'demo',
     isSupabaseMode: mode === 'supabase',
     isTestMode: mode === 'test',
-    storageKey: mode === 'test' ? 'groundfloor-mvp-test' : 'groundfloor-mvp',
+    storageKey: mode === 'test' ? 'open-floor-mvp-test' : 'open-floor-mvp',
   }
 }
 

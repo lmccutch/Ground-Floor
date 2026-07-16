@@ -7,7 +7,7 @@ export function VotingRulesPage() {
       slug="voting-rules"
       path="/voting-rules"
       title="Voting Rules"
-      metaDescription="How question voting works on GroundFloor: one vote per user, removable votes, ranking rules, and what vote counts do and don't represent."
+      metaDescription="How question voting works on Open Floor: one vote per user, removable votes, ranking rules, and what vote counts do and don't represent."
       eyebrow="Voting Rules"
       heading="How votes actually work."
       intro="Votes rank shareholder questions. Here is exactly what a vote is, what it counts for, and what it doesn't."
@@ -24,12 +24,12 @@ export function VotingRulesPage() {
       <ul>
         <li>Votes reflect <b>user support for a question</b>, not verified economic ownership. One person with one share and one person with ten thousand shares each get one vote per question.</li>
         <li>Vote counts are <b>not shareholder votes under corporate law</b>. They have no proxy, meeting, or legal significance whatsoever.</li>
-        <li>A top-ranked question is <b>not guaranteed an answer</b>. Management chooses what to address; GroundFloor presents the ranking, nothing more.</li>
+        <li>A top-ranked question is <b>not guaranteed an answer</b>. Management chooses what to address; Open Floor presents the ranking, nothing more.</li>
       </ul>
 
       <h2>Integrity</h2>
       <p>
-        GroundFloor may exclude or reverse activity that appears manipulated or fraudulent — vote rings, throwaway
+        Open Floor may exclude or reverse activity that appears manipulated or fraudulent — vote rings, throwaway
         accounts, coordinated brigading — and may restrict the accounts involved under the{' '}
         <Link to="/guidelines">Community Guidelines</Link>. We would rather show smaller honest numbers than larger
         gamed ones.

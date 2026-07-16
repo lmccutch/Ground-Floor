@@ -12,8 +12,8 @@ Every company page with a campaign shows a six-stage lifecycle
 
 1. Shareholders build support
 2. Shareholders submit and rank questions
-3. GroundFloor prepares outreach
-4. GroundFloor contacts Investor Relations
+3. Open Floor prepares outreach
+4. Open Floor contacts Investor Relations
 5. Management decides whether to participate
 6. Interview and transcript published
 
@@ -210,7 +210,7 @@ publicly anywhere.
 ## Homepage (2026-07-14)
 
 `src/pages/HomePage.tsx` — positioning: "Where shareholders decide what
-management answers next." Supporting copy: "GroundFloor brings individual
+management answers next." Supporting copy: "Open Floor brings individual
 shareholders together around public companies so they can submit, rank, and
 support the questions they want management to answer." Banned phrases
 (guaranteed access, official company campaign, verified shareholders, company
@@ -229,7 +229,7 @@ assertion that greps the full rendered page text.
 2. **The problem** — three short sentences on the institutional/individual
    information gap. No activist language.
 3. **How it works** — the real 6-step process (find → support/start →
-   submit & rank → GroundFloor prepares outreach → management may
+   submit & rank → Open Floor prepares outreach → management may
    participate → interview/transcript published if they do), linking to the
    full `/how-it-works` page.
 4. **Live participation** — real data only, reusing `getDiscoverHighlights()`

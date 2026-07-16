@@ -7,10 +7,10 @@ export function AboutPage() {
       slug="about"
       path="/about"
       title="About"
-      metaDescription="Why GroundFloor exists: closing the information-access gap between institutional and individual investors through coordinated shareholder questions."
-      eyebrow="About GroundFloor"
+      metaDescription="Why Open Floor exists: closing the information-access gap between institutional and individual investors through coordinated shareholder questions."
+      eyebrow="About Open Floor"
       heading="Why we're building this."
-      intro="GroundFloor helps individual shareholders combine their questions into one credible, public request for a management interview."
+      intro="Open Floor helps individual shareholders combine their questions into one credible, public request for a management interview."
     >
       <h2>The access gap</h2>
       <p>
@@ -24,7 +24,7 @@ export function AboutPage() {
       <p>
         A single retail shareholder emailing Investor Relations is easy to ignore. Hundreds of shareholders behind one
         clear, well-ranked set of questions are harder to ignore — and easier for a company to engage with, because the
-        work of collecting, deduplicating, and prioritising questions has already been done. GroundFloor exists to do
+        work of collecting, deduplicating, and prioritising questions has already been done. Open Floor exists to do
         that work.
       </p>
 
@@ -35,7 +35,7 @@ export function AboutPage() {
         answerable by that record.
       </p>
 
-      <h2>What GroundFloor does today</h2>
+      <h2>What Open Floor does today</h2>
       <ul>
         <li>A curated directory of roughly 225 U.S.-listed companies you can browse and search.</li>
         <li>Shareholder campaigns: anyone with an account can start one, support one, and follow its progress.</li>
@@ -46,7 +46,7 @@ export function AboutPage() {
         </li>
       </ul>
 
-      <h2>What GroundFloor does not do yet</h2>
+      <h2>What Open Floor does not do yet</h2>
       <ul>
         <li>We have not yet conducted or published a management interview.</li>
         <li>We do not verify share ownership — shareholder status is self-reported.</li>
@@ -55,9 +55,9 @@ export function AboutPage() {
         <li>We do not send email notifications yet; updates appear in the app.</li>
       </ul>
 
-      <h2>What GroundFloor is not</h2>
+      <h2>What Open Floor is not</h2>
       <p>
-        GroundFloor is not a broker, dealer, investment adviser, analyst, fiduciary, or proxy solicitor. We are not
+        Open Floor is not a broker, dealer, investment adviser, analyst, fiduciary, or proxy solicitor. We are not
         affiliated with, endorsed by, or approved by any company in the directory, and we do not represent shareholders
         in any legal sense. Nothing on this site is investment advice — see the{' '}
         <Link to="/disclaimer">Investment Disclaimer</Link>.

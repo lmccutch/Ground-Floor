@@ -28,7 +28,7 @@ export function withUtm(url: string, source: string, medium = 'share'): string {
 export function companyShareContent(company: { name: string; ticker: string }, url: string): ShareContent {
   return {
     url,
-    text: `I want to hear directly from ${company.ticker} management. Join the shareholder campaign for ${company.name} on GroundFloor — support the interview request and vote on the questions management should answer. Participation by management is voluntary.`,
+    text: `I want to hear directly from ${company.ticker} management. Join the shareholder campaign for ${company.name} on Open Floor — support the interview request and vote on the questions management should answer. Participation by management is voluntary.`,
     subject: `Shareholder campaign for ${company.name}`,
   }
 }
@@ -37,7 +37,7 @@ export function questionShareContent(question: { text: string }, company: { name
   const excerpt = question.text.length > 120 ? `${question.text.slice(0, 120)}…` : question.text
   return {
     url,
-    text: `A shareholder question for ${company.name} (${company.ticker}) management on GroundFloor: “${excerpt}” Vote if you want it answered.`,
+    text: `A shareholder question for ${company.name} (${company.ticker}) management on Open Floor: “${excerpt}” Vote if you want it answered.`,
     subject: `A shareholder question for ${company.name} management`,
   }
 }

@@ -7,10 +7,10 @@ export function TransparencyPage() {
       slug="transparency"
       path="/transparency"
       title="Transparency"
-      metaDescription="Exactly how GroundFloor works under the hood: what supporter counts mean, how ranking works, how outreach happens, interview handling, and conflicts of interest."
+      metaDescription="Exactly how Open Floor works under the hood: what supporter counts mean, how ranking works, how outreach happens, interview handling, and conflicts of interest."
       eyebrow="Transparency"
       heading="What every number on this site means."
-      intro="If a claim on GroundFloor isn't explained on this page, tell us and we'll add it. Where something describes a future process, it is labelled as intended policy rather than current functionality."
+      intro="If a claim on Open Floor isn't explained on this page, tell us and we'll add it. Where something describes a future process, it is labelled as intended policy rather than current functionality."
       extraEvent="transparency_viewed"
     >
       <h2>Campaign creation</h2>
@@ -36,9 +36,9 @@ export function TransparencyPage() {
 
       <h2>Outreach</h2>
       <ul>
-        <li><b>When:</b> the default outreach threshold is 100 supporters. Reaching it triggers GroundFloor preparing a formal request; GroundFloor may also prepare outreach earlier where support is clearly meaningful.</li>
+        <li><b>When:</b> the default outreach threshold is 100 supporters. Reaching it triggers Open Floor preparing a formal request; Open Floor may also prepare outreach earlier where support is clearly meaningful.</li>
         <li><b>What we share with the company:</b> the top-ranked questions, aggregate campaign numbers (supporters, self-reported shareholder count, vote totals), and nothing personal — never individual identities, emails, or position information.</li>
-        <li><b>Voluntary:</b> management participation is entirely the company's decision. An outreach threshold obligates GroundFloor to act; it obligates the company to nothing.</li>
+        <li><b>Voluntary:</b> management participation is entirely the company's decision. An outreach threshold obligates Open Floor to act; it obligates the company to nothing.</li>
         <li><b>No paid priority:</b> companies cannot pay to reorder questions, remove questions, or influence which questions are sent. Ranking comes from user votes.</li>
       </ul>
 
@@ -54,8 +54,8 @@ export function TransparencyPage() {
 
       <h2>Conflicts of interest</h2>
       <ul>
-        <li><b>Founder and employee holdings:</b> people who build GroundFloor may personally own shares of companies in the directory. Holdings in a company will be disclosed on that company's campaign page before any interview with it is published. <em>(Intended policy — no interviews exist yet; no such disclosure has yet been necessary.)</em></li>
-        <li><b>Issuer relationships, sponsorships, and paid promotion:</b> there are none today — no company has paid GroundFloor anything, sponsored anything, or been promised anything. If any paid relationship ever exists, it will be disclosed on this page and on every affected campaign page.</li>
+        <li><b>Founder and employee holdings:</b> people who build Open Floor may personally own shares of companies in the directory. Holdings in a company will be disclosed on that company's campaign page before any interview with it is published. <em>(Intended policy — no interviews exist yet; no such disclosure has yet been necessary.)</em></li>
+        <li><b>Issuer relationships, sponsorships, and paid promotion:</b> there are none today — no company has paid Open Floor anything, sponsored anything, or been promised anything. If any paid relationship ever exists, it will be disclosed on this page and on every affected campaign page.</li>
         <li><b>Referral and affiliate arrangements:</b> none exist today. Any future arrangement will be disclosed here.</li>
         <li><b>Editorial independence:</b> payment can never determine question ranking, suppress criticism, or decide which questions reach management. If a company conditions participation on removing questions, the campaign page will say so.</li>
       </ul>
@@ -64,7 +64,7 @@ export function TransparencyPage() {
       <ul>
         <li>If management declines, the campaign status says “Management declined” and the lifecycle shows it plainly — the support and question record stays public.</li>
         <li>If management doesn't respond, the campaign remains at “Management contacted” — silence is shown as silence, never dressed up as progress.</li>
-        <li>GroundFloor will never imply participation, scheduling, or interest that has not actually happened. Stage progress on campaign pages is driven only by recorded status changes.</li>
+        <li>Open Floor will never imply participation, scheduling, or interest that has not actually happened. Stage progress on campaign pages is driven only by recorded status changes.</li>
       </ul>
     </TrustPage>
   )

@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest'
 import { companyShareContent, questionShareContent, shareHref, withUtm } from './share'
 
 const company = { name: 'Datadog, Inc.', ticker: 'DDOG' }
-const url = 'https://groundfloor.example/company/DDOG'
+const url = 'https://openfloor.example/company/DDOG'
 
 describe('withUtm', () => {
   it('tags the url with source and medium', () => {

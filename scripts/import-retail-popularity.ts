@@ -26,7 +26,7 @@ import { parseRetailCsv, resolveRetailRows, type ResolvedRetailRecord } from '..
 const __dirname = dirname(fileURLToPath(import.meta.url))
 const repoRoot = join(__dirname, '..')
 
-const DEFAULT_CSV = 'groundfloor_popular_retail_stocks_fintel_2026-07-15.csv'
+const DEFAULT_CSV = 'open_floor_popular_retail_stocks_fintel_2026-07-15.csv'
 
 function sqlString(value: string): string {
   return `'${value.replace(/'/g, "''")}'`

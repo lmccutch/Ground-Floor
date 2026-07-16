@@ -11,7 +11,7 @@ titles, meta descriptions, and canonical URLs (`src/lib/meta.ts`):
 
 | Route | Page | Notes |
 |---|---|---|
-| `/about` | About | What GroundFloor is and, explicitly, what it is not. |
+| `/about` | About | What Open Floor is and, explicitly, what it is not. |
 | `/how-it-works` | How It Works | The real 8-step process, including decline/non-response handling. |
 | `/faq` | FAQ | 21 questions; features that don't exist are stated plainly as not existing. |
 | `/guidelines` | Community Guidelines | Full prohibited-content list; MNPI section; enforcement rules. |
@@ -29,7 +29,7 @@ than a separate route (permitted by the requirements; keeps the footer sane).
 ## Contact method
 
 `src/lib/contact.ts`: the public address comes from `VITE_CONTACT_EMAIL`,
-falling back to `contact@groundfloor.example` — an RFC 2606 reserved domain
+falling back to `contact@openfloor.example` — an RFC 2606 reserved domain
 that is unmistakably a placeholder (and flagged as such on the Contact page
 when active). Mailto links carry typed subjects (general, IR, press,
 legal/privacy, moderation appeal, security, account deletion, data access) so
@@ -53,7 +53,7 @@ Warnings appear in four places: the Community Guidelines (dedicated section),
 the question form (visible `mnpi-warning` note above the submit button, linking
 to the guidelines), the Transparency page, and the Terms. The consistent
 message: don't post it, it will be removed on suspicion, use legal/compliance
-channels, and GroundFloor does not advise on materiality.
+channels, and Open Floor does not advise on materiality.
 
 ## Moderation operations (deliberately minimal)
 

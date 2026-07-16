@@ -126,7 +126,7 @@ export function AuthModal({ action, onClose }: { action: string; onClose: () => 
     <Modal onClose={onClose}>
       {profile ? (
         <form onSubmit={finishProfile}>
-          <span className="eyebrow">Welcome to GroundFloor</span>
+          <span className="eyebrow">Welcome to Open Floor</span>
           <h2>One quick profile detail.</h2>
           <p className="modal-copy">This is how your questions and support appear to other shareholders.</p>
           <label className="field">

@@ -12,7 +12,7 @@ const howItWorks: [string, string][] = [
   ['Find a company', 'Search the directory or browse by sector.'],
   ['Support or start a campaign', 'Add your self-reported shareholder status to an existing campaign, or start one.'],
   ['Submit and rank questions', 'Write the questions you want answered. Votes decide which rise to the top.'],
-  ['GroundFloor prepares outreach', 'Once a campaign shows meaningful support, we assemble the top-ranked questions.'],
+  ['Open Floor prepares outreach', 'Once a campaign shows meaningful support, we assemble the top-ranked questions.'],
   ['Management may choose to participate', 'Participation is voluntary. It is never guaranteed.'],
   ['Interview and transcript published', 'If management participates, the full record is public.'],
 ]
@@ -44,7 +44,7 @@ export function HomePage() {
   const navigate = useNavigate()
   usePageMeta(
     'Where shareholders decide what management answers next',
-    "GroundFloor brings individual shareholders together around public companies to submit, rank, and support the questions they want management to answer.",
+    "Open Floor brings individual shareholders together around public companies to submit, rank, and support the questions they want management to answer.",
     '/',
   )
 
@@ -92,7 +92,7 @@ export function HomePage() {
         <div className="hero-copy">
           <h1>Where shareholders decide what management answers next.</h1>
           <p>
-            GroundFloor brings individual shareholders together around public companies so they can submit, rank, and
+            Open Floor brings individual shareholders together around public companies so they can submit, rank, and
             support the questions they want management to answer.
           </p>
           <div className="hero-search">
@@ -121,7 +121,7 @@ export function HomePage() {
         <div className="problem-grid">
           <p>Institutional investors regularly get scheduled calls with company management.</p>
           <p>Individual shareholders are left with earnings calls, filings, and fragmented online discussion.</p>
-          <p className="problem-resolution">GroundFloor helps shareholders coordinate the questions they want answered.</p>
+          <p className="problem-resolution">Open Floor helps shareholders coordinate the questions they want answered.</p>
         </div>
       </section>
 
@@ -227,7 +227,7 @@ export function HomePage() {
         <div className="why-grid">
           <p>One investor asking a question alone has limited leverage — it's easy for a company to overlook.</p>
           <p>A concentrated group of shareholders behind the same clear questions creates a harder signal to ignore.</p>
-          <p>GroundFloor organizes that signal into a ranked list management can respond to publicly.</p>
+          <p>Open Floor organizes that signal into a ranked list management can respond to publicly.</p>
         </div>
       </section>
 

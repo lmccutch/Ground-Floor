@@ -7,7 +7,7 @@ anything touches production. Nothing here modifies your real project.
 ## 1. Create or select the scratch project
 
 - Go to https://supabase.com/dashboard → **New project**.
-- Name it something unmistakably disposable, e.g. `groundfloor-scratch`.
+- Name it something unmistakably disposable, e.g. `open-floor-scratch`.
 - Any region/tier is fine; note the database password you set.
 - Do **not** reuse the existing production project — the point is a clean
   database you can throw away.
@@ -78,7 +78,7 @@ Leave `VITE_POSTHOG_KEY` unset so test activity doesn't hit analytics.
 Also set **Authentication → URL Configuration → Site URL** in the scratch
 dashboard to `http://localhost:5173` so magic links redirect locally.
 
-## 7. Run GroundFloor in Supabase mode
+## 7. Run Open Floor in Supabase mode
 
 ```bash
 npm run dev

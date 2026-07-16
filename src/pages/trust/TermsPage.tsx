@@ -9,7 +9,7 @@ export function TermsPage() {
       slug="terms"
       path="/terms"
       title="Terms of Use"
-      metaDescription="Draft GroundFloor Terms of Use: acceptable use, user content, moderation rights, disclaimers, and limitations."
+      metaDescription="Draft Open Floor Terms of Use: acceptable use, user content, moderation rights, disclaimers, and limitations."
       eyebrow="Terms of Use"
       heading="The deal, in plain English."
       intro="Last updated: July 2026."
@@ -23,11 +23,11 @@ export function TermsPage() {
         account per person.
       </p>
 
-      <h2>2. What GroundFloor is — and is not</h2>
+      <h2>2. What Open Floor is — and is not</h2>
       <ul>
-        <li>GroundFloor is a platform for coordinating shareholder questions and requesting management interviews.</li>
-        <li>GroundFloor is <b>not affiliated with any public company</b> featured on it, and nothing here is company-approved.</li>
-        <li>Nothing on GroundFloor is <b>investment advice</b> — see the <Link to="/disclaimer">Investment Disclaimer</Link>, which is part of these terms.</li>
+        <li>Open Floor is a platform for coordinating shareholder questions and requesting management interviews.</li>
+        <li>Open Floor is <b>not affiliated with any public company</b> featured on it, and nothing here is company-approved.</li>
+        <li>Nothing on Open Floor is <b>investment advice</b> — see the <Link to="/disclaimer">Investment Disclaimer</Link>, which is part of these terms.</li>
         <li><b>No guarantee of management participation:</b> outreach thresholds trigger a request from us, nothing from the company.</li>
         <li><b>No guarantee of accuracy:</b> content is largely user-submitted and shareholder status is self-reported. Do not rely on it without your own verification.</li>
       </ul>
@@ -43,21 +43,21 @@ export function TermsPage() {
       <h2>4. Your content</h2>
       <ul>
         <li>You keep ownership of what you submit.</li>
-        <li>You grant GroundFloor a worldwide, non-exclusive, royalty-free licence to host, display, reproduce, excerpt, and distribute your submitted content in connection with operating and promoting the service — including presenting ranked questions to companies and publishing campaign records.</li>
+        <li>You grant Open Floor a worldwide, non-exclusive, royalty-free licence to host, display, reproduce, excerpt, and distribute your submitted content in connection with operating and promoting the service — including presenting ranked questions to companies and publishing campaign records.</li>
         <li>You confirm you have the right to post what you post.</li>
         <li>We may moderate — remove, edit for clarity, merge, archive, or restrict — content as described in the <Link to="/moderation">Moderation Policy</Link>.</li>
       </ul>
 
       <h2>5. Intellectual property</h2>
       <p>
-        The GroundFloor name, site design, and software are ours. Company names and tickers belong to their owners and
+        The Open Floor name, site design, and software are ours. Company names and tickers belong to their owners and
         appear for identification only — their appearance implies no relationship.
       </p>
 
       <h2>6. Suspension and termination</h2>
       <p>
         We may suspend or remove accounts that violate these terms or the guidelines, and may preserve related records
-        as evidence where necessary. You may stop using GroundFloor at any time and request account deletion as
+        as evidence where necessary. You may stop using Open Floor at any time and request account deletion as
         described in the <Link to="/privacy">Privacy Policy</Link>.
       </p>
 
@@ -70,7 +70,7 @@ export function TermsPage() {
 
       <h2>8. Limitation of liability</h2>
       <p>
-        To the maximum extent permitted by law, GroundFloor and its operators are not liable for indirect, incidental,
+        To the maximum extent permitted by law, Open Floor and its operators are not liable for indirect, incidental,
         special, consequential, or exemplary damages — including lost profits or investment losses — arising from your
         use of the service or reliance on its content. Where liability cannot be excluded, it is limited to the
         greater of the amount you paid us in the past twelve months (currently zero) or the minimum permitted by law.
@@ -78,7 +78,7 @@ export function TermsPage() {
 
       <h2>9. Indemnity</h2>
       <p>
-        You agree to indemnify GroundFloor against claims arising from content you submit or your violation of these
+        You agree to indemnify Open Floor against claims arising from content you submit or your violation of these
         terms, to the extent permitted by law.
       </p>
 

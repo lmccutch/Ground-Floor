@@ -1,6 +1,6 @@
-﻿# GroundFloor MVP
+﻿# Open Floor MVP
 
-GroundFloor is where shareholders decide what management answers next: individual shareholders combine their questions for a public company into one ranked, public request for a management interview. Management participation is voluntary and campaign metrics are shown only when backed by stored data.
+Open Floor is where shareholders decide what management answers next: individual shareholders combine their questions for a public company into one ranked, public request for a management interview. Management participation is voluntary and campaign metrics are shown only when backed by stored data.
 
 ## Run locally
 
@@ -15,9 +15,9 @@ By default in development (when `VITE_DATA_MODE` is unset), the app runs in `dem
 
 Set in `.env.local` (see `.env.example`). Supported values:
 
-- **`demo`** (default in development) — Uses the curated ~225-company directory in `src/data/companyDirectory.ts`. Every campaign, supporter, follower, question, vote, and notification starts at zero; nothing is fabricated. Interactions you create locally (starting a campaign, supporting it, submitting/voting on questions) persist in this browser's `localStorage` under the `groundfloor-mvp` key.
+- **`demo`** (default in development) — Uses the curated ~225-company directory in `src/data/companyDirectory.ts`. Every campaign, supporter, follower, question, vote, and notification starts at zero; nothing is fabricated. Interactions you create locally (starting a campaign, supporting it, submitting/voting on questions) persist in this browser's `localStorage` under the `open-floor-mvp` key (data stored under the pre-rebrand `groundfloor-mvp`/`grround-floor-mvp` keys is migrated forward automatically).
 - **`supabase`** — Uses only the Supabase database. Requires both `VITE_SUPABASE_URL` and `VITE_SUPABASE_ANON_KEY`; the app fails with a clear configuration error at startup if either is missing. Once running, a failed Supabase query throws and is shown as a load error — it never silently falls back to demo data. In local development, that error includes a hint that a migration or the company-directory bootstrap may not be applied yet.
-- **`test`** — Same demo-style local behavior as `demo` mode (no backend calls, deterministic curated directory), but stored under a separate `groundfloor-mvp-test` localStorage key so automated/test runs never read or pollute a developer's real demo-mode data.
+- **`test`** — Same demo-style local behavior as `demo` mode (no backend calls, deterministic curated directory), but stored under a separate `open-floor-mvp-test` localStorage key so automated/test runs never read or pollute a developer's real demo-mode data.
 
 **Production builds require an explicit `VITE_DATA_MODE`.** There is no default outside of development — an unset or invalid value fails clearly at startup rather than silently choosing a mode.
 
@@ -42,7 +42,7 @@ These migrations were written and reviewed carefully but have not been applied t
 
 Populate the company directory by running `npm run bootstrap:generate`, which reads `src/data/companyDirectory.ts` and writes an idempotent SQL file to `supabase/seed/`. Apply that file to your Supabase project yourself (CLI, dashboard SQL editor, or `psql`) — it is never run automatically, and it only ever creates companies/securities/aliases, never campaigns, questions, or users.
 
-Populate the retail-popularity ranking by running `npm run retail:import`, which reads the curated CSV (`groundfloor_popular_retail_stocks_fintel_2026-07-15.csv`) and writes the generated demo dataset (`src/data/retailPopularity.ts`) plus an idempotent SQL seed to `supabase/seed/`. Apply that seed as an admin/service role — the public app only ever reads featured rankings, and never the underlying panel figures. See `docs/popular-with-retail.md`.
+Populate the retail-popularity ranking by running `npm run retail:import`, which reads the curated CSV (`open_floor_popular_retail_stocks_fintel_2026-07-15.csv`) and writes the generated demo dataset (`src/data/retailPopularity.ts`) plus an idempotent SQL seed to `supabase/seed/`. Apply that seed as an admin/service role — the public app only ever reads featured rankings, and never the underlying panel figures. See `docs/popular-with-retail.md`.
 
 Never ship service-role or provider API credentials to the browser.
 
@@ -108,4 +108,4 @@ Before accepting production users, publish Terms of Use, Privacy Policy, communi
 
 ## Company directory (Phase 1)
 
-GroundFloor ships with a curated launch directory of ~225 recognizable U.S.-listed companies — not a comprehensive, provider-verified screen of every eligible company. See `docs/company-universe.md` for the full architecture, what's built, and what's explicitly deferred to a future phase.
+Open Floor ships with a curated launch directory of ~225 recognizable U.S.-listed companies — not a comprehensive, provider-verified screen of every eligible company. See `docs/company-universe.md` for the full architecture, what's built, and what's explicitly deferred to a future phase.

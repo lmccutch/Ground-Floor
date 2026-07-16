@@ -62,7 +62,7 @@ export function CampaignLifecycle({ campaign, companyTicker }: { campaign: Campa
 
       <div className="progress-panel">
         <div>
-          <b>At {campaign.outreachTarget} supporters, GroundFloor makes a formal interview request to management.</b>
+          <b>At {campaign.outreachTarget} supporters, Open Floor makes a formal interview request to management.</b>
           <span>Reaching the support target does not guarantee an interview — participation is management’s decision.</span>
         </div>
         <div className="progress-meter">

@@ -1,6 +1,6 @@
 # Company universe (Phase 1)
 
-This document describes what actually exists today. GroundFloor's company
+This document describes what actually exists today. Open Floor's company
 directory is currently a **curated launch directory of U.S.-listed public
 companies** — a hand-picked, hand-verified set of roughly 225 recognizable
 companies. It is **not** a comprehensive or exhaustive screen of every

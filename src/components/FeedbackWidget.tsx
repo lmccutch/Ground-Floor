@@ -70,7 +70,7 @@ export function FeedbackWidget() {
                 <Check size={22} />
               </div>
               <h2>Thanks — got it.</h2>
-              <p>Your feedback goes straight to the team building GroundFloor.</p>
+              <p>Your feedback goes straight to the team building Open Floor.</p>
               <button className="btn primary" onClick={() => setOpen(false)}>
                 Done
               </button>

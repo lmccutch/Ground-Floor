@@ -30,7 +30,7 @@ describe('recent searches', () => {
   })
 
   it('survives corrupted storage', () => {
-    localStorage.setItem('groundfloor-mvp-recent-searches', '{not json')
+    localStorage.setItem('open-floor-mvp-recent-searches', '{not json')
     expect(getRecentSearches()).toEqual([])
   })
 })

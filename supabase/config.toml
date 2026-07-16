@@ -1,5 +1,5 @@
-# Supabase CLI configuration for the GroundFloor project.
-project_id = "groundfloor"
+# Supabase CLI configuration for the Open Floor project.
+project_id = "open-floor"
 
 [db.seed]
 # Automatic seeding is disabled: nothing in supabase/seed/ runs on `db reset`.

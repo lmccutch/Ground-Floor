@@ -5,7 +5,7 @@ import { REPORT_REASONS } from './reporting'
 describe('contact addressing', () => {
   it('falls back to an unmistakable placeholder, never a guessed real domain', () => {
     // Tests run without VITE_CONTACT_EMAIL, so the fallback applies.
-    expect(CONTACT_EMAIL).toBe('contact@groundfloor.example')
+    expect(CONTACT_EMAIL).toBe('contact@openfloor.example')
     expect(CONTACT_EMAIL_IS_PLACEHOLDER).toBe(true)
   })
 
