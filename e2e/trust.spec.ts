@@ -154,10 +154,12 @@ test.describe('MNPI warning and report categories', () => {
 test.describe('SEO files', () => {
   test('sitemap lists all public trust routes and no private routes', async ({ request }) => {
     const sitemap = await (await request.get('/sitemap.xml')).text()
-    for (const route of trustRoutes) expect(sitemap).toContain(`REPLACE-WITH-PRODUCTION-DOMAIN${route.path}<`)
+    for (const route of trustRoutes) expect(sitemap).toContain(`https://www.open-floor.ca${route.path}<`)
     expect(sitemap).not.toContain('/companies<')
     expect(sitemap).not.toContain('/request-company<')
-    expect(sitemap).toContain('REPLACE-WITH-PRODUCTION-DOMAIN')
+    // Uses the canonical production host — never the unreplaced placeholder.
+    expect(sitemap).toContain('https://www.open-floor.ca/')
+    expect(sitemap).not.toContain('REPLACE-WITH-PRODUCTION-DOMAIN')
   })
 
   test('robots.txt keeps the private dashboard excluded and campaign slugs crawlable', async ({ request }) => {

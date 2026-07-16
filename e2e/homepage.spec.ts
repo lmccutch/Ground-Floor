@@ -20,7 +20,7 @@ const bannedClaims = [
 test.describe('Hero', () => {
   test('states what/why/how within the hero, with a visible trust note', async ({ page }) => {
     await page.goto('/')
-    await expect(page.locator('.hero h1')).toHaveText('Where shareholders decide what management answers next.')
+    await expect(page.locator('.hero h1')).toHaveText('Where shareholders decide what management should answer next.')
     await expect(page.locator('.hero-copy > p').first()).toContainText('submit, rank, and support')
     await expect(page.locator('.hero-trust-note')).toContainText('Management participation is voluntary and never guaranteed.')
     // No metrics/cards/charts crammed into the hero itself.

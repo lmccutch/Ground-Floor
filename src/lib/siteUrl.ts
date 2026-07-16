@@ -18,21 +18,40 @@ export class SiteUrlConfigError extends Error {
   }
 }
 
-/**
- * True only for a usable absolute http(s) URL. Rejects empty values and — the
- * crux of the production bug — the literal string "VITE_SITE_URL" that an
- * env-var name accidentally set as its own value produces.
- */
-export function isValidSiteUrl(value: string | undefined | null): value is string {
-  if (!value) return false
-  const trimmed = value.trim()
-  if (trimmed === '' || trimmed === LITERAL_ENV_NAME) return false
+function isHttpUrl(value: string): boolean {
   try {
-    const url = new URL(trimmed)
+    const url = new URL(value)
     return url.protocol === 'http:' || url.protocol === 'https:'
   } catch {
     return false
   }
+}
+
+/**
+ * Recovers the intended URL from a configured value. Handles a real production
+ * misconfiguration where the Vercel env-var *value* accidentally includes the
+ * variable name, e.g. "VITE_SITE_URL=https://www.open-floor.ca" — a leading
+ * `IDENT=` prefix is stripped when the remainder is a valid http(s) URL.
+ * Otherwise returns the trimmed value unchanged.
+ */
+function cleanConfiguredValue(value: string): string {
+  const trimmed = value.trim()
+  const prefixed = trimmed.match(/^[A-Za-z_][A-Za-z0-9_]*=(.+)$/)
+  if (prefixed && isHttpUrl(prefixed[1].trim())) return prefixed[1].trim()
+  return trimmed
+}
+
+/**
+ * True only for a usable absolute http(s) URL. Rejects empty values and — the
+ * crux of the production bug — the literal string "VITE_SITE_URL". Also accepts a
+ * value that merely wraps a valid URL behind an accidental `NAME=` prefix (see
+ * cleanConfiguredValue).
+ */
+export function isValidSiteUrl(value: string | undefined | null): value is string {
+  if (!value) return false
+  const cleaned = cleanConfiguredValue(value)
+  if (cleaned === '' || cleaned === LITERAL_ENV_NAME) return false
+  return isHttpUrl(cleaned)
 }
 
 /** Removes trailing slashes so `${siteUrl}/path` never yields a double slash. */
@@ -43,11 +62,13 @@ function stripTrailingSlashes(url: string): string {
 /**
  * Pure resolver, kept separate from the env/window-reading getSiteUrl() below so
  * the logic can be unit-tested against arbitrary inputs. A valid configured URL
- * always wins; otherwise the runtime origin is used. The result never contains a
- * trailing slash and is never the literal "VITE_SITE_URL".
+ * always wins (after recovering it from a possible `NAME=` prefix); otherwise the
+ * runtime origin is used. The result never contains a trailing slash and is never
+ * the literal "VITE_SITE_URL".
  */
 export function resolveSiteUrl(configured: string | undefined | null, origin: string | undefined | null): string {
-  const configuredValid = isValidSiteUrl(configured) ? configured.trim() : undefined
+  const cleaned = typeof configured === 'string' ? cleanConfiguredValue(configured) : ''
+  const configuredValid = cleaned !== '' && cleaned !== LITERAL_ENV_NAME && isHttpUrl(cleaned) ? cleaned : undefined
   return stripTrailingSlashes(configuredValid || origin || '')
 }
 
@@ -80,8 +101,8 @@ export function assertSiteUrlConfig(): void {
 
   const message =
     `VITE_SITE_URL is missing or invalid (received ${JSON.stringify(configured ?? null)}). ` +
-    `Set it to the production origin (e.g. https://open-floor.ca) in the Vercel environment — ` +
-    `it is used verbatim as the auth magic-link redirect. ` +
+    `Set it to the production origin (e.g. https://www.open-floor.ca), value only — no "VITE_SITE_URL=" prefix — ` +
+    `in the Vercel environment; it is used verbatim as the auth magic-link redirect. ` +
     (origin ? `Falling back to ${origin} for now.` : 'No runtime origin is available to fall back to.')
 
   console.error(`[siteUrl] ${message}`)

@@ -43,7 +43,7 @@ function mergeHighlights(highlights: DiscoverHighlights, limit: number): Company
 export function HomePage() {
   const navigate = useNavigate()
   usePageMeta(
-    'Where shareholders decide what management answers next',
+    'Where shareholders decide what management should answer next',
     "Open Floor brings individual shareholders together around public companies to submit, rank, and support the questions they want management to answer.",
     '/',
   )
@@ -90,7 +90,7 @@ export function HomePage() {
       {/* 1. Hero — answers what/why/how immediately, no metrics or cards. */}
       <section className="hero">
         <div className="hero-copy">
-          <h1>Where shareholders decide what management answers next.</h1>
+          <h1>Where shareholders decide what management should answer next.</h1>
           <p>
             Open Floor brings individual shareholders together around public companies so they can submit, rank, and
             support the questions they want management to answer.

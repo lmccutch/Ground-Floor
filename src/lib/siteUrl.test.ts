@@ -64,6 +64,21 @@ describe('resolveSiteUrl (pure)', () => {
     expect(resolveSiteUrl('VITE_SITE_URL', PROD)).toBe(PROD)
   })
 
+  it('recovers the URL when the env value includes the variable name (real prod misconfig)', () => {
+    // Observed in production: VITE_SITE_URL was set to "VITE_SITE_URL=https://www.open-floor.ca".
+    expect(resolveSiteUrl('VITE_SITE_URL=https://www.open-floor.ca', LOCAL)).toBe('https://www.open-floor.ca')
+    expect(resolveSiteUrl('VITE_SITE_URL=https://www.open-floor.ca/', LOCAL)).toBe('https://www.open-floor.ca')
+    expect(isValidSiteUrl('VITE_SITE_URL=https://www.open-floor.ca')).toBe(true)
+  })
+
+  it('does not treat a bare literal or a non-URL suffix as valid', () => {
+    // No "=" → still the guarded literal, falls back to origin.
+    expect(resolveSiteUrl('VITE_SITE_URL', PROD)).toBe(PROD)
+    // "NAME=notaurl" → remainder is not a URL, so it is not accepted.
+    expect(isValidSiteUrl('VITE_SITE_URL=not-a-url')).toBe(false)
+    expect(resolveSiteUrl('VITE_SITE_URL=not-a-url', PROD)).toBe(PROD)
+  })
+
   it('a resolved URL joined with a route never produces a double slash', () => {
     const base = resolveSiteUrl('https://open-floor.ca/', LOCAL)
     expect(`${base}/reset-password`).toBe('https://open-floor.ca/reset-password')

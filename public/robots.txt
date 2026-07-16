@@ -1,4 +1,4 @@
-# Open Floor — Phase 1.
+# Open Floor.
 #
 # /companies (no slug) is the private "My companies" dashboard — disallowed.
 # /companies/<slug> is a public campaign page and must stay crawlable, hence
@@ -12,5 +12,4 @@ Allow: /
 Disallow: /companies$
 Allow: /companies/
 
-# REPLACE-WITH-PRODUCTION-DOMAIN before deploying — see docs/production-deployment.md.
-Sitemap: https://REPLACE-WITH-PRODUCTION-DOMAIN/sitemap.xml
+Sitemap: https://www.open-floor.ca/sitemap.xml
