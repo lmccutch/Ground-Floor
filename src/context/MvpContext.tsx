@@ -9,6 +9,7 @@ import {
   type Profile,
 } from '../lib/api'
 import { supabase } from '../lib/supabase'
+import { rememberEmail } from '../lib/authClient'
 import { AuthModal } from '../components/AuthModal'
 import { MvpContext, type MvpContextValue } from './MvpContextValue'
 
@@ -42,6 +43,13 @@ export function MvpProvider({ children }: { children: ReactNode }) {
     if (!loading && profile && !profile.complete) setAuthAction('finish setting up your profile')
   }, [loading, profile])
 
+  // Remember the email of any established authenticated session on this device,
+  // so a returning user (including after logout) sees it prefilled. This stores
+  // only a normalized email for convenience — never a token or proof of identity.
+  useEffect(() => {
+    if (profile?.email) rememberEmail(profile.email)
+  }, [profile?.email])
+
   const value = useMemo<MvpContextValue>(
     () => ({
       profile,
@@ -49,6 +57,8 @@ export function MvpProvider({ children }: { children: ReactNode }) {
       demoMode: !supabase,
       signIn: async email => {
         const next = await signInWithMagicLink(email)
+        // A successful request (link sent, or demo auto-auth) — remember the email.
+        rememberEmail(email)
         track('magic_link_requested', { demo: !supabase })
         if (next) {
           setProfile(next)

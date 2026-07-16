@@ -1,6 +1,7 @@
 import { companyDirectory, type DirectoryCompany, type DirectorySecurity } from '../data/companyDirectory'
 import { retailPopularity, retailPopularityMeta, type RetailPopularityMeta } from '../data/retailPopularity'
 import { buildCompanySlug, normalizeName, normalizeSymbol } from './companyIdentity'
+import { AuthRequestError } from './authClient'
 import { getSiteUrl } from './siteUrl'
 import { getDataModeConfig } from './dataMode'
 import { supabase } from './supabase'
@@ -1276,7 +1277,15 @@ export async function signInWithMagicLink(email: string): Promise<Profile | null
     // /auth/callback route exists — the link returns to the site root, where
     // supabase-js detects the session in the URL and getSessionProfile() reads it.
     const { error } = await supabase.auth.signInWithOtp({ email, options: { emailRedirectTo: getSiteUrl() } })
-    if (error) throw new Error(error.message)
+    // Preserve the Supabase status/code so the UI can detect rate limits (429 /
+    // over_email_send_rate_limit) and show a specific, actionable message rather
+    // than a generic failure.
+    if (error) {
+      throw new AuthRequestError(error.message, {
+        status: (error as { status?: number }).status,
+        code: (error as { code?: string }).code,
+      })
+    }
     return null
   }
   const store = readLocal()

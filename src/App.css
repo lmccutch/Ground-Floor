@@ -511,6 +511,22 @@ select.text-input {
   line-height: 1.5;
 }
 
+.returning-note {
+  margin: 4px 0 14px;
+  padding: 10px 12px;
+  background: var(--wash, rgba(0, 0, 0, 0.03));
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  color: var(--muted);
+  font-size: 12.5px;
+  line-height: 1.5;
+}
+
+.returning-note .returning-title {
+  color: var(--ink);
+  font-weight: 600;
+}
+
 .privacy-note {
   display: flex;
   align-items: center;
