@@ -839,16 +839,41 @@ select.text-input {
 }
 
 .hero-trust-note {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  margin-top: 20px;
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  max-width: 640px;
+  margin: 20px auto 0;
   color: var(--muted);
   font-size: 12.5px;
+  line-height: 1.55;
 }
 
 .hero-trust-note svg {
+  flex: 0 0 auto;
+  margin-top: 2px;
   color: var(--gold-deep);
+}
+
+/* Live participation: launch state — purposeful, not a dashboard error card. */
+.live-launch {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  border-top: 1px solid var(--line);
+  padding-top: 22px;
+}
+
+.live-launch h3 {
+  font-size: 17px;
+  margin-bottom: 4px;
+}
+
+.live-launch p {
+  color: var(--muted);
+  font-size: 13.5px;
 }
 
 .progress-bar {
@@ -916,22 +941,47 @@ select.text-input {
   padding-top: 56px;
 }
 
-.problem-grid {
+/* Access-gap contrast: an editorial 3-part progression, not three feature cards. */
+.problem-contrast {
   display: grid;
-  grid-template-columns: repeat(3, 1fr);
-  gap: 24px;
+  grid-template-columns: 1fr 1fr 1fr;
+  margin: 0;
+  padding: 0;
+  list-style: none;
   border-top: 1px solid var(--line);
-  padding-top: 24px;
 }
 
-.problem-grid p {
+.problem-side {
+  padding: 24px 24px 0 0;
+  border-right: 1px solid var(--line);
+}
+
+.problem-side:last-child {
+  border-right: 0;
+  padding-right: 0;
+}
+
+.problem-label {
+  display: block;
+  margin-bottom: 8px;
+  color: var(--faint);
+  font: 500 11px var(--mono);
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.problem-side p {
   color: var(--muted);
   font-size: 14px;
-  line-height: 1.7;
+  line-height: 1.65;
 }
 
-.problem-resolution {
-  color: var(--ink) !important;
+.problem-resolution .problem-label {
+  color: var(--gold-deep);
+}
+
+.problem-resolution p {
+  color: var(--ink);
   font-weight: 500;
 }
 
@@ -1009,36 +1059,44 @@ select.text-input {
   line-height: 1.7;
 }
 
-.trust-principles-grid {
+/* Operating principles as an indexed rule set — not six icon cards. */
+.trust-rules {
   display: grid;
-  grid-template-columns: repeat(2, 1fr);
-  gap: 16px;
+  grid-template-columns: 1fr 1fr;
+  column-gap: 40px;
+  border-top: 1px solid var(--line);
+  margin: 0;
+  padding: 4px 0 0;
+  list-style: none;
+  counter-reset: none;
 }
 
-.trust-principle {
-  display: flex;
-  gap: 10px;
-  align-items: flex-start;
-  padding: 16px;
-  border: 1px solid var(--line);
-  border-radius: var(--radius);
+.trust-rule {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: 14px;
+  align-items: start;
+  padding: 18px 0;
+  border-bottom: 1px solid var(--line);
 }
 
-.trust-principle svg {
+.trust-rule-index {
   color: var(--gold-deep);
-  flex: 0 0 auto;
-  margin-top: 2px;
+  font: 500 12px var(--mono);
+  letter-spacing: 0.04em;
+  padding-top: 2px;
 }
 
-.trust-principle b {
+.trust-rule-body b {
   display: block;
-  font-size: 13.5px;
-  margin-bottom: 3px;
+  font-size: 14px;
+  margin-bottom: 4px;
+  color: var(--ink);
 }
 
-.trust-principle p {
+.trust-rule-body p {
   color: var(--muted);
-  font-size: 12.5px;
+  font-size: 13px;
   line-height: 1.6;
 }
 
@@ -1963,13 +2021,27 @@ a.list-row:hover b {
     grid-template-columns: 1fr;
   }
 
-  .problem-grid,
   .why-grid {
     grid-template-columns: 1fr;
     gap: 14px;
   }
 
-  .trust-principles-grid {
+  .problem-contrast {
+    grid-template-columns: 1fr;
+  }
+
+  .problem-side {
+    padding: 18px 0 0;
+    border-right: 0;
+    border-bottom: 1px solid var(--line);
+    padding-bottom: 18px;
+  }
+
+  .problem-side:last-child {
+    border-bottom: 0;
+  }
+
+  .trust-rules {
     grid-template-columns: 1fr;
   }
 

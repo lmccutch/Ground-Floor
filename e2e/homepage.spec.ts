@@ -20,9 +20,9 @@ const bannedClaims = [
 test.describe('Hero', () => {
   test('states what/why/how within the hero, with a visible trust note', async ({ page }) => {
     await page.goto('/')
-    await expect(page.locator('.hero h1')).toHaveText('Where shareholders decide what management should answer next.')
+    await expect(page.locator('.hero h1')).toHaveText('Where retail shareholders get answers.')
     await expect(page.locator('.hero-copy > p').first()).toContainText('submit, rank, and support')
-    await expect(page.locator('.hero-trust-note')).toContainText('Management participation is voluntary and never guaranteed.')
+    await expect(page.locator('.hero-trust-note')).toContainText('Management participation is voluntary and responses are never guaranteed.')
     // No metrics/cards/charts crammed into the hero itself.
     await expect(page.locator('.hero .company-grid')).toHaveCount(0)
   })
@@ -89,9 +89,9 @@ test.describe('Live participation', () => {
   test('shows an honest empty state and invites the visitor to be first when there is no real activity', async ({ page }) => {
     await page.goto('/')
     await page.waitForSelector('.live-section')
-    await expect(page.locator('.live-section .empty-state')).toContainText('No campaigns have real shareholder support yet.')
-    await expect(page.locator('.live-section .empty-state')).toContainText('Be the first')
-    // Never the full 225-company directory dumped here.
+    await expect(page.locator('.live-section .live-launch')).toContainText('Open Floor is newly launched.')
+    await expect(page.locator('.live-section .live-launch')).toContainText('Be among the first shareholders')
+    // Never the full company directory dumped here, and no fabricated activity.
     await expect(page.locator('.live-section .company-card')).toHaveCount(0)
   })
 
@@ -105,14 +105,16 @@ test.describe('Live participation', () => {
     await page.goto('/')
     await page.waitForSelector('.live-section .company-card')
     await expect(page.locator('.live-section .company-card')).toContainText('DDOG')
-    await expect(page.locator('.live-section .empty-state')).toHaveCount(0)
+    await expect(page.locator('.live-section .live-launch')).toHaveCount(0)
   })
 })
 
 test.describe('Illustrative example', () => {
   test('is clearly labelled and attaches to no real company', async ({ page }) => {
     await page.goto('/')
-    await expect(page.locator('.example-tag')).toContainText('Illustrative example — not a real question or company')
+    await expect(page.locator('.example-section .eyebrow')).toContainText(
+      'Illustrative example — not a real company or submitted question',
+    )
     // No company monogram/ticker identity is attached to the example.
     await expect(page.locator('.example-card .monogram')).toHaveCount(0)
   })
@@ -129,6 +131,28 @@ test.describe('Trust principles', () => {
     await page.goto('/')
     await page.click('.trust-section-links >> text=Investment Disclaimer')
     await expect(page).toHaveURL(/\/disclaimer$/)
+  })
+})
+
+test.describe('Visual structure', () => {
+  test('sections use distinct structures, not a grid of identical cards', async ({ page }) => {
+    await page.goto('/')
+    // Problem section is an editorial contrast (labelled sides), not feature cards.
+    await expect(page.locator('.problem-contrast .problem-side')).toHaveCount(3)
+    // How it works is a numbered sequence.
+    await expect(page.locator('.how-section ol.steps .step')).toHaveCount(6)
+    // Trust principles are an indexed rule list, not six icon cards.
+    await expect(page.locator('.trust-section ol.trust-rules .trust-rule')).toHaveCount(6)
+    await expect(page.locator('.trust-rule .trust-rule-index').first()).toHaveText('01')
+    // The old bordered trust-principle card grid is gone.
+    await expect(page.locator('.trust-principles-grid')).toHaveCount(0)
+  })
+
+  test('the illustrative question is non-interactive (no live vote/link)', async ({ page }) => {
+    await page.goto('/')
+    const example = page.locator('.example-card')
+    await expect(example).toHaveAttribute('aria-hidden', 'true')
+    await expect(example.locator('a, button')).toHaveCount(0)
   })
 })
 

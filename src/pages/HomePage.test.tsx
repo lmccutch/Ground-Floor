@@ -79,7 +79,7 @@ describe('HomePage analytics wiring', () => {
 describe('HomePage live-participation section', () => {
   it('shows an honest empty state with no real campaigns', async () => {
     renderHome()
-    await screen.findByText('No campaigns have real shareholder support yet.')
+    await screen.findByText('Open Floor is newly launched.')
     expect(screen.queryByRole('article')).not.toBeInTheDocument()
   })
 
@@ -87,7 +87,7 @@ describe('HomePage live-participation section', () => {
     const profile = await signInWithMagicLink('homepage-live-test@test.dev')
     await startCampaign('apple', profile!.id)
     renderHome()
-    await waitFor(() => expect(screen.queryByText('No campaigns have real shareholder support yet.')).not.toBeInTheDocument())
+    await waitFor(() => expect(screen.queryByText('Open Floor is newly launched.')).not.toBeInTheDocument())
     expect(await screen.findByText('AAPL', { exact: false })).toBeInTheDocument()
   })
 })
