@@ -2,6 +2,7 @@ import { StrictMode } from 'react'
 import { createRoot } from 'react-dom/client'
 import './index.css'
 import { DataModeConfigError, getDataModeConfig } from './lib/dataMode'
+import { assertSiteUrlConfig } from './lib/siteUrl'
 import { ErrorBoundary } from './components/ErrorBoundary'
 
 const root = createRoot(document.getElementById('root')!)
@@ -28,6 +29,11 @@ async function bootstrap() {
     }
     throw error
   }
+
+  // Validate the auth redirect origin. Non-fatal in a browser (auth falls back to
+  // the runtime origin), but surfaces a misconfigured VITE_SITE_URL loudly in
+  // production instead of silently sending a broken magic-link redirect.
+  assertSiteUrlConfig()
 
   const [{ default: App }, { MvpProvider }, { getAttribution, initAnalytics }] = await Promise.all([
     import('./App.tsx'),

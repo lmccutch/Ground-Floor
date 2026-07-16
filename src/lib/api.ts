@@ -1,6 +1,7 @@
 import { companyDirectory, type DirectoryCompany, type DirectorySecurity } from '../data/companyDirectory'
 import { retailPopularity, retailPopularityMeta, type RetailPopularityMeta } from '../data/retailPopularity'
 import { buildCompanySlug, normalizeName, normalizeSymbol } from './companyIdentity'
+import { getSiteUrl } from './siteUrl'
 import { getDataModeConfig } from './dataMode'
 import { supabase } from './supabase'
 
@@ -1270,8 +1271,11 @@ export async function getSessionProfile(): Promise<Profile | null> {
 /** Demo mode returns the signed-in profile immediately; Supabase mode returns null until the link is followed. */
 export async function signInWithMagicLink(email: string): Promise<Profile | null> {
   if (supabase) {
-    const redirectTo = (import.meta.env.VITE_SITE_URL as string | undefined) || window.location.origin
-    const { error } = await supabase.auth.signInWithOtp({ email, options: { emailRedirectTo: redirectTo } })
+    // Resolve via the centralized helper so the magic-link redirect is always a
+    // normalized absolute URL (never the literal "VITE_SITE_URL"). No dedicated
+    // /auth/callback route exists — the link returns to the site root, where
+    // supabase-js detects the session in the URL and getSessionProfile() reads it.
+    const { error } = await supabase.auth.signInWithOtp({ email, options: { emailRedirectTo: getSiteUrl() } })
     if (error) throw new Error(error.message)
     return null
   }

@@ -1,4 +1,5 @@
 import { useEffect } from 'react'
+import { getSiteUrl } from './siteUrl'
 
 const BASE_TITLE = 'GroundFloor'
 
@@ -26,8 +27,9 @@ export function usePageMeta(title: string, description: string, path: string) {
       canonical.rel = 'canonical'
       document.head.appendChild(canonical)
     }
-    const base = (import.meta.env.VITE_SITE_URL as string | undefined) || window.location.origin
-    canonical.href = `${base.replace(/\/$/, '')}${path}`
+    // Same centralized resolution as auth redirects, so canonical links never
+    // carry the literal env-var name or a trailing-slash double up.
+    canonical.href = `${getSiteUrl()}${path}`
 
     return () => {
       document.title = previousTitle
