@@ -14,7 +14,7 @@ const DEMO_HINT = 'No backend is configured — activity is stored in this brows
 
 export function AppShell({ children }: { children: ReactNode }) {
   const [menuOpen, setMenuOpen] = useState(false)
-  const { profile, demoMode, requireAuth, signOut } = useMvp()
+  const { profile, demoMode, requireAuth, signOut, isAdmin } = useMvp()
   const location = useLocation()
   const menuRef = useRef<HTMLDivElement>(null)
   const toggleRef = useRef<HTMLButtonElement>(null)
@@ -65,7 +65,12 @@ export function AppShell({ children }: { children: ReactNode }) {
 
   const initials = profile ? profile.displayName.slice(0, 2).toUpperCase() : 'GU'
 
-  const navLinks = primaryNav.map(({ to, label }) => (
+  // The admin link is shown only after the server-verified admin check passes.
+  // Hiding it is a convenience, NOT the security boundary — /admin, its data, and
+  // every admin action are gated server-side by is_admin() + RLS.
+  const shellNav = isAdmin ? [...primaryNav, { to: '/admin', label: 'Admin' }] : primaryNav
+
+  const navLinks = shellNav.map(({ to, label }) => (
     <NavLink key={to} to={to} className={({ isActive }) => (isActive ? 'nav-link active' : 'nav-link')}>
       {label}
     </NavLink>

@@ -1,5 +1,6 @@
 import { StrictMode } from 'react'
 import { createRoot } from 'react-dom/client'
+import { BrowserRouter } from 'react-router-dom'
 import './index.css'
 import { DataModeConfigError, getDataModeConfig } from './lib/dataMode'
 import { assertSiteUrlConfig } from './lib/siteUrl'
@@ -32,7 +33,7 @@ async function bootstrap() {
 
   // Validate the auth redirect origin. Non-fatal in a browser (auth falls back to
   // the runtime origin), but surfaces a misconfigured VITE_SITE_URL loudly in
-  // production instead of silently sending a broken magic-link redirect.
+  // production instead of silently sending a broken verify/reset redirect.
   assertSiteUrlConfig()
 
   const [{ default: App }, { MvpProvider }, { getAttribution, initAnalytics }] = await Promise.all([
@@ -47,9 +48,13 @@ async function bootstrap() {
   root.render(
     <StrictMode>
       <ErrorBoundary>
-        <MvpProvider>
-          <App />
-        </MvpProvider>
+        {/* Router wraps the provider so the auth context can navigate (e.g. to
+            /login) and the sign-in dialog can render router links. */}
+        <BrowserRouter>
+          <MvpProvider>
+            <App />
+          </MvpProvider>
+        </BrowserRouter>
       </ErrorBoundary>
     </StrictMode>,
   )
