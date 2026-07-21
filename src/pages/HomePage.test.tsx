@@ -2,7 +2,7 @@ import { describe, expect, it, vi } from 'vitest'
 import { fireEvent, render, screen, waitFor } from '@testing-library/react'
 import { MemoryRouter, Route, Routes } from 'react-router-dom'
 import { HomePage } from './HomePage'
-import { signInWithMagicLink, startCampaign } from '../lib/api'
+import { getSessionProfile, loginWithIdentifier, startCampaign } from '../lib/api'
 
 // PostHog is never loaded in the test environment (no VITE_POSTHOG_KEY), so
 // track() calls are real no-ops there — analytics wiring is verified here by
@@ -84,7 +84,8 @@ describe('HomePage live-participation section', () => {
   })
 
   it('shows real campaign content once a demo campaign exists', async () => {
-    const profile = await signInWithMagicLink('homepage-live-test@test.dev')
+    await loginWithIdentifier('homepage-live-test@test.dev', 'demo-password-1234')
+    const profile = await getSessionProfile()
     await startCampaign('apple', profile!.id)
     renderHome()
     await waitFor(() => expect(screen.queryByText('Open Floor is newly launched.')).not.toBeInTheDocument())

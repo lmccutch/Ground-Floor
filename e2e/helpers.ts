@@ -3,10 +3,15 @@ import { expect, type Page } from '@playwright/test'
 // Matches the CSS breakpoint below which the top nav collapses into a menu.
 const MOBILE_NAV_BREAKPOINT = 860
 
-/** Completes the demo-mode sign-in + profile-completion flow inside the open AuthModal. */
+/**
+ * Completes the demo-mode password sign-in + profile-completion flow inside the
+ * open AuthModal. In demo mode any identifier/password is accepted (there is no
+ * real auth backend), then the account-completion step captures a display name.
+ */
 export async function signInDemo(page: Page, email: string, displayName = 'E2E Tester') {
   await page.waitForSelector('.modal >> text=Sign in to continue')
-  await page.fill('.modal input[type=email]', email)
+  await page.fill('.modal input[name=identifier]', email)
+  await page.fill('.modal input[name=password]', 'demo-password-1234')
   await page.click('.modal button[type=submit]')
   await page.waitForSelector('.modal >> text=One quick profile detail')
   await page.fill('.modal input.text-input >> nth=0', displayName)
