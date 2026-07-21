@@ -289,3 +289,43 @@ No new production steps — the homepage rewrite changed only copy, structure,
 and `index.html`'s baked-in title/description/OG tags (now reflecting "Where
 shareholders decide what management answers next"). No new env vars, no
 schema changes.
+
+## 12. Admin foundation + password auth (added 2026-07-21)
+
+Branch `feat/admin-foundation-password-auth`. Replaces magic-link login with
+username/email + password and adds the admin backend foundation (migrations
+`202607210001`–`202607210004`). See `docs/authentication.md` and
+`docs/admin-foundation.md`. Apply in this order — **order matters** — and verify on
+a scratch project first. Do **not** apply schema to production via the dashboard.
+
+1. **Apply migrations to production** (`202607210001`→`0004`), forward-only and
+   data-preserving. Existing rows get safe defaults; existing users keep their
+   accounts, profiles, and UUIDs (usernames start NULL).
+2. **Deploy the `login` Edge Function** and set its secrets:
+   `supabase functions deploy login`; the platform injects `SUPABASE_URL`,
+   `SUPABASE_ANON_KEY`, `SUPABASE_SERVICE_ROLE_KEY`. Optionally set
+   `LOGIN_ALLOWED_ORIGIN=https://www.open-floor.ca`.
+3. **Configure Supabase Auth** (dashboard): enable **email + password**, **disable
+   magic-link / email OTP**, keep **Confirm email** on. Set Site URL and add the
+   redirect allow-list: `<site>/verify-email`, `<site>/reset-password`,
+   `http://localhost:5173/*`. Install branded templates ("Verify your Open Floor
+   email" → `/verify-email`; "Reset your Open Floor password" → `/reset-password`).
+   No "magic link" wording.
+4. **Deploy the frontend** (merge to `main` → Vercel) so `/verify-email` and
+   `/reset-password` exist. `VITE_SITE_URL` must be the production origin.
+5. **Email existing users a password link**: after step 4, run
+   `scripts/send-password-setup-emails.ts` (`--dry-run` first). Recovery links reset
+   a password — not passwordless login — so nobody is stranded.
+6. **Verify on production**: sign up + verify, password login, username login,
+   forgot/reset, and that magic-link is gone.
+7. **Bootstrap the admin** once `luke.mccutcheon78@gmail.com` exists and is
+   verified: `select public.bootstrap_admin();` (SQL editor / service role).
+   Confirm `is_admin()` is true for that account and `/admin` is reachable, and
+   that no other account can reach `/admin`.
+8. **Run security verification** against a scratch project (needs a service key):
+   `npm run verify:core-security`, `verify:rpc-security`, `verify:admin-security`.
+9. **Smoke test** per the main checklist plus: internal campaign fields don't leak,
+   no new console errors, and no secret appears in the production bundle.
+
+Rollback note: the frontend can be reverted independently, but do not leave the
+password-auth frontend deployed against a database without these migrations.

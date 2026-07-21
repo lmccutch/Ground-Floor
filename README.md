@@ -28,7 +28,14 @@ Copy `.env.example` to `.env.local` and provide:
 - `VITE_DATA_MODE` — `demo`, `supabase`, or `test` (see above).
 - `VITE_SUPABASE_URL` and `VITE_SUPABASE_ANON_KEY` for authentication and persistence (required when `VITE_DATA_MODE=supabase`).
 - `VITE_POSTHOG_KEY` and optionally `VITE_POSTHOG_HOST` for product analytics.
-- `VITE_SITE_URL` for magic-link redirects.
+- `VITE_SITE_URL` for auth email redirects (email verification + password reset) and canonical links.
+
+Authentication is **username/email + password** via Supabase Auth (magic-link login
+has been removed). See [docs/authentication.md](docs/authentication.md) for the
+signup/login/verify/reset flows and the required Supabase dashboard configuration,
+and [docs/admin-foundation.md](docs/admin-foundation.md) for the single-admin
+authorization model. Username sign-in additionally requires the `login` Edge
+Function (`supabase/functions/login`) to be deployed.
 
 Apply the migrations in `supabase/migrations/` (in filename order) to a Supabase project before inviting real users:
 
