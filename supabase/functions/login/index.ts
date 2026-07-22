@@ -43,20 +43,26 @@ function json(status: number, body: unknown): Response {
 // Generic auth failure — identical for every reason so nothing is disclosed.
 const invalid = () => json(400, { error: "invalid_credentials" });
 
-/* --------------------------- best-effort rate limit ------------------------ */
-// Per-instance, in-memory sliding window. Edge instances are ephemeral and not
-// shared, so this is defense-in-depth only; GoTrue also rate-limits token grants
-// upstream. For strict global limits, back this with a Postgres table.
-const WINDOW_MS = 60_000;
+/* ------------------------------- rate limit -------------------------------- */
+// Shared, cross-instance limiter backed by public.check_login_rate_limit (called
+// with the service role). Fail-OPEN on limiter errors so an issue with the
+// limiter never locks every user out of signing in; GoTrue remains a backstop.
+const WINDOW_SECONDS = 60;
 const MAX_ATTEMPTS = 10;
-const hits = new Map<string, number[]>();
 
-function rateLimited(ip: string): boolean {
-  const now = Date.now();
-  const recent = (hits.get(ip) ?? []).filter((t) => now - t < WINDOW_MS);
-  recent.push(now);
-  hits.set(ip, recent);
-  return recent.length > MAX_ATTEMPTS;
+async function rateLimited(ip: string): Promise<boolean> {
+  try {
+    const res = await fetch(`${SUPABASE_URL}/rest/v1/rpc/check_login_rate_limit`, {
+      method: "POST",
+      headers: { apikey: SERVICE_KEY, Authorization: `Bearer ${SERVICE_KEY}`, "Content-Type": "application/json" },
+      body: JSON.stringify({ p_key: `login:ip:${ip}`, p_max: MAX_ATTEMPTS, p_window_seconds: WINDOW_SECONDS }),
+    });
+    if (!res.ok) return false;
+    const allowed = (await res.json()) as boolean;
+    return allowed === false;
+  } catch {
+    return false;
+  }
 }
 
 /* ------------------------------ email resolution --------------------------- */
@@ -93,7 +99,7 @@ Deno.serve(async (req) => {
   if (req.method !== "POST") return json(405, { error: "method_not_allowed" });
 
   const ip = req.headers.get("x-forwarded-for")?.split(",")[0]?.trim() ?? "unknown";
-  if (rateLimited(ip)) return json(429, { error: "rate_limited" });
+  if (await rateLimited(ip)) return json(429, { error: "rate_limited" });
 
   let identifier = "";
   let password = "";
