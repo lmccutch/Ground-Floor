@@ -4,6 +4,7 @@ import { ExternalLink, LogOut, Menu, X } from 'lucide-react'
 import { useMvp } from '../../context/useMvp'
 import { useAdminQuery } from '../../hooks/useAdminQuery'
 import { getOverviewCounts, type OverviewCounts } from '../../lib/adminApi'
+import { useAdminRefresh } from './components/refresh'
 
 type NavItem = { to: string; label: string; end?: boolean; badge?: (c: OverviewCounts) => number }
 
@@ -26,7 +27,9 @@ export function AdminLayout() {
   const { profile, signOut } = useMvp()
   const location = useLocation()
   const [menuOpen, setMenuOpen] = useState(false)
-  const counts = useAdminQuery(() => getOverviewCounts(), [])
+  const { version } = useAdminRefresh()
+  // Nav badges + attention count re-fetch whenever a mutation bumps the version.
+  const counts = useAdminQuery(() => getOverviewCounts(), [version])
 
   useEffect(() => setMenuOpen(false), [location.pathname])
 

@@ -1,11 +1,63 @@
 import { Link } from 'react-router-dom'
-import { getQuestions, type AdminQuestion } from '../../../lib/adminApi'
+import { getQuestions, moderateQuestion, type AdminQuestion } from '../../../lib/adminApi'
 import { formatDateTime, humanize, statusTone, timeAgo } from '../../../lib/adminFormat'
 import { companyPath } from '../../../lib/routes'
 import { AdminListPage, type Column } from '../components/AdminListPage'
+import { ActionBar, type AdminAction } from '../components/actions'
+import { MODERATION_REASONS } from './moderationReasons'
 import { Chip, CopyId, Field } from '../components/adminUi'
 
 const MOD = ['pending_review', 'published', 'reported', 'hidden', 'removed', 'restored', 'archived']
+
+const HIDDEN_STATES = ['hidden', 'removed', 'archived']
+
+const questionActions: AdminAction<AdminQuestion>[] = [
+  {
+    key: 'publish',
+    label: 'Publish',
+    available: q => q.moderationStatus !== 'published',
+    consequence: 'Makes the question publicly visible. Report and moderation history are preserved.',
+    reversible: true,
+    run: q => moderateQuestion({ id: q.id, action: 'publish' }),
+  },
+  {
+    key: 'hide',
+    label: 'Hide',
+    available: q => q.moderationStatus !== 'hidden' && q.moderationStatus !== 'removed',
+    consequence: 'Removes the question from public view. The original text is retained and can be restored.',
+    reversible: true,
+    reason: { label: 'Reason', required: true, options: MODERATION_REASONS, requireTextFor: 'other' },
+    run: (q, reason) => moderateQuestion({ id: q.id, action: 'hide', reason }),
+  },
+  {
+    key: 'remove',
+    label: 'Remove',
+    tone: 'critical',
+    available: q => q.moderationStatus !== 'removed',
+    consequence: 'Removes the question from public view as a moderation action. The original content is never deleted and can be restored.',
+    reversible: true,
+    reason: { label: 'Reason', required: true, options: MODERATION_REASONS, requireTextFor: 'other' },
+    run: (q, reason) => moderateQuestion({ id: q.id, action: 'remove', reason }),
+  },
+  {
+    key: 'restore',
+    label: 'Restore',
+    available: q => HIDDEN_STATES.includes(q.moderationStatus),
+    consequence: 'Returns the question to public view. Moderation history is preserved.',
+    reversible: true,
+    reason: { label: 'Note (optional)', required: false },
+    run: (q, reason) => moderateQuestion({ id: q.id, action: 'restore', reason }),
+  },
+  {
+    key: 'archive',
+    label: 'Archive',
+    available: q => q.moderationStatus !== 'archived',
+    consequence: 'Archives the question. It stays available to administrators.',
+    reversible: true,
+    reason: { label: 'Note (optional)', required: false },
+    run: (q, reason) => moderateQuestion({ id: q.id, action: 'archive', reason }),
+  },
+]
 
 const columns: Column<AdminQuestion>[] = [
   { header: 'Question', render: q => <span className="admin-clamp">{q.text}</span> },
@@ -35,8 +87,9 @@ export function QuestionsPage() {
       emptyTitle="No questions yet"
       emptyMessage="Shareholder questions will appear here."
       detailTitle={() => 'Question detail'}
-      renderDetail={q => (
+      renderDetail={(q, helpers) => (
         <div className="admin-detail">
+          <ActionBar row={q} actions={questionActions} onDone={() => { helpers.refresh(); helpers.close() }} />
           <div className="admin-detail-chips">
             <Chip tone={statusTone(q.moderationStatus)}>{humanize(q.moderationStatus)}</Chip>
             {q.reportCount > 0 && <Chip tone="high">{q.reportCount} report(s)</Chip>}

@@ -3,11 +3,14 @@ import { useSearchParams } from 'react-router-dom'
 import { useAdminQuery } from '../../../hooks/useAdminQuery'
 import { useDebouncedValue } from '../../../lib/useDebouncedValue'
 import { AdminPageHeader, DataState, DetailDrawer, Empty, FilterSelect, Pagination, SearchInput } from './adminUi'
+import { useAdminRefresh } from './refresh'
 
 export type Column<T> = { header: string; render: (row: T) => ReactNode; className?: string }
 export type FilterDef = { key: string; label: string; options: { value: string; label: string }[] }
 export type PageResult<T> = { rows: T[]; total: number }
 export type FetchArgs = { search: string; filters: Record<string, string>; offset: number; limit: number }
+/** Helpers handed to a detail renderer so actions can close the drawer and refresh read models. */
+export type DetailHelpers = { close: () => void; refresh: () => void }
 
 const LIMIT = 25
 
@@ -36,11 +39,12 @@ export function AdminListPage<T>({
   emptyTitle?: string
   emptyMessage?: string
   detailTitle?: (row: T) => string
-  renderDetail?: (row: T) => ReactNode
+  renderDetail?: (row: T, helpers: DetailHelpers) => ReactNode
 }) {
   const [params, setParams] = useSearchParams()
   const offset = Math.max(0, Number(params.get('offset')) || 0)
   const [selected, setSelected] = useState<T | null>(null)
+  const { version, refresh } = useAdminRefresh()
 
   const filterValues = useMemo(() => {
     const v: Record<string, string> = {}
@@ -103,8 +107,9 @@ export function AdminListPage<T>({
 
   const query = useAdminQuery(
     () => fetchPage({ search: debouncedSearch, filters: filterValues, offset, limit: LIMIT }),
+    // `version` bumps after a successful mutation so the list reloads in place.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    [debouncedSearch, offset, ...filters.map(f => filterValues[f.key])],
+    [debouncedSearch, offset, version, ...filters.map(f => filterValues[f.key])],
   )
 
   const hasFilters = Boolean(debouncedSearch) || filters.some(f => filterValues[f.key])
@@ -179,7 +184,7 @@ export function AdminListPage<T>({
 
       {renderDetail && detailTitle && (
         <DetailDrawer open={Boolean(selected)} onClose={() => setSelected(null)} title={selected ? detailTitle(selected) : ''}>
-          {selected && renderDetail(selected)}
+          {selected && renderDetail(selected, { close: () => setSelected(null), refresh })}
         </DetailDrawer>
       )}
     </div>

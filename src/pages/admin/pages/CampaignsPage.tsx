@@ -1,14 +1,29 @@
 import { Link } from 'react-router-dom'
-import { getCampaigns, type AdminCampaign } from '../../../lib/adminApi'
+import { getCampaigns, updateCampaignOps, type AdminCampaign } from '../../../lib/adminApi'
 import { formatDateTime, humanize, statusTone, timeAgo } from '../../../lib/adminFormat'
 import { companyPath } from '../../../lib/routes'
 import { AdminListPage, type Column } from '../components/AdminListPage'
+import { ActionBar, type AdminAction } from '../components/actions'
 import { Chip, CopyId, Field } from '../components/adminUi'
 
 const BANDS = [
   { value: 'near', label: 'Near threshold (80–99%)' },
   { value: 'at', label: 'Threshold reached' },
   { value: 'outreach', label: 'Outreach required' },
+]
+
+// Operational (internal) statuses only — this never touches the public campaign
+// status. paused/closed are handled by dedicated actions that require a reason.
+const OP_STATUS_OPTIONS = ['active', 'near_threshold', 'threshold_reached', 'outreach_required', 'outreach_started', 'management_engaged', 'scheduled', 'completed', 'stalled'].map(s => ({ value: s, label: humanize(s) }))
+
+const campaignActions: AdminAction<AdminCampaign>[] = [
+  { key: 'op_status', label: 'Set operational status', consequence: 'Changes the internal operational status only — the public campaign status is unaffected. Setting “outreach started” stamps the outreach date automatically.', reversible: true, reason: { label: 'Operational status', required: true, options: OP_STATUS_OPTIONS }, run: (c, v) => updateCampaignOps({ id: c.campaignId, operationalStatus: v, reason: `Operational status set to ${v}` }) },
+  { key: 'contact', label: 'Set management contact', reason: { label: 'Management contact status', required: true }, run: (c, reason) => updateCampaignOps({ id: c.campaignId, managementContactStatus: reason, reason: 'Updated management contact status' }) },
+  { key: 'risk', label: 'Set risk status', reason: { label: 'Risk status', required: true }, run: (c, reason) => updateCampaignOps({ id: c.campaignId, riskStatus: reason, reason: 'Updated risk status' }) },
+  { key: 'threshold', label: 'Set supporter threshold', consequence: 'Changes the supporter threshold this campaign is measured against. Progress recalculates immediately.', reversible: true, reason: { label: 'New supporter threshold (whole number)', required: true }, run: (c, v) => { const n = Number((v ?? '').trim()); if (!Number.isInteger(n) || n <= 0) throw new Error('Enter a positive whole number.'); return updateCampaignOps({ id: c.campaignId, supporterThreshold: n, reason: `Supporter threshold set to ${n}` }) } },
+  { key: 'note', label: 'Add / update note', reason: { label: 'Internal note', required: true }, run: (c, reason) => updateCampaignOps({ id: c.campaignId, internalNotes: reason, reason: 'Updated internal note' }) },
+  { key: 'pause', label: 'Pause', available: c => c.operationalStatus !== 'paused', consequence: 'Pauses the campaign operationally.', reversible: true, reason: { label: 'Reason for pausing', required: true }, run: (c, reason) => updateCampaignOps({ id: c.campaignId, operationalStatus: 'paused', reason }) },
+  { key: 'close', label: 'Close', tone: 'critical', available: c => c.operationalStatus !== 'closed', consequence: 'Closes the campaign operationally. The public campaign status is unaffected.', reversible: true, reason: { label: 'Closed reason', required: true }, run: (c, reason) => updateCampaignOps({ id: c.campaignId, operationalStatus: 'closed', closedReason: reason, reason: 'Closed' }) },
 ]
 
 function Progress({ c }: { c: AdminCampaign }) {
@@ -56,8 +71,9 @@ export function CampaignsPage() {
       emptyTitle="No campaigns yet"
       emptyMessage="Campaigns appear here once shareholders start them."
       detailTitle={c => c.companyName}
-      renderDetail={c => (
+      renderDetail={(c, helpers) => (
         <div className="admin-detail">
+          <ActionBar row={c} actions={campaignActions} onDone={() => { helpers.refresh(); helpers.close() }} />
           <div className="admin-detail-chips">
             <Chip tone={statusTone(c.operationalStatus)}>{humanize(c.operationalStatus)}</Chip>
             <Chip tone="muted">Public: {c.publicStatus}</Chip>

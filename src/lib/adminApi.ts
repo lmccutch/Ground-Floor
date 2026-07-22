@@ -559,3 +559,116 @@ export async function getSystemInfo(): Promise<SystemInfo> {
     lastSecurityAlert: await lastFailure('security_alert'),
   }
 }
+
+/* ------------------------------- mutations --------------------------------- */
+// Every admin write goes through a narrow, is_admin()-guarded, audited RPC — never
+// a direct table write and never a generic "update record" endpoint. Each RPC
+// validates the transition server-side, locks the row, writes an audit entry, and
+// resolves related notifications; the caller refreshes the read models on success.
+
+export async function updateCompanyRequest(p: { id: string; status?: string; priority?: string; adminNotes?: string; rejectionReason?: string; reason?: string }): Promise<void> {
+  const { error } = await client().rpc('admin_update_company_request', {
+    p_request_id: p.id,
+    p_status: p.status ?? null,
+    p_priority: p.priority ?? null,
+    p_admin_notes: p.adminNotes ?? null,
+    p_rejection_reason: p.rejectionReason ?? null,
+    p_reason: p.reason ?? null,
+  })
+  if (error) throw error
+}
+
+export type ApproveResult = { request_id: string; company_id: string; created: boolean; already_approved?: boolean }
+
+export async function approveCompanyRequest(p: { id: string; exchange?: string; sector?: string; reason?: string }): Promise<ApproveResult> {
+  const { data, error } = await client().rpc('admin_approve_company_request', {
+    p_request_id: p.id,
+    p_exchange: p.exchange || 'NASDAQ',
+    p_sector: p.sector || 'Unknown',
+    p_reason: p.reason ?? null,
+  })
+  if (error) throw error
+  return data as ApproveResult
+}
+
+export async function updateCampaignOps(p: {
+  id: string
+  operationalStatus?: string
+  assignedAdmin?: string | null
+  managementContactStatus?: string
+  internalNotes?: string
+  riskStatus?: string
+  nextFollowUpAt?: string
+  supporterThreshold?: number
+  closedReason?: string
+  reason?: string
+}): Promise<void> {
+  const { error } = await client().rpc('admin_update_campaign_ops', {
+    p_campaign_id: p.id,
+    p_operational_status: p.operationalStatus ?? null,
+    p_assigned_admin: p.assignedAdmin ?? null,
+    p_management_contact_status: p.managementContactStatus ?? null,
+    p_internal_notes: p.internalNotes ?? null,
+    p_risk_status: p.riskStatus ?? null,
+    p_next_follow_up_at: p.nextFollowUpAt ?? null,
+    p_supporter_threshold: p.supporterThreshold ?? null,
+    p_closed_reason: p.closedReason ?? null,
+    p_reason: p.reason ?? null,
+  })
+  if (error) throw error
+}
+
+export type ModerationAction = 'publish' | 'hide' | 'remove' | 'restore' | 'archive'
+
+export async function moderateQuestion(p: { id: string; action: ModerationAction; reason?: string }): Promise<void> {
+  const { error } = await client().rpc('admin_moderate_question', { p_question_id: p.id, p_action: p.action, p_reason: p.reason ?? null })
+  if (error) throw error
+}
+
+export type ReportAction = 'dismiss' | 'confirm' | 'hide_question' | 'remove_question' | 'escalate'
+
+export async function resolveReport(p: { id: string; action: ReportAction; resolution?: string; reason?: string }): Promise<void> {
+  const { error } = await client().rpc('admin_resolve_report', { p_report_id: p.id, p_action: p.action, p_resolution: p.resolution ?? null, p_reason: p.reason ?? null })
+  if (error) throw error
+}
+
+export async function updateBug(p: { id: string; status?: string; severity?: string; assignedTo?: string | null; adminNotes?: string; linkedIssueUrl?: string; fixedCommit?: string; reason?: string }): Promise<void> {
+  const { error } = await client().rpc('admin_update_bug', {
+    p_bug_id: p.id,
+    p_status: p.status ?? null,
+    p_severity: p.severity ?? null,
+    p_assigned_to: p.assignedTo ?? null,
+    p_admin_notes: p.adminNotes ?? null,
+    p_linked_issue_url: p.linkedIssueUrl ?? null,
+    p_fixed_commit: p.fixedCommit ?? null,
+    p_reason: p.reason ?? null,
+  })
+  if (error) throw error
+}
+
+export async function updateSupportTicket(p: { id: string; status?: string; priority?: string; assignedTo?: string | null; adminNotes?: string; reason?: string }): Promise<void> {
+  const { error } = await client().rpc('admin_update_support_ticket', {
+    p_ticket_id: p.id,
+    p_status: p.status ?? null,
+    p_priority: p.priority ?? null,
+    p_assigned_to: p.assignedTo ?? null,
+    p_admin_notes: p.adminNotes ?? null,
+    p_reason: p.reason ?? null,
+  })
+  if (error) throw error
+}
+
+export async function recordSupportResponse(p: { id: string; status?: string; summary?: string }): Promise<void> {
+  const { error } = await client().rpc('admin_record_support_response', { p_ticket_id: p.id, p_status: p.status ?? null, p_summary: p.summary ?? null })
+  if (error) throw error
+}
+
+export async function markNotificationRead(p: { id: string; read: boolean }): Promise<void> {
+  const { error } = await client().rpc('admin_mark_notification_read', { p_notification_id: p.id, p_read: p.read })
+  if (error) throw error
+}
+
+export async function dismissNotification(p: { id: string; dismiss: boolean }): Promise<void> {
+  const { error } = await client().rpc('admin_dismiss_notification', { p_notification_id: p.id, p_dismiss: p.dismiss })
+  if (error) throw error
+}
