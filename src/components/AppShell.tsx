@@ -63,6 +63,12 @@ export function AppShell({ children }: { children: ReactNode }) {
     }
   }, [menuOpen])
 
+  // The admin action centre is a standalone internal application with its own
+  // full-height chrome (topbar, sidebar, footerless). Render it bare so the public
+  // site header/footer/feedback widget don't wrap it in a second layer of chrome.
+  const isAdminArea = location.pathname === '/admin' || location.pathname.startsWith('/admin/')
+  if (isAdminArea) return <>{children}</>
+
   const initials = profile ? profile.displayName.slice(0, 2).toUpperCase() : 'GU'
 
   // The admin link is shown only after the server-verified admin check passes.

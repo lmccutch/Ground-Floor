@@ -3,13 +3,14 @@
 # /companies (no slug) is the private "My companies" dashboard — disallowed.
 # /companies/<slug> is a public campaign page and must stay crawlable, hence
 # the exact-match Disallow ($) plus an explicit Allow for the slug form.
-# There is no separate authentication route to disallow: sign-in is a modal
-# over the current page, and magic-link completion lands on "/" via a URL
-# fragment, which is never sent to or seen by crawlers.
+# /admin is the internal administrator area — server-authorized (is_admin()) and
+# never meant to be crawled or indexed, so the whole subtree is disallowed.
+# Sign-in itself needs no separate rule: it is a modal over the current page.
 
 User-agent: *
 Allow: /
 Disallow: /companies$
 Allow: /companies/
+Disallow: /admin
 
 Sitemap: https://www.open-floor.ca/sitemap.xml
