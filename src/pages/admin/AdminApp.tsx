@@ -1,6 +1,7 @@
 import { Link, Route, Routes } from 'react-router-dom'
 import { RequireAdmin } from './RequireAdmin'
 import { AdminLayout } from './AdminLayout'
+import { AdminRefreshProvider } from './components/refresh'
 import { OverviewPage } from './pages/OverviewPage'
 import { QueuePage } from './pages/QueuePage'
 import { CompanyRequestsPage } from './pages/CompanyRequestsPage'
@@ -35,6 +36,7 @@ function AdminNotFound() {
  */
 export function AdminApp() {
   return (
+    <AdminRefreshProvider>
     <Routes>
       <Route element={<RequireAdmin />}>
         <Route element={<AdminLayout />}>
@@ -54,6 +56,7 @@ export function AdminApp() {
         </Route>
       </Route>
     </Routes>
+    </AdminRefreshProvider>
   )
 }
 

@@ -1,10 +1,27 @@
-import { getBugs, type AdminBug } from '../../../lib/adminApi'
+import { getBugs, updateBug, type AdminBug } from '../../../lib/adminApi'
 import { formatDateTime, humanize, statusTone, timeAgo, type Tone } from '../../../lib/adminFormat'
 import { AdminListPage, type Column } from '../components/AdminListPage'
+import { ActionBar, type AdminAction } from '../components/actions'
 import { Chip, CopyId, Field } from '../components/adminUi'
 
 const STATUSES = ['new', 'triaged', 'confirmed', 'in_progress', 'fixed', 'deployed', 'cannot_reproduce', 'duplicate', 'closed']
 const SEVERITIES = ['critical', 'high', 'medium', 'low']
+const SEVERITY_OPTIONS = SEVERITIES.map(s => ({ value: s, label: humanize(s) }))
+const OPEN_BUG = ['new', 'triaged', 'confirmed', 'in_progress']
+
+const bugActions: AdminAction<AdminBug>[] = [
+  { key: 'severity', label: 'Set severity', reason: { label: 'Severity', required: true, options: SEVERITY_OPTIONS }, run: (b, v) => updateBug({ id: b.id, severity: v, reason: `Severity set to ${v}` }) },
+  { key: 'triaged', label: 'Mark triaged', available: b => b.status === 'new', run: b => updateBug({ id: b.id, status: 'triaged', reason: 'Triaged' }) },
+  { key: 'confirmed', label: 'Mark confirmed', available: b => b.status === 'new' || b.status === 'triaged', reason: { label: 'Confirmation note (optional)', required: false }, run: (b, reason) => updateBug({ id: b.id, status: 'confirmed', adminNotes: reason, reason: 'Confirmed' }) },
+  { key: 'in_progress', label: 'Mark in progress', available: b => b.status === 'triaged' || b.status === 'confirmed', run: b => updateBug({ id: b.id, status: 'in_progress', reason: 'In progress' }) },
+  { key: 'fixed', label: 'Mark fixed', available: b => b.status === 'confirmed' || b.status === 'in_progress', consequence: 'Records the bug as fixed and stamps a resolved time.', reversible: true, reason: { label: 'Fix note or commit', required: true }, run: (b, reason) => updateBug({ id: b.id, status: 'fixed', adminNotes: reason, reason: 'Fixed' }) },
+  { key: 'deployed', label: 'Mark deployed', available: b => b.status === 'fixed', reason: { label: 'Deployment reference', required: true }, run: (b, reason) => updateBug({ id: b.id, status: 'deployed', adminNotes: reason, reason: 'Deployed' }) },
+  { key: 'cannot_reproduce', label: 'Cannot reproduce', available: b => OPEN_BUG.includes(b.status), reason: { label: 'What was attempted', required: true }, run: (b, reason) => updateBug({ id: b.id, status: 'cannot_reproduce', adminNotes: reason, reason: 'Cannot reproduce' }) },
+  { key: 'duplicate', label: 'Mark duplicate', available: b => OPEN_BUG.includes(b.status), reason: { label: 'Linked duplicate bug', required: true }, run: (b, reason) => updateBug({ id: b.id, status: 'duplicate', adminNotes: reason, reason: 'Duplicate' }) },
+  { key: 'close', label: 'Close', tone: 'critical', available: b => b.status !== 'closed', consequence: 'Closes the bug report.', reversible: true, reason: { label: 'Resolution reason', required: true }, run: (b, reason) => updateBug({ id: b.id, status: 'closed', adminNotes: reason, reason: 'Closed' }) },
+  { key: 'reopen', label: 'Reopen', available: b => ['fixed', 'deployed', 'cannot_reproduce', 'duplicate', 'closed'].includes(b.status), run: b => updateBug({ id: b.id, status: 'triaged', reason: 'Reopened' }) },
+  { key: 'note', label: 'Add / update note', reason: { label: 'Internal note', required: true }, run: (b, reason) => updateBug({ id: b.id, adminNotes: reason, reason: 'Updated internal note' }) },
+]
 
 function severityTone(s?: string): Tone {
   if (s === 'critical') return 'critical'
@@ -40,8 +57,9 @@ export function BugsPage() {
       emptyTitle="No bug reports"
       emptyMessage="No public bug-report form is connected yet, so nothing is recorded here."
       detailTitle={() => 'Bug report'}
-      renderDetail={b => (
+      renderDetail={(b, helpers) => (
         <div className="admin-detail">
+          <ActionBar row={b} actions={bugActions} onDone={() => { helpers.refresh(); helpers.close() }} />
           <div className="admin-detail-chips">
             <Chip tone={statusTone(b.status)}>{humanize(b.status)}</Chip>
             {b.severity && <Chip tone={severityTone(b.severity)}>{humanize(b.severity)}</Chip>}
