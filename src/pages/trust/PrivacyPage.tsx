@@ -18,7 +18,7 @@ export function PrivacyPage() {
 
       <h2>What we collect</h2>
       <ul>
-        <li><b>Account information:</b> your email address, used for magic-link sign-in. There are no passwords.</li>
+        <li><b>Account information:</b> your username and email address, used to sign in. Your password is handled entirely by our authentication provider (Supabase Auth) — it is stored only as a secure hash we never see, and is never kept in your profile, logged, or included in analytics.</li>
         <li><b>Profile information:</b> a display name you choose, and optionally your country, investor type, and a public-anonymity preference. Your email address is never displayed publicly.</li>
         <li><b>Self-reported shareholder status:</b> the status you select when supporting a campaign or asking a question, and an optional coarse position-size range. Position ranges are never displayed publicly or shown with your name.</li>
         <li><b>Questions and votes:</b> questions you submit are public (under your display name, or “Anonymous Shareholder” if you choose). Your individual votes are stored so counts are accurate and so you can remove them; vote counts are public, your identity behind a vote is not displayed.</li>
@@ -53,7 +53,7 @@ export function PrivacyPage() {
         <li><b>Supabase</b> hosts the database and authentication. Access to your rows is controlled by database-level row security, which we test against a live project as part of our release checks.</li>
         <li><b>PostHog</b> (only if enabled on a deployment) receives explicit product-interaction events, keyed to a pseudonymous account identifier rather than your email, as described above.</li>
         <li><b>Vercel Web Analytics</b> receives aggregate, path-level traffic metrics only — no email, no custom product events, and no query strings or URL fragments.</li>
-        <li><b>Email delivery:</b> magic-link sign-in emails are sent through the email provider configured for the deployment (Supabase's sender or a custom SMTP provider). Your email address is shared with that provider solely to deliver those messages.</li>
+        <li><b>Email delivery:</b> account emails — email verification and password-reset links — are sent through the email provider configured for the deployment (Supabase's sender or a custom SMTP provider). Your email address is shared with that provider solely to deliver those messages.</li>
       </ul>
 
       <h2>Retention and deletion</h2>

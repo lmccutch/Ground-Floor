@@ -6,8 +6,9 @@ import {
   getDashboardData,
   getDiscoverHighlights,
   getQuestions,
+  getSessionProfile,
   isQuestionEditable,
-  signInWithMagicLink,
+  loginWithIdentifier,
   startCampaign,
   submitFeedback,
   submitQuestion,
@@ -25,7 +26,8 @@ import {
 const COMPANY = 'apple' // directory key for Apple in companyDirectory.ts
 
 async function signedInUser(): Promise<Profile> {
-  const profile = await signInWithMagicLink('core-tests@test.dev')
+  await loginWithIdentifier('core-tests@test.dev', 'demo-password-1234')
+  const profile = await getSessionProfile()
   if (!profile) throw new Error('demo sign-in should return a profile')
   return profile
 }

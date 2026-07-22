@@ -1,143 +1,111 @@
-import { useEffect, useMemo, useState } from 'react'
-import { ChevronRight, Mail, ShieldCheck } from 'lucide-react'
+import { useEffect, useState } from 'react'
+import { Link } from 'react-router-dom'
+import { ChevronRight, Eye, EyeOff, LogIn, ShieldCheck } from 'lucide-react'
 import { useMvp } from '../context/useMvp'
-import {
-  clearRememberedEmail,
-  DEFAULT_COOLDOWN_SECONDS,
-  getCooldownRemainingSeconds,
-  getRememberedEmail,
-  looksLikeEmail,
-  normalizeEmail,
-  parseRateLimit,
-  startCooldown,
-} from '../lib/authClient'
+import { GENERIC_AUTH_ERROR, mapUsernameError, validateUsername } from '../lib/authValidation'
 import { Modal } from './Modal'
 
 const investorTypes = ['Individual investor', 'Finance professional', 'Industry professional', 'Other']
 
+/**
+ * The inline sign-in gate opened by requireAuth(). It is a compact password login
+ * (username OR email + password) with links to the full /signup and
+ * /forgot-password pages, plus the account-completion step shown once a signed-in
+ * user still needs a username or display name. Passwords are handled only by
+ * Supabase Auth — nothing here stores, logs, or forwards a password.
+ */
 export function AuthModal({ action, onClose }: { action: string; onClose: () => void }) {
-  const { profile, signIn, completeProfile, demoMode } = useMvp()
-  const remembered = useMemo(() => getRememberedEmail(), [])
-  const [email, setEmail] = useState(remembered ?? '')
-  const [showReturning, setShowReturning] = useState(Boolean(remembered))
-  const [sent, setSent] = useState(false)
-  const [name, setName] = useState('')
+  const { profile, login, completeProfile, demoMode } = useMvp()
+  const needsUsername = !demoMode && Boolean(profile) && !profile?.username
+  const needsCompletion = Boolean(profile) && (!profile?.complete || needsUsername)
+
+  const [identifier, setIdentifier] = useState('')
+  const [password, setPassword] = useState('')
+  const [showPassword, setShowPassword] = useState(false)
+  const [username, setUsername] = useState('')
+  const [displayName, setDisplayName] = useState('')
   const [investorType, setInvestorType] = useState(investorTypes[0])
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState('')
-  const [cooldown, setCooldown] = useState(() => getCooldownRemainingSeconds())
 
-  // Once the profile is confirmed there is nothing left to do here.
+  // Once the account is fully set up there is nothing left to do here.
   useEffect(() => {
-    if (profile?.complete) onClose()
-  }, [profile, onClose])
+    if (profile && !needsCompletion) onClose()
+  }, [profile, needsCompletion, onClose])
 
-  // Drive the live cooldown countdown from sessionStorage, so a refresh cannot
-  // bypass it. The interval only runs while a cooldown is active.
-  const cooldownActive = cooldown > 0
-  useEffect(() => {
-    if (!cooldownActive) return
-    const id = setInterval(() => {
-      const remaining = getCooldownRemainingSeconds()
-      setCooldown(remaining)
-      if (remaining <= 0) clearInterval(id)
-    }, 1000)
-    return () => clearInterval(id)
-  }, [cooldownActive])
-
-  function beginCooldown(seconds: number) {
-    startCooldown(seconds)
-    setCooldown(getCooldownRemainingSeconds())
-  }
-
-  async function requestLink() {
+  async function submitLogin(event: React.FormEvent) {
+    event.preventDefault()
+    if (busy) return
     setError('')
-    // Prevent duplicate submissions while a request is in flight or cooling down.
-    if (busy || cooldown > 0) return
-    const normalized = normalizeEmail(email)
-    if (!looksLikeEmail(normalized)) {
-      setError('Enter a valid email address.')
+    if (!identifier.trim() || !password) {
+      setError('Enter your username or email and password.')
       return
     }
     setBusy(true)
     try {
-      await signIn(normalized)
-      // Real magic-link mode: link sent — start the resend cooldown and confirm.
-      if (!demoMode) {
-        beginCooldown(DEFAULT_COOLDOWN_SECONDS)
-        setSent(true)
-      }
-    } catch (caught) {
-      const info = parseRateLimit(caught)
-      if (info.isRateLimited) {
-        if (info.retryAfterSeconds && info.retryAfterSeconds > 0) beginCooldown(info.retryAfterSeconds)
-        setError(
-          info.retryAfterSeconds
-            ? `A sign-in link was recently sent. Please wait ${info.retryAfterSeconds} seconds before requesting another.`
-            : 'A sign-in link was recently sent. Please wait a moment before requesting another.',
-        )
-      } else {
-        // Generic message only for genuinely unexpected failures.
-        setError('We could not start sign-in. Please try again.')
-      }
+      await login(identifier.trim(), password)
+      // The profile effect advances to completion or closes the dialog.
+    } catch {
+      setError(GENERIC_AUTH_ERROR)
     } finally {
       setBusy(false)
     }
   }
 
-  function submitEmail(event: React.FormEvent) {
+  async function submitCompletion(event: React.FormEvent) {
     event.preventDefault()
-    void requestLink()
-  }
-
-  function useDifferentEmail() {
-    clearRememberedEmail()
-    setEmail('')
-    setShowReturning(false)
-    setSent(false)
+    if (!profile || busy) return
     setError('')
-  }
-
-  async function finishProfile(event: React.FormEvent) {
-    event.preventDefault()
-    if (!profile) return
-    setError('')
+    if (needsUsername) {
+      const usernameError = validateUsername(username)
+      if (usernameError) {
+        setError(usernameError)
+        return
+      }
+    }
     setBusy(true)
     try {
-      await completeProfile({ displayName: name.trim() || profile.displayName, investorType })
-      // The profile effect above closes the dialog.
-    } catch {
-      setError('We could not save your profile. Please try again.')
+      await completeProfile({
+        displayName: displayName.trim() || profile.displayName,
+        username: needsUsername ? username.trim() : undefined,
+        investorType,
+      })
+      // The profile effect closes the dialog once setup is complete.
+    } catch (caught) {
+      setError(mapUsernameError(caught instanceof Error ? caught.message : undefined))
       setBusy(false)
     }
   }
 
-  if (profile?.complete) return null
-
-  const sendLabel = busy
-    ? 'Sending…'
-    : demoMode
-      ? 'Continue'
-      : cooldown > 0
-        ? `Send another link in ${cooldown}s`
-        : 'Send magic link'
-
-  return (
-    <Modal onClose={onClose}>
-      {profile ? (
-        <form onSubmit={finishProfile}>
+  if (profile && needsCompletion) {
+    return (
+      <Modal onClose={onClose}>
+        <form onSubmit={submitCompletion}>
           <span className="eyebrow">Welcome to Open Floor</span>
           <h2>One quick profile detail.</h2>
           <p className="modal-copy">This is how your questions and support appear to other shareholders.</p>
+          {needsUsername && (
+            <label className="field">
+              Username
+              <input
+                className="text-input"
+                value={username}
+                onChange={event => setUsername(event.target.value)}
+                placeholder="e.g. quiet_investor"
+                autoComplete="username"
+                maxLength={30}
+              />
+            </label>
+          )}
           <label className="field">
             Display name
             <input
               className="text-input"
-              value={name}
-              onChange={event => setName(event.target.value)}
+              value={displayName}
+              onChange={event => setDisplayName(event.target.value)}
               placeholder={profile.displayName}
               maxLength={60}
-              autoFocus
+              autoFocus={!needsUsername}
             />
           </label>
           <label className="field">
@@ -148,76 +116,79 @@ export function AuthModal({ action, onClose }: { action: string; onClose: () => 
               ))}
             </select>
           </label>
-          {error && <p className="form-error" role="alert">{error}</p>}
-          <button className="btn primary full" type="submit" disabled={busy}>
-            {busy ? 'Saving…' : 'Continue'} <ChevronRight size={15} />
-          </button>
-        </form>
-      ) : sent && !demoMode ? (
-        <div className="success-state">
-          <div className="success-icon">
-            <Mail size={22} />
-          </div>
-          <h2>Check your inbox.</h2>
-          <p>
-            We sent a secure magic link to <b>{email}</b>. Follow it to continue and {action}.
-          </p>
-          {error && <p className="form-error" role="alert">{error}</p>}
-          <button className="btn primary" type="button" onClick={() => void requestLink()} disabled={busy || cooldown > 0}>
-            {busy ? 'Sending…' : cooldown > 0 ? `Send another link in ${cooldown}s` : 'Send another link'}
-          </button>
-          <button className="btn ghost" type="button" onClick={useDifferentEmail}>
-            Use a different email
-          </button>
-          <p className="privacy-note" aria-live="polite">
-            {cooldown > 0
-              ? "Didn’t get it? You can resend once the timer ends — also check spam."
-              : 'Didn’t get it? Resend the link or check your spam folder.'}
-          </p>
-        </div>
-      ) : (
-        <form onSubmit={submitEmail}>
-          <span className="eyebrow">Sign in to continue</span>
-          <h2>Keep your voice in the room.</h2>
-          <p className="modal-copy">Browse freely — we only ask for an email when you want to {action}.</p>
-          {showReturning && (
-            <div className="returning-note" role="status">
-              <span className="returning-title">Welcome back.</span> We remember this email on this device to make
-              sign-in faster.
-            </div>
-          )}
-          <label className="field">
-            Email address
-            <input
-              className="text-input"
-              type="email"
-              value={email}
-              onChange={event => {
-                setEmail(event.target.value)
-                if (showReturning) setShowReturning(false)
-              }}
-              placeholder="you@example.com"
-              autoFocus
-            />
-          </label>
           {error && (
             <p className="form-error" role="alert">
               {error}
             </p>
           )}
-          <button className="btn primary full" type="submit" disabled={busy || (!demoMode && cooldown > 0)}>
-            {sendLabel} <Mail size={15} />
+          <button className="btn primary full" type="submit" disabled={busy}>
+            {busy ? 'Saving…' : 'Continue'} <ChevronRight size={15} />
           </button>
-          {showReturning && (
-            <button className="btn ghost small full" type="button" onClick={useDifferentEmail}>
-              Use a different email
-            </button>
-          )}
-          <p className="privacy-note">
-            <ShieldCheck size={15} /> No password. No brokerage credentials. Unsubscribe anytime.
-          </p>
         </form>
-      )}
+      </Modal>
+    )
+  }
+
+  return (
+    <Modal onClose={onClose}>
+      <form onSubmit={submitLogin}>
+        <span className="eyebrow">Sign in to continue</span>
+        <h2>Keep your voice in the room.</h2>
+        <p className="modal-copy">Browse freely — sign in when you want to {action}.</p>
+        <label className="field">
+          Username or email
+          <input
+            className="text-input"
+            name="identifier"
+            type="text"
+            value={identifier}
+            onChange={event => setIdentifier(event.target.value)}
+            placeholder="you@example.com or username"
+            autoComplete="username"
+            autoFocus
+          />
+        </label>
+        <label className="field">
+          Password
+          <span className="password-field">
+            <input
+              className="text-input"
+              name="password"
+              type={showPassword ? 'text' : 'password'}
+              value={password}
+              onChange={event => setPassword(event.target.value)}
+              autoComplete="current-password"
+            />
+            <button
+              type="button"
+              className="password-toggle"
+              onClick={() => setShowPassword(show => !show)}
+              aria-label={showPassword ? 'Hide password' : 'Show password'}
+            >
+              {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
+            </button>
+          </span>
+        </label>
+        {error && (
+          <p className="form-error" role="alert">
+            {error}
+          </p>
+        )}
+        <button className="btn primary full" type="submit" disabled={busy}>
+          {busy ? 'Signing in…' : 'Sign in'} <LogIn size={15} />
+        </button>
+        <div className="auth-modal-links">
+          <Link to="/signup" onClick={onClose}>
+            Create account
+          </Link>
+          <Link to="/forgot-password" onClick={onClose}>
+            Forgot password?
+          </Link>
+        </div>
+        <p className="privacy-note">
+          <ShieldCheck size={15} /> No brokerage credentials. We never see your holdings.
+        </p>
+      </form>
     </Modal>
   )
 }

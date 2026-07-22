@@ -1,5 +1,5 @@
 import { lazy, Suspense, useEffect, type ComponentType } from 'react'
-import { BrowserRouter, Route, Routes, useLocation } from 'react-router-dom'
+import { Route, Routes, useLocation } from 'react-router-dom'
 import { Analytics } from '@vercel/analytics/react'
 import { sanitizeAnalyticsUrl } from './lib/analyticsUrl'
 import { AppShell } from './components/AppShell'
@@ -33,6 +33,19 @@ const PrivacyPage = trust(module => module.PrivacyPage)
 const TermsPage = trust(module => module.TermsPage)
 const DisclaimerPage = trust(module => module.DisclaimerPage)
 
+// Auth screens load as one lazy chunk — form validation + Supabase auth stay out
+// of the main bundle.
+const auth = (pick: (module: typeof import('./pages/auth')) => ComponentType) =>
+  lazy(() => import('./pages/auth').then(module => ({ default: pick(module) })))
+
+const LoginPage = auth(module => module.LoginPage)
+const SignupPage = auth(module => module.SignupPage)
+const VerifyEmailPage = auth(module => module.VerifyEmailPage)
+const ForgotPasswordPage = auth(module => module.ForgotPasswordPage)
+const ResetPasswordPage = auth(module => module.ResetPasswordPage)
+
+const AdminPage = lazy(() => import('./pages/admin/AdminPage').then(module => ({ default: module.AdminPage })))
+
 function ScrollToTop() {
   const { pathname } = useLocation()
   useEffect(() => {
@@ -45,7 +58,7 @@ const lazyFallback = <Skeleton height={420} />
 
 function App() {
   return (
-    <BrowserRouter>
+    <>
       {/* Vercel Web Analytics: aggregate traffic only (page views/visitors/routes).
           Mounted once at the root so it persists across SPA route changes. No
           custom product events are sent here — those go to PostHog via track().
@@ -67,6 +80,14 @@ function App() {
             <Route path="/companies" element={<DashboardPage />} />
             <Route path="/companies/:slug" element={<CampaignPage />} />
             <Route path="/request-company" element={<RequestCompanyPage />} />
+            {/* Password-auth screens (magic-link login has been removed). */}
+            <Route path="/login" element={<LoginPage />} />
+            <Route path="/signup" element={<SignupPage />} />
+            <Route path="/verify-email" element={<VerifyEmailPage />} />
+            <Route path="/forgot-password" element={<ForgotPasswordPage />} />
+            <Route path="/reset-password" element={<ResetPasswordPage />} />
+            {/* Protected admin foundation (guarded server-side by is_admin()). */}
+            <Route path="/admin" element={<AdminPage />} />
             <Route path="/about" element={<AboutPage />} />
             <Route path="/how-it-works" element={<HowItWorksPage />} />
             <Route path="/faq" element={<FaqPage />} />
@@ -82,7 +103,7 @@ function App() {
           </Routes>
         </Suspense>
       </AppShell>
-    </BrowserRouter>
+    </>
   )
 }
 

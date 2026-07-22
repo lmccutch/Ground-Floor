@@ -2,6 +2,7 @@ import { companyDirectory, type DirectoryCompany, type DirectorySecurity } from 
 import { retailPopularity, retailPopularityMeta, type RetailPopularityMeta } from '../data/retailPopularity'
 import { buildCompanySlug, normalizeName, normalizeSymbol } from './companyIdentity'
 import { AuthRequestError } from './authClient'
+import { isEmailIdentifier } from './authValidation'
 import { getSiteUrl } from './siteUrl'
 import { getDataModeConfig } from './dataMode'
 import { supabase } from './supabase'
@@ -111,12 +112,16 @@ export type Profile = {
   id: string
   email?: string
   displayName: string
+  /** Case-preserving username; unique case-insensitively. Undefined until claimed. */
+  username?: string
   country?: string
   investorType?: string
   /** When true, all of the user's questions display as "Anonymous Shareholder". */
   publicAnonymous?: boolean
   /** True once the user has confirmed display name / investor type. */
   complete?: boolean
+  /** True when the Supabase Auth email is verified (always true in demo mode). */
+  emailVerified?: boolean
 }
 
 export type Notification = { id: string; title: string; body: string; createdAt: string; read: boolean }
@@ -1252,26 +1257,27 @@ export async function getProfileRow(userId: string): Promise<Profile | null> {
   return {
     id: userId,
     displayName: String(row.display_name ?? 'Shareholder'),
+    username: asOptional(row.username),
     country: asOptional(row.country),
     investorType: asOptional(row.investor_type),
     publicAnonymous: Boolean(row.public_anonymous),
     // The on_auth_user_created trigger inserts a profiles row for every new user
-    // (display_name defaulted from their email), before they ever see the profile
-    // completion step. investor_type is never set by that trigger — only by
+    // (display_name defaulted from their email/username), before they ever see the
+    // profile completion step. investor_type is never set by that trigger — only by
     // completeProfile — so it is the signal that the user actually completed setup.
     complete: row.investor_type != null,
   }
 }
 
-export async function buildSupabaseProfile(userId: string, email?: string | null): Promise<Profile> {
+export async function buildSupabaseProfile(userId: string, email?: string | null, emailVerified = false): Promise<Profile> {
   const fallbackName = email?.split('@')[0] || 'Shareholder'
   try {
     const row = await getProfileRow(userId)
-    if (row) return { ...row, email: email ?? undefined }
+    if (row) return { ...row, email: email ?? undefined, emailVerified }
   } catch {
     // Fall through to the minimal profile; the completion prompt will retry the upsert.
   }
-  return { id: userId, email: email ?? undefined, displayName: fallbackName, complete: false }
+  return { id: userId, email: email ?? undefined, displayName: fallbackName, complete: false, emailVerified }
 }
 
 export async function getSessionProfile(): Promise<Profile | null> {
@@ -1279,36 +1285,128 @@ export async function getSessionProfile(): Promise<Profile | null> {
     const { data } = await supabase.auth.getSession()
     const user = data.session?.user
     if (!user) return null
-    return buildSupabaseProfile(user.id, user.email)
+    return buildSupabaseProfile(user.id, user.email, Boolean(user.email_confirmed_at))
   }
   return readLocal().user ?? null
 }
 
-/** Demo mode returns the signed-in profile immediately; Supabase mode returns null until the link is followed. */
-export async function signInWithMagicLink(email: string): Promise<Profile | null> {
+/* ------------------------------ password auth ----------------------------- */
+
+export type SignUpAccountInput = { username: string; email: string; password: string }
+export type SignUpResult = { status: 'verification_sent' | 'signed_in' }
+
+/**
+ * Create an account with a username, email, and password. Supabase Auth is the
+ * sole store of the password — it is never written to a profile, hashed in the
+ * browser, logged, or sent anywhere. The desired username is passed as signup
+ * metadata and reserved via claim_username() once a session exists (see
+ * MvpContext) so uniqueness conflicts can be surfaced to the user.
+ */
+export async function signUpAccount(input: SignUpAccountInput): Promise<SignUpResult> {
+  const email = input.email.trim().toLowerCase()
+  const username = input.username.trim()
   if (supabase) {
-    // Resolve via the centralized helper so the magic-link redirect is always a
-    // normalized absolute URL (never the literal "VITE_SITE_URL"). No dedicated
-    // /auth/callback route exists — the link returns to the site root, where
-    // supabase-js detects the session in the URL and getSessionProfile() reads it.
-    const { error } = await supabase.auth.signInWithOtp({ email, options: { emailRedirectTo: getSiteUrl() } })
-    // Preserve the Supabase status/code so the UI can detect rate limits (429 /
-    // over_email_send_rate_limit) and show a specific, actionable message rather
-    // than a generic failure.
-    if (error) {
-      throw new AuthRequestError(error.message, {
-        status: (error as { status?: number }).status,
-        code: (error as { code?: string }).code,
-      })
-    }
-    return null
+    const { data, error } = await supabase.auth.signUp({
+      email,
+      password: input.password,
+      options: { emailRedirectTo: `${getSiteUrl()}/verify-email`, data: { username, display_name: username } },
+    })
+    if (error) throw authError(error)
+    return { status: data.session ? 'signed_in' : 'verification_sent' }
   }
+  // Demo mode: no real auth. Create a local, complete-enough profile immediately.
   const store = readLocal()
+  writeLocal({ ...store, user: { id: `demo-${username.toLowerCase()}`, email, displayName: username, username, complete: false, emailVerified: true } })
+  return { status: 'signed_in' }
+}
+
+/**
+ * Sign in with either an email or a username, plus password. Email goes straight
+ * to Supabase Auth. A username is resolved to its email server-side by the
+ * `login` Edge Function (service-role only) — the browser never receives the
+ * username→email mapping. All failures surface identically to the caller.
+ */
+export async function loginWithIdentifier(identifier: string, password: string): Promise<void> {
+  const id = identifier.trim()
+  if (supabase) {
+    if (isEmailIdentifier(id)) {
+      const { error } = await supabase.auth.signInWithPassword({ email: id.toLowerCase(), password })
+      if (error) throw new AuthRequestError('invalid_credentials')
+      return
+    }
+    const { data, error } = await supabase.functions.invoke('login', { body: { identifier: id, password } })
+    const session = (data ?? {}) as { access_token?: string; refresh_token?: string }
+    if (error || !session.access_token || !session.refresh_token) throw new AuthRequestError('invalid_credentials')
+    const { error: sessionError } = await supabase.auth.setSession({
+      access_token: session.access_token,
+      refresh_token: session.refresh_token,
+    })
+    if (sessionError) throw new AuthRequestError('invalid_credentials')
+    return
+  }
+  // Demo mode: accept any credentials and create/return a local profile.
+  const store = readLocal()
+  const email = isEmailIdentifier(id) ? id.toLowerCase() : `${id.toLowerCase()}@demo.local`
   const existing = store.user
   const profile: Profile =
-    existing && existing.email === email ? existing : { id: `demo-${email.toLowerCase()}`, email, displayName: email.split('@')[0], complete: false }
+    existing && (existing.email === email || existing.username === id)
+      ? existing
+      : { id: `demo-${id.toLowerCase()}`, email, displayName: id, username: isEmailIdentifier(id) ? undefined : id, complete: false, emailVerified: true }
   writeLocal({ ...store, user: profile })
-  return profile
+}
+
+/** Reserve a username for the current user. Throws with a mappable message on conflict. */
+export async function claimUsername(username: string): Promise<void> {
+  if (!supabase) return
+  const { error } = await supabase.rpc('claim_username', { p_username: username.trim() })
+  if (error) throw new AuthRequestError(error.message, { code: (error as { code?: string }).code })
+}
+
+/** True when the username is free (and valid, not reserved). Demo mode: always free. */
+export async function checkUsernameAvailable(username: string): Promise<boolean> {
+  if (!supabase) return true
+  const { data, error } = await supabase.rpc('username_available', { p_username: username.trim() })
+  if (error) return false
+  return data === true
+}
+
+/**
+ * Send a password-recovery email. Always resolves (never reveals whether the
+ * account exists) so the UI can show one generic response — no account enumeration.
+ */
+export async function requestPasswordReset(email: string): Promise<void> {
+  if (!supabase) return
+  await supabase.auth.resetPasswordForEmail(email.trim().toLowerCase(), { redirectTo: `${getSiteUrl()}/reset-password` })
+}
+
+/** Update the current user's password (used from the recovery-session reset screen). */
+export async function updatePassword(newPassword: string): Promise<void> {
+  if (!supabase) return
+  const { error } = await supabase.auth.updateUser({ password: newPassword })
+  if (error) throw authError(error)
+}
+
+/** Resend the signup verification email. */
+export async function resendVerificationEmail(email: string): Promise<void> {
+  if (!supabase) return
+  const { error } = await supabase.auth.resend({
+    type: 'signup',
+    email: email.trim().toLowerCase(),
+    options: { emailRedirectTo: `${getSiteUrl()}/verify-email` },
+  })
+  if (error) throw authError(error)
+}
+
+/** Whether the current session belongs to the sole authorized administrator. */
+export async function isCurrentUserAdmin(): Promise<boolean> {
+  if (!supabase) return false
+  const { data, error } = await supabase.rpc('is_admin')
+  if (error) return false
+  return data === true
+}
+
+function authError(error: { message: string; status?: number; code?: string }): AuthRequestError {
+  return new AuthRequestError(error.message, { status: error.status, code: error.code })
 }
 
 export async function signOut() {

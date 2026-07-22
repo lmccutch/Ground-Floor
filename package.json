@@ -14,7 +14,8 @@
     "bootstrap:generate": "tsx scripts/generate-company-bootstrap.ts",
     "retail:import": "tsx scripts/import-retail-popularity.ts",
     "verify:rpc-security": "tsx scripts/verify-start-campaign-security.ts",
-    "verify:core-security": "tsx scripts/verify-core-experience-security.ts"
+    "verify:core-security": "tsx scripts/verify-core-experience-security.ts",
+    "verify:admin-security": "tsx scripts/verify-admin-foundation-security.ts"
   },
   "dependencies": {
     "@hookform/resolvers": "^5.4.0",
