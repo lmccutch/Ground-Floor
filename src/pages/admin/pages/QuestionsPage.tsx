@@ -50,6 +50,7 @@ export function QuestionsPage() {
           <Field label="Votes">{q.votes}</Field>
           <Field label="Public status">{q.status}</Field>
           <Field label="Submitted">{formatDateTime(q.createdAt)}</Field>
+          <Field label="Moderated by">{q.moderatedByName ?? '—'}</Field>
           <Field label="Moderated at">{formatDateTime(q.moderatedAt)}</Field>
           <Field label="Moderation reason">{q.moderationReason ?? '—'}</Field>
           {q.ticker && (

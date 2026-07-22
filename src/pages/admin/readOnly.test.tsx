@@ -69,8 +69,31 @@ const notifications = [
   },
 ]
 
+const questions = [
+  {
+    id: '22222222-2222-2222-2222-222222222222',
+    text: 'What is the plan for the dividend?',
+    topic: 'Capital allocation',
+    status: 'Open',
+    moderationStatus: 'pending_review',
+    createdAt: new Date().toISOString(),
+    updatedAt: new Date().toISOString(),
+    isAnonymous: false,
+    authorName: 'Quiet Investor',
+    companyName: 'Example Corp',
+    ticker: 'EXC',
+    companyId: 'c1',
+    votes: 12,
+    reportCount: 0,
+    moderatedByName: undefined,
+    moderatedAt: undefined,
+    moderationReason: undefined,
+  },
+]
+
 vi.mock('../../lib/adminApi', () => ({
   getNotifications: vi.fn(async () => ({ rows: notifications, total: notifications.length })),
+  getQuestions: vi.fn(async () => ({ rows: questions, total: questions.length })),
 }))
 
 // Any control that would change state is forbidden in this read-only phase.
@@ -104,6 +127,29 @@ describe('read-only enforcement — rendered page', () => {
     // The message is visible in the drawer…
     expect(within(dialog).getByText(/off-topic content/i)).toBeInTheDocument()
     // …and the only controls are the read-only Close + copy-id, never a mutation.
+    expect(forbiddenButtons(dialog)).toEqual([])
+  })
+})
+
+describe('read-only enforcement — Questions page (RPC-backed after the embed fix)', () => {
+  beforeEach(async () => {
+    const { QuestionsPage } = await import('./pages/QuestionsPage')
+    render(
+      <MemoryRouter initialEntries={['/admin/questions']}>
+        <QuestionsPage />
+      </MemoryRouter>,
+    )
+  })
+
+  it('renders question data from the admin RPC with no mutation controls', async () => {
+    await waitFor(() => expect(screen.getByText(/plan for the dividend/i)).toBeInTheDocument())
+    expect(forbiddenButtons(document.body)).toEqual([])
+  })
+
+  it('opening a question shows a read-only detail drawer', async () => {
+    fireEvent.click(await screen.findByText(/plan for the dividend/i))
+    const dialog = await screen.findByRole('dialog')
+    expect(within(dialog).getByText('Capital allocation')).toBeInTheDocument()
     expect(forbiddenButtons(dialog)).toEqual([])
   })
 })

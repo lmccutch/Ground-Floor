@@ -13,6 +13,9 @@ function client() {
 type Row = Record<string, unknown>
 const num = (v: unknown) => (typeof v === 'number' ? v : Number(v ?? 0)) || 0
 const str = (v: unknown) => (v == null ? undefined : String(v))
+// List RPCs return total_count as a window function on every row; read it off the
+// first row (falling back to the page length when the page is empty).
+const totalOf = (data: unknown, fallback: number) => num((Array.isArray(data) ? (data[0] as Row) : undefined)?.total_count) || fallback
 
 /* --------------------------------- overview -------------------------------- */
 
@@ -264,7 +267,12 @@ export async function getRecentActivity(limit = 25): Promise<ActivityEntry[]> {
   }))
 }
 
-/* ------------------- direct admin queries (RLS-gated reads) ----------------- */
+/* --------------- moderation / support read models (admin RPCs) -------------- */
+// These four pages read through dedicated is_admin()-guarded RPCs rather than
+// direct table queries: their tables each have TWO foreign keys to profiles
+// (author/moderator, reporter/reviewer, submitter/assignee), which makes a
+// PostgREST profiles embed ambiguous (HTTP 300 PGRST201). The RPCs resolve the
+// correct FK in SQL and return only the fields the UI needs. Read-only.
 
 export type AdminQuestion = {
   id: string
@@ -282,54 +290,41 @@ export type AdminQuestion = {
   votes: number
   reportCount: number
   moderatedBy?: string
+  moderatedByName?: string
   moderatedAt?: string
   moderationReason?: string
 }
 
-function embeddedCount(v: unknown): number {
-  if (Array.isArray(v)) return num((v[0] as Row)?.count)
-  return 0
-}
-
-export async function getQuestions(params: { status?: string; moderationStatus?: string; companyId?: string; search?: string; limit?: number; offset?: number } = {}): Promise<{ rows: AdminQuestion[]; total: number }> {
-  let q = client()
-    .from('questions')
-    .select(
-      'id, question_text, topic, status, moderation_status, created_at, updated_at, is_anonymous, company_id, moderated_by, moderated_at, moderation_reason, author:profiles(username, display_name), company:companies(display_name, ticker), votes:question_votes(count), reports:question_reports(count)',
-      { count: 'exact' },
-    )
-    .order('created_at', { ascending: false })
-    .range(params.offset ?? 0, (params.offset ?? 0) + (params.limit ?? 50) - 1)
-  if (params.moderationStatus) q = q.eq('moderation_status', params.moderationStatus)
-  if (params.status) q = q.eq('status', params.status)
-  if (params.companyId) q = q.eq('company_id', params.companyId)
-  if (params.search) q = q.ilike('question_text', `%${params.search}%`)
-  const { data, error, count } = await q
-  if (error) throw error
-  const rows = ((data ?? []) as Row[]).map(r => {
-    const author = (r.author ?? {}) as Row
-    const company = (r.company ?? {}) as Row
-    return {
-      id: String(r.id),
-      text: String(r.question_text ?? ''),
-      topic: str(r.topic),
-      status: String(r.status ?? ''),
-      moderationStatus: String(r.moderation_status ?? ''),
-      createdAt: String(r.created_at),
-      updatedAt: str(r.updated_at),
-      isAnonymous: Boolean(r.is_anonymous),
-      authorName: r.is_anonymous ? 'Anonymous' : str(author.display_name) ?? str(author.username),
-      companyName: str(company.display_name),
-      ticker: str(company.ticker),
-      companyId: str(r.company_id),
-      votes: embeddedCount(r.votes),
-      reportCount: embeddedCount(r.reports),
-      moderatedBy: str(r.moderated_by),
-      moderatedAt: str(r.moderated_at),
-      moderationReason: str(r.moderation_reason),
-    }
+export async function getQuestions(params: { moderationStatus?: string; companyId?: string; search?: string; limit?: number; offset?: number } = {}): Promise<{ rows: AdminQuestion[]; total: number }> {
+  const { data, error } = await client().rpc('admin_questions_list', {
+    p_moderation_status: params.moderationStatus ?? null,
+    p_company_id: params.companyId ?? null,
+    p_search: params.search || null,
+    p_limit: params.limit ?? 25,
+    p_offset: params.offset ?? 0,
   })
-  return { rows, total: count ?? rows.length }
+  if (error) throw error
+  const rows = ((data ?? []) as Row[]).map(r => ({
+    id: String(r.id),
+    text: String(r.question_text ?? ''),
+    topic: str(r.topic),
+    status: String(r.status ?? ''),
+    moderationStatus: String(r.moderation_status ?? ''),
+    createdAt: String(r.created_at),
+    updatedAt: str(r.updated_at),
+    isAnonymous: Boolean(r.is_anonymous),
+    authorName: str(r.author_name),
+    companyName: str(r.company_name),
+    ticker: str(r.ticker),
+    companyId: str(r.company_id),
+    votes: num(r.votes),
+    reportCount: num(r.report_count),
+    moderatedBy: str(r.moderated_by),
+    moderatedByName: str(r.moderated_by_name),
+    moderatedAt: str(r.moderated_at),
+    moderationReason: str(r.moderation_reason),
+  }))
+  return { rows, total: totalOf(data, rows.length) }
 }
 
 export type AdminReport = {
@@ -342,46 +337,43 @@ export type AdminReport = {
   details?: string
   status: string
   reporterName?: string
+  questionAuthorName?: string
+  reportsAgainstQuestion: number
   createdAt: string
   reviewedAt?: string
+  reviewedByName?: string
   resolution?: string
   questionModerationStatus?: string
 }
 
 export async function getReports(params: { status?: string; reason?: string; search?: string; limit?: number; offset?: number } = {}): Promise<{ rows: AdminReport[]; total: number }> {
-  let q = client()
-    .from('question_reports')
-    .select(
-      'id, question_id, reason, details, status, created_at, reviewed_at, resolution, reporter:profiles(username, display_name), question:questions(question_text, moderation_status, company:companies(display_name, ticker))',
-      { count: 'exact' },
-    )
-    .order('created_at', { ascending: false })
-    .range(params.offset ?? 0, (params.offset ?? 0) + (params.limit ?? 50) - 1)
-  if (params.status) q = q.eq('status', params.status)
-  if (params.reason) q = q.eq('reason', params.reason)
-  const { data, error, count } = await q
-  if (error) throw error
-  const rows = ((data ?? []) as Row[]).map(r => {
-    const reporter = (r.reporter ?? {}) as Row
-    const question = (r.question ?? {}) as Row
-    const company = (question.company ?? {}) as Row
-    return {
-      id: String(r.id),
-      questionId: String(r.question_id),
-      questionText: str(question.question_text),
-      companyName: str(company.display_name),
-      ticker: str(company.ticker),
-      reason: String(r.reason ?? ''),
-      details: str(r.details),
-      status: String(r.status ?? ''),
-      reporterName: str(reporter.display_name) ?? str(reporter.username),
-      createdAt: String(r.created_at),
-      reviewedAt: str(r.reviewed_at),
-      resolution: str(r.resolution),
-      questionModerationStatus: str(question.moderation_status),
-    }
+  const { data, error } = await client().rpc('admin_question_reports_list', {
+    p_status: params.status ?? null,
+    p_reason: params.reason ?? null,
+    p_search: params.search || null,
+    p_limit: params.limit ?? 25,
+    p_offset: params.offset ?? 0,
   })
-  return { rows, total: count ?? rows.length }
+  if (error) throw error
+  const rows = ((data ?? []) as Row[]).map(r => ({
+    id: String(r.id),
+    questionId: String(r.question_id),
+    questionText: str(r.question_text),
+    companyName: str(r.company_name),
+    ticker: str(r.ticker),
+    reason: String(r.reason ?? ''),
+    details: str(r.details),
+    status: String(r.status ?? ''),
+    reporterName: str(r.reporter_name),
+    questionAuthorName: str(r.question_author_name),
+    reportsAgainstQuestion: num(r.reports_against_question),
+    createdAt: String(r.created_at),
+    reviewedAt: str(r.reviewed_at),
+    reviewedByName: str(r.reviewed_by_name),
+    resolution: str(r.resolution),
+    questionModerationStatus: str(r.question_moderation_status),
+  }))
+  return { rows, total: totalOf(data, rows.length) }
 }
 
 export type AdminBug = Row & {
@@ -391,44 +383,65 @@ export type AdminBug = Row & {
   status: string
   createdAt: string
   submitterName?: string
+  assignedAdminName?: string
 }
 
 export async function getBugs(params: { status?: string; severity?: string; search?: string; limit?: number; offset?: number } = {}): Promise<{ rows: AdminBug[]; total: number }> {
-  let q = client()
-    .from('bug_reports')
-    .select('*, submitter:profiles(username, display_name)', { count: 'exact' })
-    .order('created_at', { ascending: false })
-    .range(params.offset ?? 0, (params.offset ?? 0) + (params.limit ?? 50) - 1)
-  if (params.status) q = q.eq('status', params.status)
-  if (params.severity) q = q.eq('severity', params.severity)
-  if (params.search) q = q.ilike('description', `%${params.search}%`)
-  const { data, error, count } = await q
-  if (error) throw error
-  const rows = ((data ?? []) as Row[]).map(r => {
-    const s = (r.submitter ?? {}) as Row
-    return { ...r, id: String(r.id), description: String(r.description ?? ''), severity: str(r.severity), status: String(r.status ?? ''), createdAt: String(r.created_at), submitterName: str(s.display_name) ?? str(s.username) } as AdminBug
+  const { data, error } = await client().rpc('admin_bug_reports_list', {
+    p_status: params.status ?? null,
+    p_severity: params.severity ?? null,
+    p_search: params.search || null,
+    p_limit: params.limit ?? 25,
+    p_offset: params.offset ?? 0,
   })
-  return { rows, total: count ?? rows.length }
+  if (error) throw error
+  const rows = ((data ?? []) as Row[]).map(r => ({
+    ...r,
+    id: String(r.id),
+    description: String(r.description ?? ''),
+    severity: str(r.severity),
+    status: String(r.status ?? ''),
+    createdAt: String(r.created_at),
+    submitterName: str(r.submitter_name),
+    assignedAdminName: str(r.assigned_admin_name),
+  }) as AdminBug)
+  return { rows, total: totalOf(data, rows.length) }
 }
 
-export type AdminTicket = Row & { id: string; ticketNumber: string; category: string; status: string; createdAt: string; senderName?: string }
+export type AdminTicket = Row & {
+  id: string
+  ticketNumber: string
+  category: string
+  status: string
+  createdAt: string
+  senderName?: string
+  senderEmail?: string
+  submitterName?: string
+  assignedAdminName?: string
+}
 
 export async function getSupportTickets(params: { status?: string; category?: string; search?: string; limit?: number; offset?: number } = {}): Promise<{ rows: AdminTicket[]; total: number }> {
-  let q = client()
-    .from('support_tickets')
-    .select('*, submitter:profiles(username, display_name)', { count: 'exact' })
-    .order('created_at', { ascending: false })
-    .range(params.offset ?? 0, (params.offset ?? 0) + (params.limit ?? 50) - 1)
-  if (params.status) q = q.eq('status', params.status)
-  if (params.category) q = q.eq('category', params.category)
-  if (params.search) q = q.ilike('subject', `%${params.search}%`)
-  const { data, error, count } = await q
-  if (error) throw error
-  const rows = ((data ?? []) as Row[]).map(r => {
-    const s = (r.submitter ?? {}) as Row
-    return { ...r, id: String(r.id), ticketNumber: String(r.ticket_number ?? ''), category: String(r.category ?? ''), status: String(r.status ?? ''), createdAt: String(r.created_at), senderName: str(r.name) ?? str(s.display_name) ?? str(s.username) } as AdminTicket
+  const { data, error } = await client().rpc('admin_support_tickets_list', {
+    p_status: params.status ?? null,
+    p_category: params.category ?? null,
+    p_search: params.search || null,
+    p_limit: params.limit ?? 25,
+    p_offset: params.offset ?? 0,
   })
-  return { rows, total: count ?? rows.length }
+  if (error) throw error
+  const rows = ((data ?? []) as Row[]).map(r => ({
+    ...r,
+    id: String(r.id),
+    ticketNumber: String(r.ticket_number ?? ''),
+    category: String(r.category ?? ''),
+    status: String(r.status ?? ''),
+    createdAt: String(r.created_at),
+    senderName: str(r.sender_name) ?? str(r.submitter_name),
+    senderEmail: str(r.sender_email),
+    submitterName: str(r.submitter_name),
+    assignedAdminName: str(r.assigned_admin_name),
+  }) as AdminTicket)
+  return { rows, total: totalOf(data, rows.length) }
 }
 
 export type AdminNotification = {
