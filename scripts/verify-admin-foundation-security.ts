@@ -176,6 +176,15 @@ async function main() {
     check("exactly one of two concurrent username claims wins", aOk && bTaken, `a=${claimA.status} b=${claimB.status}`);
     const reserved = await claimUsername(s3.token, "admin");
     check("reserved usernames are blocked", reserved.status >= 400, `http=${reserved.status}`);
+
+    /* ---------------- username reclaim idempotency (Prompt 2 preflight) ----- */
+    // s1 already owns `uname` from the concurrency test above.
+    const reclaimSame = await claimUsername(s1.token, uname);
+    check("owner reclaiming their own username is an idempotent success (no username_taken)", reclaimSame.status === 200, `http=${reclaimSame.status}`);
+    const reclaimCase = await claimUsername(s1.token, uname.toUpperCase());
+    check("owner case-only username change succeeds and is not reported as taken", reclaimCase.status === 200, `http=${reclaimCase.status}`);
+    const otherStillBlocked = await claimUsername(s2.token, uname);
+    check("a different user still cannot claim a username someone already owns", otherStillBlocked.status >= 400, `http=${otherStillBlocked.status}`);
   } finally {
     if (created.campaignId) await rest("DELETE", `/rest/v1/campaigns?id=eq.${created.campaignId}`, { key: serviceKey! });
     if (created.companyId) await rest("DELETE", `/rest/v1/companies?id=eq.${created.companyId}`, { key: serviceKey! });

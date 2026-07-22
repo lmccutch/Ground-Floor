@@ -44,7 +44,9 @@ const VerifyEmailPage = auth(module => module.VerifyEmailPage)
 const ForgotPasswordPage = auth(module => module.ForgotPasswordPage)
 const ResetPasswordPage = auth(module => module.ResetPasswordPage)
 
-const AdminPage = lazy(() => import('./pages/admin/AdminPage').then(module => ({ default: module.AdminPage })))
+// The entire admin action centre loads as its own lazy chunk so none of it (or
+// its data layer) ships in the public bundle. Guarded server-side by is_admin().
+const AdminApp = lazy(() => import('./pages/admin/AdminApp').then(module => ({ default: module.AdminApp })))
 
 function ScrollToTop() {
   const { pathname } = useLocation()
@@ -86,8 +88,9 @@ function App() {
             <Route path="/verify-email" element={<VerifyEmailPage />} />
             <Route path="/forgot-password" element={<ForgotPasswordPage />} />
             <Route path="/reset-password" element={<ResetPasswordPage />} />
-            {/* Protected admin foundation (guarded server-side by is_admin()). */}
-            <Route path="/admin" element={<AdminPage />} />
+            {/* Protected admin action centre (guarded server-side by is_admin()).
+                The splat lets the admin app own its own nested routes. */}
+            <Route path="/admin/*" element={<AdminApp />} />
             <Route path="/about" element={<AboutPage />} />
             <Route path="/how-it-works" element={<HowItWorksPage />} />
             <Route path="/faq" element={<FaqPage />} />
