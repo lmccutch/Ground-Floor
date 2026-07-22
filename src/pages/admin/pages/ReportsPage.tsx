@@ -27,7 +27,7 @@ export function ReportsPage() {
       columns={columns}
       gridTemplate="2fr 1.1fr 1.1fr 1fr 0.6fr"
       getRowKey={r => r.id}
-      fetchPage={({ filters, offset, limit }) => getReports({ status: filters.status || undefined, reason: filters.reason || undefined, offset, limit })}
+      fetchPage={({ search, filters, offset, limit }) => getReports({ search, status: filters.status || undefined, reason: filters.reason || undefined, offset, limit })}
       emptyTitle="No reports"
       emptyMessage="Reported questions will appear here. Report details stay private to administrators."
       detailTitle={() => 'Report detail'}
@@ -42,9 +42,12 @@ export function ReportsPage() {
           </Field>
           <Field label="Company">{r.companyName ?? '—'}</Field>
           <Field label="Question moderation">{humanize(r.questionModerationStatus)}</Field>
+          <Field label="Question author">{r.questionAuthorName ?? '—'}</Field>
+          <Field label="Reports against this question">{r.reportsAgainstQuestion}</Field>
           <Field label="Reporter">{r.reporterName ?? '—'}</Field>
           <Field label="Reason detail">{r.details ?? '—'}</Field>
           <Field label="Filed">{formatDateTime(r.createdAt)}</Field>
+          <Field label="Reviewed by">{r.reviewedByName ?? '—'}</Field>
           <Field label="Reviewed">{formatDateTime(r.reviewedAt)}</Field>
           <Field label="Resolution">{r.resolution ?? '—'}</Field>
           <Field label="Report ID">

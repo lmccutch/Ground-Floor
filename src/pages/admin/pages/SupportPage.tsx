@@ -44,6 +44,8 @@ export function SupportPage() {
             <p className="admin-longtext">{str(t.message)}</p>
           </Field>
           <Field label="Sender">{t.senderName ?? '—'}</Field>
+          <Field label="Sender email">{t.senderEmail ?? '—'}</Field>
+          <Field label="Assigned admin">{t.assignedAdminName ?? 'Unassigned'}</Field>
           <Field label="Priority">{humanize(str(t.priority))}</Field>
           <Field label="Internal notes">{str(t.admin_notes)}</Field>
           <Field label="Last response">{formatDateTime(t.last_response_at as string | undefined)}</Field>

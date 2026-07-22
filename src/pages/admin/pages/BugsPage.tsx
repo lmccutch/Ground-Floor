@@ -60,6 +60,7 @@ export function BugsPage() {
           </Field>
           <Field label="App version">{str(b.app_version)}</Field>
           <Field label="Reporter">{b.submitterName ?? '—'}</Field>
+          <Field label="Assigned admin">{b.assignedAdminName ?? 'Unassigned'}</Field>
           <Field label="Internal notes">{str(b.admin_notes)}</Field>
           <Field label="Linked issue">{str(b.linked_issue_url)}</Field>
           <Field label="Fixed commit">{str(b.fixed_commit)}</Field>
