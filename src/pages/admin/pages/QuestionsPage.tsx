@@ -14,8 +14,11 @@ const HIDDEN_STATES = ['hidden', 'removed', 'archived']
 const questionActions: AdminAction<AdminQuestion>[] = [
   {
     key: 'publish',
+    // A hidden/removed/archived question must be restored first (the server
+    // rejects publishing one directly), so Publish is offered only from the
+    // pre-publication / reported / restored states.
     label: 'Publish',
-    available: q => q.moderationStatus !== 'published',
+    available: q => !['published', 'hidden', 'removed', 'archived'].includes(q.moderationStatus),
     consequence: 'Makes the question publicly visible. Report and moderation history are preserved.',
     reversible: true,
     run: q => moderateQuestion({ id: q.id, action: 'publish' }),

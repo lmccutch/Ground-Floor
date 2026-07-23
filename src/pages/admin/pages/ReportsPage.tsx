@@ -34,9 +34,11 @@ const reportActions: AdminAction<AdminReport>[] = [
     key: 'confirm',
     label: 'Confirm (leave published)',
     available: r => OPEN_REPORT.includes(r.status),
-    consequence: 'Marks the report resolved with action taken, without changing the question’s visibility.',
+    consequence: 'Marks the report resolved with action taken, without changing the question’s visibility. A resolution note is required so the outcome is documented.',
     reversible: true,
-    reason: { label: 'Resolution note (optional)', required: false },
+    // The server requires a coordinated resolution to reach action_taken via a
+    // bare confirm (no moderation change), so the note is mandatory here.
+    reason: { label: 'Resolution note', required: true },
     run: (r, reason) => resolveReport({ id: r.id, action: 'confirm', resolution: reason, reason }),
   },
   {

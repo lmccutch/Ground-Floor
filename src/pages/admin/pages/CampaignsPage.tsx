@@ -13,8 +13,13 @@ const BANDS = [
 ]
 
 // Operational (internal) statuses only — this never touches the public campaign
-// status. paused/closed are handled by dedicated actions that require a reason.
-const OP_STATUS_OPTIONS = ['active', 'near_threshold', 'threshold_reached', 'outreach_required', 'outreach_started', 'management_engaged', 'scheduled', 'completed', 'stalled'].map(s => ({ value: s, label: humanize(s) }))
+// status. paused/closed/completed are handled by dedicated actions that require a
+// reason (the server rejects an unqualified move to completed/closed).
+const OP_STATUS_OPTIONS = ['active', 'near_threshold', 'threshold_reached', 'outreach_required', 'outreach_started', 'management_engaged', 'scheduled', 'stalled'].map(s => ({ value: s, label: humanize(s) }))
+
+// A campaign can only be completed once outreach is genuinely under way, and the
+// completion must be documented — mirrors the server-side transition rule.
+const COMPLETABLE_FROM = ['outreach_started', 'management_engaged', 'scheduled']
 
 const campaignActions: AdminAction<AdminCampaign>[] = [
   { key: 'op_status', label: 'Set operational status', consequence: 'Changes the internal operational status only — the public campaign status is unaffected. Setting “outreach started” stamps the outreach date automatically.', reversible: true, reason: { label: 'Operational status', required: true, options: OP_STATUS_OPTIONS }, run: (c, v) => updateCampaignOps({ id: c.campaignId, operationalStatus: v, reason: `Operational status set to ${v}` }) },
@@ -22,6 +27,7 @@ const campaignActions: AdminAction<AdminCampaign>[] = [
   { key: 'risk', label: 'Set risk status', reason: { label: 'Risk status', required: true }, run: (c, reason) => updateCampaignOps({ id: c.campaignId, riskStatus: reason, reason: 'Updated risk status' }) },
   { key: 'threshold', label: 'Set supporter threshold', consequence: 'Changes the supporter threshold this campaign is measured against. Progress recalculates immediately.', reversible: true, reason: { label: 'New supporter threshold (whole number)', required: true }, run: (c, v) => { const n = Number((v ?? '').trim()); if (!Number.isInteger(n) || n <= 0) throw new Error('Enter a positive whole number.'); return updateCampaignOps({ id: c.campaignId, supporterThreshold: n, reason: `Supporter threshold set to ${n}` }) } },
   { key: 'note', label: 'Add / update note', reason: { label: 'Internal note', required: true }, run: (c, reason) => updateCampaignOps({ id: c.campaignId, internalNotes: reason, reason: 'Updated internal note' }) },
+  { key: 'complete', label: 'Complete', available: c => COMPLETABLE_FROM.includes(c.operationalStatus), consequence: 'Marks the campaign completed. Requires a completion reason and is only available once outreach is under way. The public campaign status is unaffected.', reversible: false, reason: { label: 'Completion reason', required: true }, run: (c, reason) => updateCampaignOps({ id: c.campaignId, operationalStatus: 'completed', closedReason: reason, reason: 'Completed' }) },
   { key: 'pause', label: 'Pause', available: c => c.operationalStatus !== 'paused', consequence: 'Pauses the campaign operationally.', reversible: true, reason: { label: 'Reason for pausing', required: true }, run: (c, reason) => updateCampaignOps({ id: c.campaignId, operationalStatus: 'paused', reason }) },
   { key: 'close', label: 'Close', tone: 'critical', available: c => c.operationalStatus !== 'closed', consequence: 'Closes the campaign operationally. The public campaign status is unaffected.', reversible: true, reason: { label: 'Closed reason', required: true }, run: (c, reason) => updateCampaignOps({ id: c.campaignId, operationalStatus: 'closed', closedReason: reason, reason: 'Closed' }) },
 ]
