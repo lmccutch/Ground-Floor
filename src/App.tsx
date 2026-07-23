@@ -15,6 +15,7 @@ import './App.css'
 const RequestCompanyPage = lazy(() =>
   import('./components/RequestCompanyPage').then(module => ({ default: module.RequestCompanyPage })),
 )
+const ReportBugPage = lazy(() => import('./pages/ReportBugPage').then(module => ({ default: module.ReportBugPage })))
 
 // Trust/legal pages load as one lazy chunk — long-form content visited far less
 // often than the app core.
@@ -82,6 +83,7 @@ function App() {
             <Route path="/companies" element={<DashboardPage />} />
             <Route path="/companies/:slug" element={<CampaignPage />} />
             <Route path="/request-company" element={<RequestCompanyPage />} />
+            <Route path="/report-bug" element={<ReportBugPage />} />
             {/* Password-auth screens (magic-link login has been removed). */}
             <Route path="/login" element={<LoginPage />} />
             <Route path="/signup" element={<SignupPage />} />

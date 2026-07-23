@@ -16,7 +16,8 @@
     "verify:rpc-security": "tsx scripts/verify-start-campaign-security.ts",
     "verify:core-security": "tsx scripts/verify-core-experience-security.ts",
     "verify:admin-security": "tsx scripts/verify-admin-foundation-security.ts",
-    "verify:transition-security": "tsx scripts/verify-transition-enforcement.ts"
+    "verify:transition-security": "tsx scripts/verify-transition-enforcement.ts",
+    "verify:intake-security": "tsx scripts/verify-intake-security.ts"
   },
   "dependencies": {
     "@hookform/resolvers": "^5.4.0",
