@@ -55,14 +55,15 @@ test.describe('Footer', () => {
     await page.waitForSelector('.site-footer')
     const links = page.locator('.site-footer .footer-column a')
     const count = await links.count()
-    expect(count).toBe(11)
+    expect(count).toBe(12)
     const hrefs: string[] = []
     for (let index = 0; index < count; index += 1) {
       hrefs.push((await links.nth(index).getAttribute('href')) ?? '')
     }
     for (const href of hrefs) {
       await page.goto(href)
-      await expect(page.locator('.page-heading h1')).toBeVisible()
+      // Trust pages use .page-heading; the bug-report form uses the request-page layout.
+      await expect(page.locator('.page-heading h1, .request-intro h1').first()).toBeVisible()
       await expect(page.locator('text=Page not found')).toHaveCount(0)
     }
   })
@@ -106,16 +107,30 @@ test.describe('FAQ interactions', () => {
 })
 
 test.describe('Contact', () => {
-  test('all six enquiry types are mailto links with typed subjects', async ({ page }) => {
+  test('offers a support form and direct-email fallbacks', async ({ page }) => {
     await page.goto('/contact')
+    // The primary path is now a real support form.
+    await expect(page.getByRole('button', { name: /send message/i })).toBeVisible()
+    await expect(page.locator('select')).toBeVisible()
+    await expect(page.getByPlaceholder(/how can we help/i)).toBeVisible()
+    // Direct-email fallbacks remain for security and press.
     const rows = page.locator('.contact-row')
-    await expect(rows).toHaveCount(6)
-    for (const subject of ['General enquiry', 'Investor Relations enquiry', 'Press enquiry', 'Legal / privacy enquiry', 'Moderation appeal', 'Security report']) {
+    await expect(rows).toHaveCount(2)
+    for (const subject of ['Security report', 'Press enquiry']) {
       const row = page.locator('.contact-row', { hasText: subject })
       const href = await row.getAttribute('href')
       expect(href?.startsWith('mailto:')).toBe(true)
       expect(decodeURIComponent(href ?? '')).toContain(subject)
     }
+  })
+
+  test('the report-a-bug form validates and captures consent', async ({ page }) => {
+    await page.goto('/report-bug')
+    await expect(page.getByRole('heading', { name: /something not working/i })).toBeVisible()
+    // Submitting without the consent box shows an inline error, no navigation.
+    await page.getByPlaceholder(/describe the problem/i).fill('The discover filter resets when I paginate on mobile devices.')
+    await page.getByRole('button', { name: /submit bug report/i }).click()
+    await expect(page.getByText(/please confirm before submitting/i)).toBeVisible()
   })
 })
 

@@ -24,6 +24,12 @@ export function PrivacyPage() {
         <li><b>Questions and votes:</b> questions you submit are public (under your display name, or “Anonymous Shareholder” if you choose). Your individual votes are stored so counts are accurate and so you can remove them; vote counts are public, your identity behind a vote is not displayed.</li>
         <li><b>Feedback and reports:</b> feedback you send and reports you file, stored privately — visible to you (feedback) and to administrators, never to other users.</li>
         <li>
+          <b>Bug reports and contact/support messages:</b> when you use the “Report a bug” or “Contact” forms, we store what you write (description, message, subject) and, if you provide it, your name and email so we can reply. Bug reports also automatically attach limited technical context to help us reproduce the problem: the page you came from (path only, no query string), your browser, operating system, device type, screen size, and app version, plus your account association if you’re signed in. We use this to diagnose bugs, respond to your request, protect the service from abuse, and keep an operational record. We <b>do not</b> collect passwords, authentication codes, cookies, your browser storage, or the contents of other pages. Please don’t include passwords, financial account numbers, verification codes, or other sensitive personal information in a message.
+        </li>
+        <li>
+          <b>Email delivery records:</b> when we send you a confirmation or update by email, we keep a record of the attempt and its delivery status (sent, delivered, bounced, failed) so we can tell whether our replies reached you. These records are visible only to the administrator and hold only sanitized provider information — never the message body, tokens, or secrets.
+        </li>
+        <li>
           <b>Search and analytics data:</b> recent searches are stored only in your browser (localStorage) and never
           sent to our servers. We use two separate, limited analytics layers:
           <ul>
