@@ -3,10 +3,10 @@ import { CONTACT_EMAIL, CONTACT_EMAIL_IS_PLACEHOLDER, contactMailto, enquirySubj
 import { REPORT_REASONS } from './reporting'
 
 describe('contact addressing', () => {
-  it('falls back to an unmistakable placeholder, never a guessed real domain', () => {
+  it('falls back to the real production contact address, not a placeholder domain', () => {
     // Tests run without VITE_CONTACT_EMAIL, so the fallback applies.
-    expect(CONTACT_EMAIL).toBe('contact@openfloor.example')
-    expect(CONTACT_EMAIL_IS_PLACEHOLDER).toBe(true)
+    expect(CONTACT_EMAIL).toBe('contact@open-floor.ca')
+    expect(CONTACT_EMAIL_IS_PLACEHOLDER).toBe(false)
   })
 
   it('builds mailto links with a typed subject for every enquiry type', () => {

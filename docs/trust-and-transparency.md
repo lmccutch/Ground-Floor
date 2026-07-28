@@ -29,12 +29,11 @@ than a separate route (permitted by the requirements; keeps the footer sane).
 ## Contact method
 
 `src/lib/contact.ts`: the public address comes from `VITE_CONTACT_EMAIL`,
-falling back to `contact@openfloor.example` — an RFC 2606 reserved domain
-that is unmistakably a placeholder (and flagged as such on the Contact page
-when active). Mailto links carry typed subjects (general, IR, press,
-legal/privacy, moderation appeal, security, account deletion, data access) so
-one inbox can triage. **Set `VITE_CONTACT_EMAIL` before launch** — added to
-`.env.example` and the production checklist.
+falling back to the real production address `contact@open-floor.ca` when unset,
+so no deployment ever renders a placeholder domain. Mailto links carry typed
+subjects (general, IR, press, legal/privacy, moderation appeal, security,
+account deletion, data access) so one inbox can triage. Set `VITE_CONTACT_EMAIL`
+to override per environment — see `.env.example` and the production checklist.
 
 ## Reporting categories
 
