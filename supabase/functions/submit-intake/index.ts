@@ -19,8 +19,9 @@
 //   400 -> { error: "invalid_request" }
 //   429 -> { error: "rate_limited" }
 //
-// Optional secrets: TURNSTILE_SECRET_KEY (if unset, CAPTCHA is skipped with a log —
-// set it to enforce), INTAKE_FUNCTION_SECRET (to call the email function),
+// Secrets: TURNSTILE_SECRET_KEY (REQUIRED in production — if unavailable the function
+// fails CLOSED and rejects every submission rather than skipping verification).
+// Optional: INTAKE_FUNCTION_SECRET (to call the email function),
 // ADMIN_ALERT_EMAIL, ALLOWED_ORIGIN. SUPABASE_URL / SUPABASE_ANON_KEY /
 // SUPABASE_SERVICE_ROLE_KEY are injected.
 
@@ -56,7 +57,10 @@ async function rateLimited(ip: string): Promise<boolean> {
 }
 
 async function turnstileOk(token: string, ip: string): Promise<boolean> {
-  if (!TURNSTILE_SECRET) return true; // not configured yet — honeypot + rate limit still apply
+  // Fail CLOSED: if the secret is unavailable we cannot verify the token, so we must
+  // reject rather than silently accept unverified submissions. (Turnstile is now a
+  // required production control; the honeypot + per-IP rate limit remain in addition.)
+  if (!TURNSTILE_SECRET) return false;
   if (!token) return false;
   try {
     const form = new URLSearchParams({ secret: TURNSTILE_SECRET, response: token, remoteip: ip });
