@@ -2,9 +2,9 @@ import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { fireEvent, render, screen, waitFor } from '@testing-library/react'
 import { MemoryRouter } from 'react-router-dom'
 
-const submitBugReport = vi.fn(async () => ({ reference: 'BUG-TEST1234' }))
+const submitBugReport = vi.fn(async (..._args: unknown[]) => ({ reference: 'BUG-TEST1234' }))
 vi.mock('../lib/intake', () => ({
-  submitBugReport: (...a: unknown[]) => submitBugReport(...(a as [])),
+  submitBugReport: (...a: unknown[]) => submitBugReport(...a),
   newIdempotencyKey: () => 'test-idem-key',
   INTAKE_UNAVAILABLE: 'intake_unavailable',
 }))
