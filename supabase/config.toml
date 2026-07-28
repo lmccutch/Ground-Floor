@@ -17,3 +17,18 @@ project_id = "open-floor"
 # - supabase/seed/202607100002_seed_fictional_companies.sql is fictional demo
 #   data and must never be listed in sql_paths for shared environments.
 enabled = false
+
+# Edge Functions. Each function does its own authorization (internal shared secret,
+# admin-JWT verification, or webhook signature), so JWT verification at the gateway
+# is disabled — anonymous visitors and Resend must be able to reach them.
+[functions.login]
+verify_jwt = false
+
+[functions.submit-intake]
+verify_jwt = false
+
+[functions.send-transactional-email]
+verify_jwt = false
+
+[functions.resend-webhook]
+verify_jwt = false
