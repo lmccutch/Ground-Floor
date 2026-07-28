@@ -214,6 +214,7 @@ const footerColumns: { heading: string; links: [string, string][] }[] = [
       ['/how-it-works', 'How it works'],
       ['/faq', 'FAQ'],
       ['/contact', 'Contact'],
+      ['/report-bug', 'Report a bug'],
     ],
   },
   {
