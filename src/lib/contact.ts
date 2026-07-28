@@ -1,11 +1,12 @@
 // Public contact addressing. The address is configurable via VITE_CONTACT_EMAIL;
-// the fallback is an obvious placeholder (RFC 2606 reserved domain) so an
-// unconfigured deployment shows something visibly non-final rather than a
-// guessed real address. Set the real address before launch — see
-// docs/production-deployment.md.
+// if unset it falls back to the real production address (contact@open-floor.ca) so a
+// deployment never renders a placeholder domain. Override per environment with
+// VITE_CONTACT_EMAIL — see docs/production-deployment.md.
 
-export const CONTACT_EMAIL = ((import.meta.env.VITE_CONTACT_EMAIL as string | undefined) || 'contact@openfloor.example').trim()
+export const CONTACT_EMAIL = ((import.meta.env.VITE_CONTACT_EMAIL as string | undefined) || 'contact@open-floor.ca').trim()
 
+// Guards against a deployment being explicitly misconfigured with the reserved
+// placeholder domain; the default fallback above is the real production address.
 export const CONTACT_EMAIL_IS_PLACEHOLDER = CONTACT_EMAIL.endsWith('@openfloor.example')
 
 export type EnquiryType = 'general' | 'investor-relations' | 'press' | 'legal-privacy' | 'moderation-appeal' | 'security' | 'account-deletion' | 'data-access'
