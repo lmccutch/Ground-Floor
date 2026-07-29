@@ -52,30 +52,80 @@ async function verify(body: string, headers: Headers): Promise<boolean> {
   return false;
 }
 
+const rpc = (fn: string, body: unknown) =>
+  fetch(`${SUPABASE_URL}/rest/v1/rpc/${fn}`, {
+    method: "POST",
+    headers: { apikey: SERVICE_KEY, Authorization: `Bearer ${SERVICE_KEY}`, "Content-Type": "application/json" },
+    body: JSON.stringify(body),
+  });
+
 Deno.serve(async (req) => {
   if (req.method !== "POST") return new Response("method_not_allowed", { status: 405 });
   if (!WEBHOOK_SECRET) return new Response("not_configured", { status: 503 });
 
+  // IMPORTANT: verification must run against the RAW request body, byte for byte.
+  // Parsing first and re-serializing would change the bytes and break the HMAC.
   const body = await req.text();
-  if (!(await verify(body, req.headers))) return new Response("invalid_signature", { status: 401 });
+  if (!(await verify(body, req.headers))) {
+    // Counted (not stored per-request) so a burst of bad signatures raises one
+    // deduplicated admin alert per hour instead of flooding or filling a table.
+    await rpc("record_webhook_verification_failure", {}).catch(() => {});
+    return new Response("invalid_signature", { status: 401 });
+  }
+
+  // Svix message id: the provider's own delivery identifier. Used to deduplicate
+  // the event log so webhook replays are recorded exactly once.
+  const eventId = req.headers.get("svix-id") ?? "";
+  const svixTimestamp = Number(req.headers.get("svix-timestamp") ?? "");
+  const occurredAt = Number.isFinite(svixTimestamp) ? new Date(svixTimestamp * 1000).toISOString() : null;
 
   let event: { type?: string; data?: { email_id?: string; reason?: string; bounce?: { message?: string } } };
   try {
     event = JSON.parse(body);
   } catch {
+    await rpc("record_email_event_log", {
+      p_provider_event_id: eventId, p_provider_message_id: null, p_event_type: "unparseable",
+      p_occurred_at: occurredAt, p_processing_result: "error",
+    }).catch(() => {});
     return new Response("bad_json", { status: 400 });
   }
 
   const messageId = event.data?.email_id ?? null;
   const type = event.type ?? "";
-  if (!messageId || !type) return new Response("ok", { status: 200 }); // nothing actionable; ack
+
+  // Log the event before applying it, so evidence exists even when the event
+  // references a message we never sent. Never logs bodies, recipients or headers.
+  const logResult = async (result: string) => {
+    await rpc("record_email_event_log", {
+      p_provider_event_id: eventId,
+      p_provider_message_id: messageId,
+      p_event_type: type || "unknown",
+      p_occurred_at: occurredAt,
+      p_processing_result: result,
+    }).catch(() => {});
+  };
+
+  if (!messageId || !type) {
+    await logResult("ignored_unknown_event");
+    return new Response("ok", { status: 200 }); // nothing actionable; ack
+  }
 
   const errMsg = event.data?.bounce?.message ?? event.data?.reason ?? null;
-  await fetch(`${SUPABASE_URL}/rest/v1/rpc/record_email_event`, {
-    method: "POST",
-    headers: { apikey: SERVICE_KEY, Authorization: `Bearer ${SERVICE_KEY}`, "Content-Type": "application/json" },
-    body: JSON.stringify({ p_provider_message_id: messageId, p_event: type, p_error_code: type.split(".")[1] ?? null, p_error_message: errMsg }),
-  }).catch(() => {});
+  let applied = false;
+  try {
+    const res = await rpc("record_email_event", {
+      p_provider_message_id: messageId,
+      p_event: type,
+      // Only adverse events carry an error code; record_email_event ignores it
+      // for successful ones.
+      p_error_code: type.split(".")[1] ?? null,
+      p_error_message: errMsg,
+    });
+    applied = res.ok && (await res.json()) === true;
+  } catch {
+    applied = false;
+  }
+  await logResult(applied ? "applied" : "unmatched_message");
 
   return new Response("ok", { status: 200 });
 });

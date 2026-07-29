@@ -3,6 +3,7 @@ import { formatDateTime, humanize, statusTone, timeAgo } from '../../../lib/admi
 import { AdminListPage, type Column } from '../components/AdminListPage'
 import { ActionBar, type AdminAction } from '../components/actions'
 import { Chip, CopyId, Field } from '../components/adminUi'
+import { RecordDetail } from '../components/RecordDetail'
 
 const STATUSES = ['new', 'open', 'waiting_on_user', 'in_progress', 'resolved', 'closed', 'spam']
 const CATEGORIES = ['general', 'company_request', 'technical_support', 'bug', 'privacy', 'partnership', 'company_management', 'media', 'legal', 'other']
@@ -15,7 +16,7 @@ const ticketActions: AdminAction<AdminTicket>[] = [
   { key: 'priority', label: 'Set priority', reason: { label: 'Priority', required: true, options: PRIORITY_OPTIONS }, run: (t, v) => updateSupportTicket({ id: t.id, priority: v, reason: `Priority set to ${v}` }) },
   { key: 'open', label: 'Mark open', available: t => t.status === 'new', run: t => updateSupportTicket({ id: t.id, status: 'open', reason: 'Opened' }) },
   { key: 'in_progress', label: 'Mark in progress', available: t => OPEN_TICKET.includes(t.status), run: t => updateSupportTicket({ id: t.id, status: 'in_progress', reason: 'In progress' }) },
-  { key: 'response', label: 'Record response sent', available: t => OPEN_TICKET.includes(t.status), consequence: 'Stamps the response time and appends your summary to the internal notes. Sends no email itself — use “Email the sender” for that.', reversible: true, reason: { label: 'Response summary (optional)', required: false }, run: (t, summary) => recordSupportResponse({ id: t.id, summary }) },
+  { key: 'response', label: 'Record response sent', available: t => OPEN_TICKET.includes(t.status), consequence: 'Records that you responded out of band (by phone, or from your own mail client). Stamps the response time and appends your summary to the internal notes. Use the reply composer instead if you want Open Floor to send and track the email.', reversible: true, emailNote: 'No email is sent by this action.', reason: { label: 'Response summary (optional)', required: false }, run: (t, summary) => recordSupportResponse({ id: t.id, summary }) },
   { key: 'waiting', label: 'Waiting on user', available: t => OPEN_TICKET.includes(t.status), reason: { label: 'What are we waiting for?', required: true }, run: (t, reason) => recordSupportResponse({ id: t.id, status: 'waiting_on_user', summary: reason }) },
   { key: 'resolve', label: 'Resolve', available: t => t.status !== 'resolved' && t.status !== 'closed', consequence: 'Marks the ticket resolved.', reversible: true, reason: { label: 'Resolution summary', required: true }, run: (t, reason) => updateSupportTicket({ id: t.id, status: 'resolved', adminNotes: reason, reason: 'Resolved' }) },
   { key: 'close', label: 'Close', tone: 'critical', available: t => t.status !== 'closed', consequence: 'Closes the ticket.', reversible: true, reason: { label: 'Final reason', required: true }, run: (t, reason) => updateSupportTicket({ id: t.id, status: 'closed', adminNotes: reason, reason: 'Closed' }) },
@@ -24,6 +25,9 @@ const ticketActions: AdminAction<AdminTicket>[] = [
   { key: 'note', label: 'Add / update note', reason: { label: 'Internal note', required: true }, run: (t, reason) => updateSupportTicket({ id: t.id, adminNotes: reason, reason: 'Updated internal note' }) },
 ]
 
+/** Escape hatch for the rare case that needs a real mail client (large
+ *  attachments, a long thread). Anything sent this way is invisible to Open
+ *  Floor — the in-app reply is the recorded path, so this is secondary. */
 function mailtoLink(t: AdminTicket): string | undefined {
   if (!t.senderEmail) return undefined
   const subject = `Re: [${t.ticketNumber}] ${str(t.subject) === '—' ? 'Open Floor support' : String(t.subject)}`
@@ -42,7 +46,7 @@ export function SupportPage() {
   return (
     <AdminListPage<AdminTicket>
       title="Support"
-      description="Support and contact submissions. Public contact forms are not yet wired to support tickets, so this stays empty until they are."
+      description="Support and contact submissions from the public /contact form. Open a row to read the full thread, see what Open Floor has emailed, and send a recorded reply."
       searchPlaceholder="Subject"
       filters={[
         { key: 'status', label: 'Status', options: STATUSES.map(s => ({ value: s, label: humanize(s) })) },
@@ -53,36 +57,56 @@ export function SupportPage() {
       getRowKey={t => t.id}
       fetchPage={({ search, filters, offset, limit }) => getSupportTickets({ search, status: filters.status || undefined, category: filters.category || undefined, offset, limit })}
       emptyTitle="No support tickets"
-      emptyMessage="Contact forms are not yet connected to support tickets, so nothing is recorded here."
+      emptyMessage="Nothing has been submitted through /contact yet."
       detailTitle={t => `Ticket ${t.ticketNumber}`}
       renderDetail={(t, helpers) => (
-        <div className="admin-detail">
+        <RecordDetail
+          entityType="support_ticket"
+          entityId={t.id}
+          reference={t.ticketNumber}
+          category={t.category}
+          replyEnabled={Boolean(t.senderEmail)}
+        >
           <ActionBar row={t} actions={ticketActions} onDone={() => { helpers.refresh(); helpers.close() }} />
-          {mailtoLink(t) && (
-            <a className="btn small secondary admin-mailto" href={mailtoLink(t)}>
-              Email the sender
-            </a>
-          )}
           <div className="admin-detail-chips">
             <Chip tone={statusTone(t.status)}>{humanize(t.status)}</Chip>
             <Chip tone="muted">{humanize(t.category)}</Chip>
           </div>
+          <Field label="Ticket number">
+            <span className="admin-mono">{t.ticketNumber}</span>
+          </Field>
           <Field label="Subject">{str(t.subject)}</Field>
           <Field label="Message">
             <p className="admin-longtext">{str(t.message)}</p>
           </Field>
-          <Field label="Sender">{t.senderName ?? '—'}</Field>
-          <Field label="Sender email">{t.senderEmail ?? '—'}</Field>
+          <Field label="Requester">{t.senderName ?? t.submitterName ?? 'Not given'}</Field>
+          <Field label="Requester email">{t.senderEmail ?? 'None on file'}</Field>
           <Field label="Assigned admin">{t.assignedAdminName ?? 'Unassigned'}</Field>
           <Field label="Priority">{humanize(str(t.priority))}</Field>
-          <Field label="Internal notes">{str(t.admin_notes)}</Field>
+          <Field label="Internal notes">
+            <span className="admin-internal-note">
+              <span className="admin-internal-tag">Internal — never emailed</span>
+              <span className="admin-longtext">{str(t.admin_notes)}</span>
+            </span>
+          </Field>
           <Field label="Last response">{formatDateTime(t.last_response_at as string | undefined)}</Field>
           <Field label="Created">{formatDateTime(t.createdAt)}</Field>
           <Field label="Resolved">{formatDateTime(t.resolved_at as string | undefined)}</Field>
           <Field label="Ticket ID">
             <CopyId id={t.id} />
           </Field>
-        </div>
+          {mailtoLink(t) && (
+            <Field label="Reply outside Open Floor">
+              <a className="btn ghost small admin-mailto" href={mailtoLink(t)}>
+                Open in your mail client
+              </a>
+              <span className="admin-inline-note">
+                Anything sent this way is not recorded in Open Floor and will not appear in the email history below. Use
+                the in-app reply unless you need attachments.
+              </span>
+            </Field>
+          )}
+        </RecordDetail>
       )}
     />
   )

@@ -32,3 +32,12 @@ verify_jwt = false
 
 [functions.resend-webhook]
 verify_jwt = false
+
+# Prompt 5. Both verify the administrator themselves (is_admin() checked
+# server-side against the database), which is a stronger check than the gateway's
+# "any valid JWT", so gateway verification stays off here too.
+[functions.admin-attachment-url]
+verify_jwt = false
+
+[functions.admin-system-diagnostics]
+verify_jwt = false

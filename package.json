@@ -18,7 +18,8 @@
     "verify:admin-security": "tsx scripts/verify-admin-foundation-security.ts",
     "verify:transition-security": "tsx scripts/verify-transition-enforcement.ts",
     "verify:intake-security": "tsx scripts/verify-intake-security.ts",
-    "verify:email-progression": "tsx scripts/verify-email-event-progression.ts"
+    "verify:email-progression": "tsx scripts/verify-email-event-progression.ts",
+    "verify:admin-communications": "tsx scripts/verify-admin-communications-security.ts"
   },
   "dependencies": {
     "@hookform/resolvers": "^5.4.0",

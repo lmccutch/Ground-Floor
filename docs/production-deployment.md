@@ -329,3 +329,34 @@ a scratch project first. Do **not** apply schema to production via the dashboard
 
 Rollback note: the frontend can be reverted independently, but do not leave the
 password-auth frontend deployed against a database without these migrations.
+---
+
+## Prompt 5 — admin communications, attachments, system health
+
+Full runbook, recovery procedures and browser acceptance tests:
+[docs/admin-communications.md](admin-communications.md) §10.
+
+Summary of what this release needs from the owner:
+
+1. Apply `202607280002_admin_communications`, `202607280003_bug_attachments` and
+   `202607280004_system_health` to **scratch** (`supabase db push`), then deploy
+   the Edge Functions there and run
+   `npm run verify:admin-communications` (plus `verify:email-progression` and
+   `verify:intake-security`). All must pass before production.
+2. Apply the same three migrations to production **after approval**.
+3. Deploy five Edge Functions: `submit-intake`, `send-transactional-email`,
+   `resend-webhook` (all changed), and `admin-attachment-url`,
+   `admin-system-diagnostics` (both new).
+4. Confirm in the dashboard that Storage → `bug-attachments` exists and **Public
+   is OFF**. The migration creates it private; a public bucket is reported as a
+   Critical finding on `/admin/system`.
+5. Optional new secret: `EMAIL_REPLY_CONTACT` (falls back to
+   `contact@open-floor.ca`). No other new secret is required.
+6. Set `VITE_APP_COMMIT` in Vercel so `/admin/system` can name the running build.
+   Without it the build commit is reported as Unknown — which is truthful, but
+   unhelpful when diagnosing.
+7. Deploy the Vercel Preview, run the browser acceptance tests, then merge.
+
+These migrations are additive — new tables, new nullable columns, new functions.
+No existing function signature changed and nothing was dropped, so the frontend
+can be rolled back independently without a schema rollback.

@@ -3,6 +3,11 @@ import { formatDateTime, humanize, statusTone, timeAgo, type Tone } from '../../
 import { AdminListPage, type Column } from '../components/AdminListPage'
 import { ActionBar, type AdminAction } from '../components/actions'
 import { Chip, CopyId, Field } from '../components/adminUi'
+import { RecordDetail } from '../components/RecordDetail'
+
+/** The public-facing reference shown to the reporter, derived the same way the
+ *  submission RPC derives it. */
+const bugReference = (id: string) => `BUG-${id.slice(0, 8).toUpperCase()}`
 
 const STATUSES = ['new', 'triaged', 'confirmed', 'in_progress', 'fixed', 'deployed', 'cannot_reproduce', 'duplicate', 'closed']
 const SEVERITIES = ['critical', 'high', 'medium', 'low']
@@ -44,7 +49,7 @@ export function BugsPage() {
   return (
     <AdminListPage<AdminBug>
       title="Bug reports"
-      description="Reported bugs. There is no public bug-report form connected yet, so this list stays empty until one is added."
+      description="Bugs reported through the public /report-bug form. Open a row to see the full report, its attachments, the email Open Floor has sent about it, and to reply to the reporter."
       searchPlaceholder="Description"
       filters={[
         { key: 'status', label: 'Status', options: STATUSES.map(s => ({ value: s, label: humanize(s) })) },
@@ -55,15 +60,27 @@ export function BugsPage() {
       getRowKey={b => b.id}
       fetchPage={({ search, filters, offset, limit }) => getBugs({ search, status: filters.status || undefined, severity: filters.severity || undefined, offset, limit })}
       emptyTitle="No bug reports"
-      emptyMessage="No public bug-report form is connected yet, so nothing is recorded here."
-      detailTitle={() => 'Bug report'}
+      emptyMessage="Nothing has been reported through /report-bug yet."
+      detailTitle={b => `Bug ${bugReference(b.id)}`}
       renderDetail={(b, helpers) => (
-        <div className="admin-detail">
+        <RecordDetail
+          entityType="bug_report"
+          entityId={b.id}
+          reference={bugReference(b.id)}
+          // The list RPC deliberately does not carry the reporter's address; the
+          // detail RPC returns a masked one, and the server decides whether a
+          // reply is possible. `true` here only means "bug reports can be replied
+          // to at all".
+          replyEnabled
+        >
           <ActionBar row={b} actions={bugActions} onDone={() => { helpers.refresh(); helpers.close() }} />
           <div className="admin-detail-chips">
             <Chip tone={statusTone(b.status)}>{humanize(b.status)}</Chip>
             {b.severity && <Chip tone={severityTone(b.severity)}>{humanize(b.severity)}</Chip>}
           </div>
+          <Field label="Reference">
+            <span className="admin-mono">{bugReference(b.id)}</span>
+          </Field>
           <Field label="Description">
             <p className="admin-longtext">{b.description}</p>
           </Field>
@@ -77,9 +94,14 @@ export function BugsPage() {
             {[b.browser, b.operating_system, b.device_type, b.screen_size].filter(Boolean).map(String).join(' · ') || '—'}
           </Field>
           <Field label="App version">{str(b.app_version)}</Field>
-          <Field label="Reporter">{b.submitterName ?? '—'}</Field>
+          <Field label="Reporter">{b.submitterName ?? 'Not signed in'}</Field>
           <Field label="Assigned admin">{b.assignedAdminName ?? 'Unassigned'}</Field>
-          <Field label="Internal notes">{str(b.admin_notes)}</Field>
+          <Field label="Internal notes">
+            <span className="admin-internal-note">
+              <span className="admin-internal-tag">Internal — never emailed</span>
+              <span className="admin-longtext">{str(b.admin_notes)}</span>
+            </span>
+          </Field>
           <Field label="Linked issue">{str(b.linked_issue_url)}</Field>
           <Field label="Fixed commit">{str(b.fixed_commit)}</Field>
           <Field label="Reported">{formatDateTime(b.createdAt)}</Field>
@@ -87,7 +109,7 @@ export function BugsPage() {
           <Field label="Bug ID">
             <CopyId id={b.id} />
           </Field>
-        </div>
+        </RecordDetail>
       )}
     />
   )

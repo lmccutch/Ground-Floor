@@ -35,7 +35,12 @@ export type AdminAction<T> = {
   consequence?: string | ((row: T) => string | undefined)
   /** Whether the action can be undone later (shown to the operator). */
   reversible?: boolean
-  /** Honest note about email side effects (this phase sends none). */
+  /**
+   * Honest note about email side effects. The default below is "no email is
+   * sent", which is true of every action in this framework: outbound mail is
+   * sent only by the reply composer, which is a separate, explicitly-confirmed
+   * flow. Any action that ever gains an email side effect MUST set this.
+   */
   emailNote?: string
   /** Collect a reason / note before running. */
   reason?: ReasonField
