@@ -21,7 +21,9 @@ const EXEMPT_FILES = new Set([
 ])
 
 // Specific (file, substring) matches retained for backwards-compat reasons:
-// legacy storage keys migrated forward on read.
+// legacy storage keys migrated forward on read, and the immutable filename of the
+// very first migration — which must be reproduced verbatim for the /admin/system
+// migration-drift check to compare against schema_migrations.
 const ALLOWLIST: [string, string][] = [
   ['./lib/api.ts', 'groundfloor-mvp'],
   ['./lib/api.ts', 'grround-floor-mvp'],
@@ -29,6 +31,7 @@ const ALLOWLIST: [string, string][] = [
   ['./lib/analytics.ts', 'grround-floor-attribution'],
   ['./lib/recentSearches.ts', 'groundfloor-mvp'],
   ['./lib/recentSearches.ts', 'grround-floor-mvp'],
+  ['./lib/expectedMigrations.ts', '202607100001_grround_floor_mvp'],
 ]
 
 describe('Open Floor brand audit (src tree)', () => {

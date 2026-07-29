@@ -12,15 +12,34 @@
 //   * Internal (submit-intake): send header `x-intake-secret: <INTAKE_FUNCTION_SECRET>`.
 //
 // Client contract:
-//   POST { template, to, entity_type?, entity_id?, data? }
+//   POST { template, to, entity_type?, entity_id?, data? }      (system send)
+//   POST { mode: "reply", entity_type, entity_id, subject, body, client_token }
+//   POST { mode: "retry", message_id, client_token }
 //   200 -> { status: "sent" | "duplicate", id? }
 //   400 -> { error: "invalid_request" }        (bad template/recipient/payload)
 //   401 -> { error: "unauthorized" }
 //   503 -> { error: "email_not_configured" }   (RESEND_API_KEY not set — recorded as failed)
 //
+// ADMIN REPLY / RETRY (Prompt 5)
+//   Both admin modes require the administrator's own JWT (the internal intake
+//   secret is NOT accepted for them). Neither accepts a recipient: the address is
+//   derived server-side by admin_create_reply / admin_request_email_retry from the
+//   bug report or support ticket, and the record is written BEFORE Resend is
+//   contacted. The subject and body that are sent are the SANITIZED values those
+//   RPCs return — not the raw request payload — so the archive and the delivered
+//   message can never disagree, and administrator-supplied HTML is never rendered
+//   as markup (everything is escaped by esc() below).
+//
+//   From/Reply-To semantics: From is always the verified EMAIL_SENDER
+//   (no-reply@open-floor.ca). Reply-To is the operational alias for the record —
+//   bugs@ / support@ / privacy@ / contact@. Replies the recipient sends go to that
+//   Workspace alias; Open Floor has NO inbound email ingestion, so they do NOT
+//   appear in the application. This is stated in the admin UI.
+//
 // Required secrets: RESEND_API_KEY. Optional: EMAIL_SENDER, INTAKE_FUNCTION_SECRET,
-// EMAIL_REPLY_SUPPORT, EMAIL_REPLY_BUGS, EMAIL_REPLY_PRIVACY, ALLOWED_ORIGIN.
-// SUPABASE_URL / SUPABASE_ANON_KEY / SUPABASE_SERVICE_ROLE_KEY are injected.
+// EMAIL_REPLY_SUPPORT, EMAIL_REPLY_BUGS, EMAIL_REPLY_PRIVACY, EMAIL_REPLY_CONTACT,
+// ALLOWED_ORIGIN. SUPABASE_URL / SUPABASE_ANON_KEY / SUPABASE_SERVICE_ROLE_KEY are
+// injected. No secret value is ever logged or returned.
 
 // deno-lint-ignore-file no-explicit-any
 const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
@@ -32,7 +51,17 @@ const INTAKE_SECRET = Deno.env.get("INTAKE_FUNCTION_SECRET") ?? "";
 const REPLY_SUPPORT = Deno.env.get("EMAIL_REPLY_SUPPORT") ?? "support@open-floor.ca";
 const REPLY_BUGS = Deno.env.get("EMAIL_REPLY_BUGS") ?? "bugs@open-floor.ca";
 const REPLY_PRIVACY = Deno.env.get("EMAIL_REPLY_PRIVACY") ?? "privacy@open-floor.ca";
+const REPLY_CONTACT = Deno.env.get("EMAIL_REPLY_CONTACT") ?? "contact@open-floor.ca";
 const ALLOWED_ORIGIN = Deno.env.get("ALLOWED_ORIGIN") ?? "*";
+
+// Logical alias -> configured mailbox. The database stores the logical name only,
+// so the actual address is never chosen by, or stored on behalf of, the browser.
+const ALIASES: Record<string, string> = {
+  bugs: REPLY_BUGS,
+  support: REPLY_SUPPORT,
+  privacy: REPLY_PRIVACY,
+  contact: REPLY_CONTACT,
+};
 
 const cors: Record<string, string> = {
   "Access-Control-Allow-Origin": ALLOWED_ORIGIN,
@@ -146,6 +175,16 @@ const REGISTRY: Record<string, Tmpl> = {
     lines: [`Template: ${d.template ?? "unknown"}. Status: ${d.status ?? "failed"}.`, "See the System email-health panel."],
     replyTo: REPLY_SUPPORT,
   }),
+  // Administrator reply. Subject/body come from admin_create_reply's SANITIZED
+  // output, never from the raw request. Body paragraphs are split on blank lines
+  // and every value is HTML-escaped by layout() — no operator-supplied markup is
+  // ever rendered.
+  admin_reply: (d) => ({
+    subject: String(d.subject ?? "Open Floor"),
+    heading: String(d.subject ?? "A reply from Open Floor"),
+    lines: String(d.body ?? "").split(/\n{2,}/).map((p: string) => p.replace(/\n/g, " ").trim()).filter(Boolean),
+    replyTo: ALIASES[String(d.reply_to_alias ?? "support")] ?? REPLY_SUPPORT,
+  }),
 };
 
 function layout(b: Built): { html: string; text: string } {
@@ -175,6 +214,18 @@ async function isAdmin(token: string): Promise<boolean> {
   }
 }
 
+// The signed-in user id, read from the verified JWT's payload. Only used to
+// attribute the audit entry; authorization is always isAdmin() above, never this.
+function subjectOf(token: string): string | null {
+  try {
+    const [, payload] = token.split(".");
+    const json = JSON.parse(atob(payload.replace(/-/g, "+").replace(/_/g, "/")));
+    return typeof json?.sub === "string" ? json.sub : null;
+  } catch {
+    return null;
+  }
+}
+
 async function recordAttempt(row: Record<string, unknown>): Promise<void> {
   await fetch(`${SUPABASE_URL}/rest/v1/rpc/record_email_attempt`, {
     method: "POST",
@@ -183,7 +234,111 @@ async function recordAttempt(row: Record<string, unknown>): Promise<void> {
   }).catch(() => {});
 }
 
+// Applies the provider outcome to one specific email_messages row (reply/retry
+// path) and writes the matching audit entry. Service role.
+async function recordDispatch(row: Record<string, unknown>): Promise<void> {
+  await fetch(`${SUPABASE_URL}/rest/v1/rpc/record_email_dispatch_result`, {
+    method: "POST",
+    headers: { apikey: SERVICE_KEY, Authorization: `Bearer ${SERVICE_KEY}`, "Content-Type": "application/json" },
+    body: JSON.stringify(row),
+  }).catch(() => {});
+}
+
+// Calls an admin RPC AS THE ADMINISTRATOR, so is_admin() and auth.uid() resolve
+// to the real operator and the audit trail names them rather than the service role.
+async function adminRpc(fn: string, body: unknown, token: string): Promise<{ ok: boolean; status: number; data: any }> {
+  const res = await fetch(`${SUPABASE_URL}/rest/v1/rpc/${fn}`, {
+    method: "POST",
+    headers: { apikey: ANON_KEY, Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
+    body: JSON.stringify(body),
+  });
+  let data: any = null;
+  try { data = await res.json(); } catch { /* ignore */ }
+  return { ok: res.ok, status: res.status, data };
+}
+
+// A PostgREST error message from our own RPCs is a deliberate, operator-facing
+// validation string ("That record has no email address on file…"). Surface it, but
+// never anything that could carry internals.
+function safeRpcMessage(data: any): string | undefined {
+  const msg = typeof data?.message === "string" ? data.message : undefined;
+  if (!msg || msg.length > 200) return undefined;
+  if (/password|token|key|secret|jwt|role|permission denied for/i.test(msg)) return undefined;
+  return msg;
+}
+
+// Categorize a provider failure for the admin timeline without echoing the body.
+function failureCategory(status: number): string {
+  if (status === 401 || status === 403) return "provider_auth";
+  if (status === 422) return "invalid_recipient";
+  if (status === 429) return "rate_limited";
+  if (status >= 500) return "provider_unavailable";
+  return "provider_rejected";
+}
+
 /* ---------------------------------- handler -------------------------------- */
+
+/* ------------------------ admin reply / retry dispatch --------------------- */
+
+// Shared tail for both admin modes: render the fixed admin_reply template from
+// the values the DATABASE returned, send, then record the outcome against the
+// specific message row. `to` here came from the RPC, never from the request.
+async function dispatchAdminMessage(opts: {
+  messageId: string;
+  to: string;
+  template: string;
+  subject: string;
+  body: string;
+  alias: string;
+  idempotencyKey: string;
+  actor: string | null;
+}): Promise<Response> {
+  const build = REGISTRY[opts.template] ?? REGISTRY.admin_reply;
+  const built = build({ subject: opts.subject, body: opts.body, reply_to_alias: opts.alias });
+  const { html, text } = layout(built);
+
+  if (!RESEND_API_KEY) {
+    await recordDispatch({
+      p_message_id: opts.messageId, p_status: "failed", p_error_code: "not_configured",
+      p_error_message: "RESEND_API_KEY is not set", p_failure_category: "not_configured", p_actor: opts.actor,
+    });
+    return json(503, { error: "email_not_configured", message_id: opts.messageId });
+  }
+
+  try {
+    const res = await fetch("https://api.resend.com/emails", {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${RESEND_API_KEY}`,
+        "Content-Type": "application/json",
+        // Provider-side idempotency uses the same deterministic key the database
+        // deduplicated on, so a repeat can never produce a second delivery.
+        "Idempotency-Key": opts.idempotencyKey,
+      },
+      body: JSON.stringify({ from: SENDER, to: opts.to, reply_to: built.replyTo, subject: built.subject, html, text }),
+    });
+    if (!res.ok) {
+      const errText = (await res.text()).slice(0, 300);
+      await recordDispatch({
+        p_message_id: opts.messageId, p_status: "failed", p_error_code: `http_${res.status}`,
+        p_error_message: errText, p_failure_category: failureCategory(res.status), p_actor: opts.actor,
+      });
+      return json(502, { error: "send_failed", message_id: opts.messageId });
+    }
+    const out = (await res.json()) as { id?: string };
+    await recordDispatch({
+      p_message_id: opts.messageId, p_status: "sent", p_provider_message_id: out.id ?? null, p_actor: opts.actor,
+    });
+    return json(200, { status: "sent", id: out.id ?? null, message_id: opts.messageId });
+  } catch (e) {
+    await recordDispatch({
+      p_message_id: opts.messageId, p_status: "failed", p_error_code: "exception",
+      p_error_message: String((e as Error)?.message ?? "").slice(0, 200),
+      p_failure_category: "network", p_actor: opts.actor,
+    });
+    return json(502, { error: "send_failed", message_id: opts.messageId });
+  }
+}
 
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response("ok", { headers: cors });
@@ -192,23 +347,104 @@ Deno.serve(async (req) => {
   // AuthN: internal shared secret OR the sole admin's JWT.
   const intakeHeader = req.headers.get("x-intake-secret") ?? "";
   const internal = INTAKE_SECRET !== "" && intakeHeader === INTAKE_SECRET;
+  const auth = req.headers.get("Authorization") ?? "";
+  const adminToken = auth.startsWith("Bearer ") ? auth.slice(7) : "";
   if (!internal) {
-    const auth = req.headers.get("Authorization") ?? "";
-    const token = auth.startsWith("Bearer ") ? auth.slice(7) : "";
-    if (!token || !(await isAdmin(token))) return json(401, { error: "unauthorized" });
+    if (!adminToken || !(await isAdmin(adminToken))) return json(401, { error: "unauthorized" });
   }
 
-  let template = "", to = "", data: any = {}, entityType: string | null = null, entityId: string | null = null;
+  let body: any;
   try {
-    const body = (await req.json()) as any;
-    template = String(body?.template ?? "");
-    to = String(body?.to ?? "").trim().toLowerCase();
-    data = body?.data ?? {};
-    entityType = body?.entity_type ? String(body.entity_type) : null;
-    entityId = body?.entity_id ? String(body.entity_id) : null;
+    body = await req.json();
   } catch {
     return json(400, { error: "invalid_request" });
   }
+  const mode = String(body?.mode ?? "");
+
+  /* ------------------------------- reply mode ------------------------------ */
+  if (mode === "reply" || mode === "retry") {
+    // The internal intake secret must never be able to send an operator reply —
+    // these modes require a verified administrator session.
+    if (!adminToken || !(await isAdmin(adminToken))) return json(401, { error: "unauthorized" });
+    const actor = subjectOf(adminToken);
+
+    if (mode === "reply") {
+      // The RPC derives the recipient from the record, sanitizes the text, writes
+      // the reply row + queued attempt, and audits — all before Resend is touched.
+      const r = await adminRpc("admin_create_reply", {
+        p_entity_type: String(body?.entity_type ?? ""),
+        p_entity_id: String(body?.entity_id ?? ""),
+        p_subject: String(body?.subject ?? ""),
+        p_body: String(body?.body ?? ""),
+        p_client_token: String(body?.client_token ?? ""),
+      }, adminToken);
+      if (!r.ok) return json(400, { error: "invalid_request", message: safeRpcMessage(r.data) });
+
+      const d = r.data ?? {};
+      // A repeated compose token means this reply was already recorded and sent.
+      // Do not send again.
+      if (d.duplicate) return json(200, { status: "duplicate", reply_id: d.reply_id, message_id: d.email_message_id });
+
+      return await dispatchAdminMessage({
+        messageId: String(d.email_message_id),
+        to: String(d.recipient),
+        template: "admin_reply",
+        subject: String(d.subject),
+        body: String(d.body),
+        alias: String(d.reply_to_alias ?? "support"),
+        idempotencyKey: String(d.idempotency_key),
+        actor,
+      });
+    }
+
+    // ------------------------------- retry mode -----------------------------
+    // Creates a NEW attempt row linked to the original; eligibility, rate limit,
+    // idempotency and the audit entry are all enforced in the RPC.
+    const r = await adminRpc("admin_request_email_retry", {
+      p_message_id: String(body?.message_id ?? ""),
+      p_client_token: String(body?.client_token ?? ""),
+    }, adminToken);
+    if (!r.ok) return json(400, { error: "retry_rejected", message: safeRpcMessage(r.data) });
+
+    const d = r.data ?? {};
+    if (d.duplicate) return json(200, { status: "duplicate", message_id: d.email_message_id });
+    // Only administrator replies can be re-rendered faithfully: the system
+    // templates' original payloads (references, summaries) are not archived, so
+    // retrying one would silently send different content. Refuse instead.
+    if (d.template !== "admin_reply" || !d.body) {
+      await recordDispatch({
+        p_message_id: String(d.email_message_id), p_status: "failed", p_error_code: "not_retryable",
+        p_error_message: "Only administrator replies can be re-sent; system emails are not archived verbatim.",
+        p_failure_category: "not_retryable", p_actor: actor,
+      });
+      return json(400, { error: "retry_rejected", message: "Only administrator replies can be re-sent. Compose a new reply instead." });
+    }
+
+    return await dispatchAdminMessage({
+      messageId: String(d.email_message_id),
+      to: String(d.recipient),
+      template: "admin_reply",
+      subject: String(d.subject),
+      body: String(d.body),
+      alias: String(d.reply_to_alias ?? "support"),
+      idempotencyKey: String(d.idempotency_key),
+      actor,
+    });
+  }
+
+  /* ---------------------- system template send (unchanged) ----------------- */
+
+  let template = "", to = "", data: any = {}, entityType: string | null = null, entityId: string | null = null;
+  template = String(body?.template ?? "");
+  to = String(body?.to ?? "").trim().toLowerCase();
+  data = body?.data ?? {};
+  entityType = body?.entity_type ? String(body.entity_type) : null;
+  entityId = body?.entity_id ? String(body.entity_id) : null;
+
+  // admin_reply is reachable ONLY through the reply/retry modes above, which
+  // derive the recipient server-side. It must never be sendable with a
+  // caller-supplied recipient and body.
+  if (template === "admin_reply") return json(400, { error: "invalid_request", detail: "use_reply_mode" });
 
   const build = REGISTRY[template];
   if (!build) return json(400, { error: "invalid_request", detail: "unknown_template" });

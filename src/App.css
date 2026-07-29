@@ -2199,7 +2199,10 @@ a.list-row:hover b {
 
 .request-page {
   display: grid;
-  grid-template-columns: 0.8fr 1.2fr;
+  /* minmax(0, …) rather than a bare fr: an fr track has a min-content floor, so
+     long unbreakable content inside a column (a filename, a URL) would widen the
+     track past the viewport and scroll the whole page sideways. */
+  grid-template-columns: minmax(0, 0.8fr) minmax(0, 1.2fr);
   gap: 40px;
   align-items: start;
   max-width: 980px;
@@ -2219,6 +2222,9 @@ a.list-row:hover b {
 
 .request-form {
   padding: 26px;
+  /* A grid item defaults to min-width: auto. Without this the form refuses to
+     shrink below its widest content. */
+  min-width: 0;
 }
 
 .request-form .field:first-child {
@@ -3276,3 +3282,104 @@ a.list-row:hover b {
 /* Public form helpers (Prompt 4 intake) */
 .turnstile-widget { margin: 4px 0; min-height: 65px; }
 .admin-req { color: #d64545; font-weight: 600; }
+
+/* --------------------- bug-report attachments (Prompt 5) ------------------- */
+
+.attachment-field {
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  padding: var(--space-3) var(--space-4) var(--space-4);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  /* A <fieldset> defaults to min-width: min-content, which stops it shrinking and
+     lets a long filename push the whole page sideways on a narrow screen. */
+  min-width: 0;
+}
+
+.attachment-field legend {
+  font-weight: 600;
+  font-size: 14px;
+  color: var(--ink);
+  padding: 0 var(--space-2);
+}
+
+.form-hint {
+  font-size: 13px;
+  color: var(--muted);
+  line-height: 1.5;
+}
+
+/* The sensitive-data warning has to be read, not skimmed past. */
+.form-hint-warning {
+  color: var(--amber);
+  background: var(--amber-soft);
+  border-radius: var(--radius-sm);
+  padding: var(--space-2) var(--space-3);
+}
+
+/* Hidden from sight but not from assistive tech or the label's click target. */
+.visually-hidden-input {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+/* Keyboard focus on the input must still be visible on its label. */
+.visually-hidden-input:focus-visible + .attachment-add {
+  outline: 2px solid var(--gold);
+  outline-offset: 2px;
+}
+
+.attachment-add {
+  align-self: flex-start;
+  cursor: pointer;
+}
+
+/* Every level from the fieldset down needs min-width: 0. A flex item defaults to
+   min-width: auto, so without this an unbreakable filename sets a min-content
+   floor that propagates up and scrolls the whole page sideways on mobile. */
+.attachment-list {
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  margin: 0;
+  padding: 0;
+  min-width: 0;
+}
+
+.attachment-list li {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  background: var(--bg);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-sm);
+  padding: var(--space-2) var(--space-3);
+  font-size: 13px;
+  /* Allows the flex item to shrink below its content width so the filename can
+     ellipsis rather than widening the row. */
+  min-width: 0;
+}
+
+.attachment-name {
+  flex: 1 1 auto;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  color: var(--ink);
+}
+
+.attachment-size {
+  color: var(--muted);
+  font-size: 12px;
+  white-space: nowrap;
+}

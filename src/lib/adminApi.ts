@@ -4,6 +4,7 @@
 // role is never used in the browser — only the admin's own session.
 
 import { supabase } from './supabase'
+import { THRESHOLDS } from './systemHealth'
 
 function client() {
   if (!supabase) throw new Error('admin_unavailable')
@@ -526,37 +527,356 @@ export async function getAuditLog(params: { action?: string; entityType?: string
   return { rows, total: count ?? rows.length }
 }
 
-/* --------------------------------- system ---------------------------------- */
+/* -------------------- record detail (bugs + support tickets) ---------------- */
+// One explicit RPC per record rather than PostgREST embeds: bug_reports and
+// support_tickets each have two foreign keys to profiles, which makes an embed
+// ambiguous (the PGRST201 failure this codebase already fixed once).
 
-export type SystemInfo = {
-  defaultSupporterThreshold?: number
-  tables: { name: string; reachable: boolean }[]
-  lastEmailFailure?: string
-  lastWebhookFailure?: string
-  lastSecurityAlert?: string
+export type RecordReply = {
+  id: string
+  subject: string
+  body: string
+  recipientMasked?: string
+  replyToAlias: string
+  authorName?: string
+  emailMessageId?: string
+  status?: string
+  createdAt: string
 }
 
-export async function getSystemInfo(): Promise<SystemInfo> {
-  const c = client()
-  const settings = await c.from('app_settings').select('key, value_int').eq('key', 'default_supporter_threshold').maybeSingle()
-  // Reachability probes: a HEAD count on each admin table confirms the read path.
-  const tableNames = ['company_requests', 'campaigns', 'questions', 'question_reports', 'bug_reports', 'support_tickets', 'admin_notifications', 'admin_audit_log']
-  const tables = await Promise.all(
-    tableNames.map(async name => {
-      const { error } = await c.from(name).select('id', { count: 'exact', head: true })
-      return { name, reachable: !error }
-    }),
-  )
-  const lastFailure = async (type: string) => {
-    const { data } = await c.from('admin_notifications').select('created_at').eq('type', type).order('created_at', { ascending: false }).limit(1).maybeSingle()
-    return str((data as Row | null)?.created_at)
-  }
+export type RecordNotification = { id: string; type: string; title: string; severity: string; readAt?: string; dismissedAt?: string; createdAt: string }
+export type RecordAudit = { id: string; action: string; reason?: string; actorName?: string; createdAt: string }
+export type RecordQueueState = { priority: string; reason: string; status: string; updatedAt?: string }
+export type RecordAttachment = { id: string; filename: string; mimeType: string; sizeBytes: number; createdAt: string }
+
+export type RecordDetail = {
+  generatedAt: string
+  recipientMasked?: string
+  replies: RecordReply[]
+  notifications: RecordNotification[]
+  audit: RecordAudit[]
+  queue: RecordQueueState[]
+  attachments: RecordAttachment[]
+}
+
+export type EntityType = 'bug_report' | 'support_ticket'
+
+export async function getRecordDetail(entityType: EntityType, entityId: string): Promise<RecordDetail> {
+  const { data, error } = await client().rpc('admin_entity_detail', { p_entity_type: entityType, p_entity_id: entityId })
+  if (error) throw error
+  const d = (data ?? {}) as Row
   return {
-    defaultSupporterThreshold: num((settings.data as Row | null)?.value_int) || undefined,
-    tables,
-    lastEmailFailure: await lastFailure('email_failed'),
-    lastWebhookFailure: await lastFailure('webhook_failed'),
-    lastSecurityAlert: await lastFailure('security_alert'),
+    generatedAt: String(d.generated_at ?? ''),
+    recipientMasked: str(d.recipient_masked),
+    replies: ((d.replies ?? []) as Row[]).map(r => ({
+      id: String(r.id),
+      subject: String(r.subject ?? ''),
+      body: String(r.body ?? ''),
+      recipientMasked: str(r.recipient_masked),
+      replyToAlias: String(r.reply_to_alias ?? 'support'),
+      authorName: str(r.author_name),
+      emailMessageId: str(r.email_message_id),
+      status: str(r.status),
+      createdAt: String(r.created_at),
+    })),
+    notifications: ((d.notifications ?? []) as Row[]).map(r => ({
+      id: String(r.id),
+      type: String(r.type ?? ''),
+      title: String(r.title ?? ''),
+      severity: String(r.severity ?? 'info'),
+      readAt: str(r.read_at),
+      dismissedAt: str(r.dismissed_at),
+      createdAt: String(r.created_at),
+    })),
+    audit: ((d.audit ?? []) as Row[]).map(r => ({
+      id: String(r.id),
+      action: String(r.action ?? ''),
+      reason: str(r.reason),
+      actorName: str(r.actor_name),
+      createdAt: String(r.created_at),
+    })),
+    queue: ((d.queue ?? []) as Row[]).map(r => ({
+      priority: String(r.priority ?? 'normal'),
+      reason: String(r.reason ?? ''),
+      status: String(r.status ?? ''),
+      updatedAt: str(r.updated_at),
+    })),
+    attachments: ((d.attachments ?? []) as Row[]).map(r => ({
+      id: String(r.id),
+      filename: String(r.filename ?? 'attachment'),
+      mimeType: String(r.mime_type ?? ''),
+      sizeBytes: num(r.size_bytes),
+      createdAt: String(r.created_at),
+    })),
+  }
+}
+
+/* ----------------------------- email history ------------------------------- */
+
+export type EmailAttempt = {
+  id: string
+  template: string
+  recipientMasked?: string
+  status: string
+  attemptNumber: number
+  retryOfMessageId?: string
+  replyId?: string
+  sendingActorName?: string
+  isSystemSend: boolean
+  providerMessageId?: string
+  errorCode?: string
+  failureCategory?: string
+  errorMessage?: string
+  /** null/undefined => retryable. A string is the operator-facing reason it is not. */
+  retryIneligibleReason?: string
+  createdAt: string
+  sentAt?: string
+  deliveredAt?: string
+  bouncedAt?: string
+  complainedAt?: string
+  failedAt?: string
+  lastEventAt?: string
+  eventCount: number
+}
+
+export async function getEmailHistory(entityType: EntityType, entityId: string): Promise<EmailAttempt[]> {
+  const { data, error } = await client().rpc('admin_email_history', { p_entity_type: entityType, p_entity_id: entityId })
+  if (error) throw error
+  return ((data ?? []) as Row[]).map(r => ({
+    id: String(r.id),
+    template: String(r.template ?? ''),
+    recipientMasked: str(r.recipient_masked),
+    status: String(r.status ?? 'queued'),
+    attemptNumber: num(r.attempt_number) || 1,
+    retryOfMessageId: str(r.retry_of_message_id),
+    replyId: str(r.reply_id),
+    sendingActorName: str(r.sending_actor_name),
+    isSystemSend: Boolean(r.is_system_send),
+    providerMessageId: str(r.provider_message_id),
+    errorCode: str(r.error_code),
+    failureCategory: str(r.failure_category),
+    errorMessage: str(r.error_message_sanitized),
+    retryIneligibleReason: str(r.retry_ineligible_reason),
+    createdAt: String(r.created_at),
+    sentAt: str(r.sent_at),
+    deliveredAt: str(r.delivered_at),
+    bouncedAt: str(r.bounced_at),
+    complainedAt: str(r.complained_at),
+    failedAt: str(r.failed_at),
+    lastEventAt: str(r.last_event_at),
+    eventCount: num(r.event_count),
+  }))
+}
+
+/* --------------------------------- system ---------------------------------- */
+
+export type SystemHealth = {
+  generatedAt?: string
+  database: { reachable: boolean; serverTime?: string; defaultSupporterThreshold?: number }
+  queue: { openItems: number; criticalHigh: number; oldestCreatedAt?: string; staleOver7d: number }
+  operations: {
+    unresolvedBugs: number
+    openSupportTickets: number
+    unhandledNotifications: number
+    criticalNotifications: number
+    auditEvents24h: number
+    lastAuditAt?: string
+  }
+  storage: { readable?: boolean; exists?: boolean | null; isPublic?: boolean | null }
+  adminRpcs: Record<string, boolean>
+  acknowledgedWarnings: Record<string, { acknowledgedAt: string; note?: string }>
+}
+
+export async function getSystemHealth(): Promise<SystemHealth> {
+  const { data, error } = await client().rpc('admin_get_system_health')
+  if (error) throw error
+  const d = (data ?? {}) as Row
+  const db = (d.database ?? {}) as Row
+  const q = (d.queue ?? {}) as Row
+  const ops = (d.operations ?? {}) as Row
+  const st = (d.storage ?? {}) as Row
+  const acks = (d.acknowledged_warnings ?? {}) as Record<string, Row>
+  return {
+    generatedAt: str(d.generated_at),
+    database: {
+      reachable: Boolean(db.reachable),
+      serverTime: str(db.server_time),
+      defaultSupporterThreshold: num(db.default_supporter_threshold) || undefined,
+    },
+    queue: {
+      openItems: num(q.open_items),
+      criticalHigh: num(q.critical_high),
+      oldestCreatedAt: str(q.oldest_created_at),
+      staleOver7d: num(q.stale_over_7d),
+    },
+    operations: {
+      unresolvedBugs: num(ops.unresolved_bugs),
+      openSupportTickets: num(ops.open_support_tickets),
+      unhandledNotifications: num(ops.unhandled_notifications),
+      criticalNotifications: num(ops.critical_notifications),
+      auditEvents24h: num(ops.audit_events_24h),
+      lastAuditAt: str(ops.last_audit_at),
+    },
+    storage: {
+      readable: st.readable == null ? undefined : Boolean(st.readable),
+      exists: st.exists == null ? null : Boolean(st.exists),
+      isPublic: st.is_public == null ? null : Boolean(st.is_public),
+    },
+    adminRpcs: Object.fromEntries(Object.entries((d.admin_rpcs ?? {}) as Record<string, unknown>).map(([k, v]) => [k, Boolean(v)])),
+    acknowledgedWarnings: Object.fromEntries(
+      Object.entries(acks).map(([k, v]) => [k, { acknowledgedAt: String((v as Row)?.acknowledged_at ?? ''), note: str((v as Row)?.note) }]),
+    ),
+  }
+}
+
+export type EmailHealth = {
+  generatedAt?: string
+  totalMessages: number
+  lastSendAt?: string
+  lastDeliveredAt?: string
+  failed24h: number
+  failed7d: number
+  delayedCurrent: number
+  bounced7d: number
+  complained7d: number
+  queuedCurrent: number
+  stuckQueued: number
+  oldestUnresolvedFailureAt?: string
+  statusInconsistencies: number
+  retryAttemptsTotal: number
+  retryBacklog: number
+  lastWebhookEventAt?: string
+  webhookEvents24h: number
+  webhookUnmatched24h: number
+}
+
+export async function getEmailHealth(): Promise<EmailHealth> {
+  const { data, error } = await client().rpc('admin_get_email_health')
+  if (error) throw error
+  const d = (data ?? {}) as Row
+  return {
+    generatedAt: str(d.generated_at),
+    totalMessages: num(d.total_messages),
+    lastSendAt: str(d.last_send_at),
+    lastDeliveredAt: str(d.last_delivered_at),
+    failed24h: num(d.failed_24h),
+    failed7d: num(d.failed_7d),
+    delayedCurrent: num(d.delayed_current),
+    bounced7d: num(d.bounced_7d),
+    complained7d: num(d.complained_7d),
+    queuedCurrent: num(d.queued_current),
+    stuckQueued: num(d.stuck_queued),
+    oldestUnresolvedFailureAt: str(d.oldest_unresolved_failure_at),
+    statusInconsistencies: num(d.status_inconsistencies),
+    retryAttemptsTotal: num(d.retry_attempts_total),
+    retryBacklog: num(d.retry_backlog),
+    lastWebhookEventAt: str(d.last_webhook_event_at),
+    webhookEvents24h: num(d.webhook_events_24h),
+    webhookUnmatched24h: num(d.webhook_unmatched_24h),
+  }
+}
+
+export type IntakeVolume = { total: number; last24h: number; last7d: number; lastSubmissionAt?: string; unprocessed: number; oldestUnprocessedAt?: string; spam?: number }
+
+export type IntakeHealth = {
+  generatedAt?: string
+  bugs: IntakeVolume
+  supportTickets: IntakeVolume
+  rateLimits: { intakeIpKeysActive: number; intakeSubmitterKeysActive: number; throttledKeys: number; windowSince?: string }
+  attachments: { supported: boolean; total?: number; last7d?: number; bytesStored?: number }
+  /** Turnstile rejections happen before any row exists — never render 0 as "none". */
+  captchaRejectionsTracked: boolean
+}
+
+const volume = (r: Row | undefined): IntakeVolume => ({
+  total: num(r?.total),
+  last24h: num(r?.last_24h),
+  last7d: num(r?.last_7d),
+  lastSubmissionAt: str(r?.last_submission_at),
+  unprocessed: num(r?.unprocessed),
+  oldestUnprocessedAt: str(r?.oldest_unprocessed_at),
+  spam: r?.spam == null ? undefined : num(r.spam),
+})
+
+export async function getIntakeHealth(): Promise<IntakeHealth> {
+  const { data, error } = await client().rpc('admin_get_intake_health')
+  if (error) throw error
+  const d = (data ?? {}) as Row
+  const rl = (d.rate_limits ?? {}) as Row
+  const at = (d.attachments ?? {}) as Row
+  return {
+    generatedAt: str(d.generated_at),
+    bugs: volume(d.bugs as Row | undefined),
+    supportTickets: volume(d.support_tickets as Row | undefined),
+    rateLimits: {
+      intakeIpKeysActive: num(rl.intake_ip_keys_active),
+      intakeSubmitterKeysActive: num(rl.intake_submitter_keys_active),
+      throttledKeys: num(rl.throttled_keys),
+      windowSince: str(rl.window_since),
+    },
+    attachments: {
+      supported: Boolean(at.supported),
+      total: at.total == null ? undefined : num(at.total),
+      last7d: at.last_7d == null ? undefined : num(at.last_7d),
+      bytesStored: at.bytes_stored == null ? undefined : num(at.bytes_stored),
+    },
+    captchaRejectionsTracked: Boolean(d.captcha_rejections_tracked),
+  }
+}
+
+export type OperationalFailure = {
+  source: string
+  occurredAt: string
+  severity: string
+  summary: string
+  entityType?: string
+  entityId?: string
+  actionPath?: string
+  acknowledged: boolean
+}
+
+export async function getOperationalFailures(limit = 20): Promise<OperationalFailure[]> {
+  const { data, error } = await client().rpc('admin_get_recent_operational_failures', { p_limit: limit })
+  if (error) throw error
+  return ((data ?? []) as Row[]).map(r => ({
+    source: String(r.source ?? ''),
+    occurredAt: String(r.occurred_at ?? ''),
+    severity: String(r.severity ?? 'info'),
+    summary: String(r.summary ?? ''),
+    entityType: str(r.entity_type),
+    entityId: str(r.entity_id),
+    actionPath: str(r.action_path),
+    acknowledged: Boolean(r.acknowledged),
+  }))
+}
+
+export async function getAppliedMigrations(): Promise<string[]> {
+  const { data, error } = await client().rpc('admin_applied_migrations')
+  if (error) throw error
+  return ((data ?? []) as Row[]).map(r => String(r.version))
+}
+
+/** Configuration + deployment facts the DATABASE cannot see. Presence only. */
+export type Diagnostics = {
+  generatedAt?: string
+  secrets: Record<string, 'configured' | 'missing' | 'invalid_format'>
+  functions: Record<string, 'deployed' | 'not_deployed' | 'unknown'>
+  senderDomain?: string
+  expectedDomain?: string
+  notes: Record<string, string>
+}
+
+export async function getDiagnostics(): Promise<Diagnostics> {
+  const { data, error } = await client().functions.invoke('admin-system-diagnostics', { body: {} })
+  if (error) throw error
+  const d = (data ?? {}) as Row
+  return {
+    generatedAt: str(d.generated_at),
+    secrets: (d.secrets ?? {}) as Diagnostics['secrets'],
+    functions: (d.functions ?? {}) as Diagnostics['functions'],
+    senderDomain: str(d.sender_domain),
+    expectedDomain: str(d.expected_domain),
+    notes: (d.notes ?? {}) as Record<string, string>,
   }
 }
 
@@ -671,4 +991,99 @@ export async function markNotificationRead(p: { id: string; read: boolean }): Pr
 export async function dismissNotification(p: { id: string; dismiss: boolean }): Promise<void> {
   const { error } = await client().rpc('admin_dismiss_notification', { p_notification_id: p.id, p_dismiss: p.dismiss })
   if (error) throw error
+}
+
+export async function acknowledgeSystemWarning(p: { key: string; note?: string }): Promise<void> {
+  const { error } = await client().rpc('admin_acknowledge_system_warning', { p_warning_key: p.key, p_note: p.note ?? null })
+  if (error) throw error
+}
+
+/** Raises at most one stale-queue notification per day; safe to call on page load. */
+export async function checkQueueStaleness(): Promise<void> {
+  const { error } = await client().rpc('admin_check_queue_staleness', { p_threshold_days: THRESHOLDS.queueStaleDays })
+  if (error) throw error
+}
+
+/* ------------------------- outbound email operations ----------------------- */
+// Replies and retries go through the send-transactional-email Edge Function
+// rather than an RPC, because the send itself must happen server-side with the
+// Resend key. The function verifies is_admin() again and calls the guarded RPCs
+// with the administrator's own JWT — so the recipient is derived from the record
+// server-side and is never taken from this client. There is deliberately no
+// `to` parameter anywhere in this file.
+
+export type SendOutcome = { status: 'sent' | 'duplicate'; messageId?: string; providerId?: string }
+
+/** Turns an Edge Function error into an operator-facing sentence. Provider and
+ *  internal details are never surfaced — the function has already sanitized what
+ *  is safe to show. */
+async function edgeError(error: unknown, fallback: string): Promise<Error> {
+  const ctx = (error as { context?: { json?: () => Promise<unknown> } })?.context
+  try {
+    const body = (await ctx?.json?.()) as { message?: string; error?: string } | undefined
+    if (body?.message && body.message.length < 300) return new Error(body.message)
+    if (body?.error === 'email_not_configured') return new Error('Email sending is not configured on the server. The message was recorded but not sent.')
+    if (body?.error === 'unauthorized') return new Error('Your session is not authorized to send mail. Sign in again.')
+  } catch {
+    /* fall through to the generic message */
+  }
+  return new Error(fallback)
+}
+
+export async function sendAdminReply(p: {
+  entityType: EntityType
+  entityId: string
+  subject: string
+  body: string
+  /** Stable per compose session. The same token can never send twice. */
+  clientToken: string
+}): Promise<SendOutcome> {
+  const { data, error } = await client().functions.invoke('send-transactional-email', {
+    body: {
+      mode: 'reply',
+      entity_type: p.entityType,
+      entity_id: p.entityId,
+      subject: p.subject,
+      body: p.body,
+      client_token: p.clientToken,
+    },
+  })
+  if (error) throw await edgeError(error, 'The reply could not be sent. It has not been delivered — try again.')
+  const d = (data ?? {}) as Row
+  return { status: d.status === 'duplicate' ? 'duplicate' : 'sent', messageId: str(d.message_id), providerId: str(d.id) }
+}
+
+export async function retryEmail(p: { messageId: string; clientToken: string }): Promise<SendOutcome> {
+  const { data, error } = await client().functions.invoke('send-transactional-email', {
+    body: { mode: 'retry', message_id: p.messageId, client_token: p.clientToken },
+  })
+  if (error) throw await edgeError(error, 'The retry could not be completed. The original attempt is unchanged.')
+  const d = (data ?? {}) as Row
+  return { status: d.status === 'duplicate' ? 'duplicate' : 'sent', messageId: str(d.message_id), providerId: str(d.id) }
+}
+
+/* -------------------------------- attachments ------------------------------ */
+
+export type SignedAttachment = { url: string; filename: string; mimeType: string; sizeBytes?: number; expiresIn: number }
+
+/**
+ * Mints a short-lived signed URL for a private attachment. Authorization is
+ * enforced twice server-side (the function verifies is_admin(), then the
+ * admin_resolve_attachment RPC verifies it again and audits the access) — this
+ * client cannot reach the object any other way.
+ */
+export async function getAttachmentUrl(p: { attachmentId: string; intent?: 'view' | 'download' }): Promise<SignedAttachment> {
+  const { data, error } = await client().functions.invoke('admin-attachment-url', {
+    body: { attachment_id: p.attachmentId, intent: p.intent ?? 'view' },
+  })
+  if (error) throw await edgeError(error, 'That attachment could not be opened.')
+  const d = (data ?? {}) as Row
+  if (!d.url) throw new Error('That attachment could not be opened.')
+  return {
+    url: String(d.url),
+    filename: String(d.filename ?? 'attachment'),
+    mimeType: String(d.mime_type ?? 'application/octet-stream'),
+    sizeBytes: d.size_bytes == null ? undefined : num(d.size_bytes),
+    expiresIn: num(d.expires_in) || 60,
+  }
 }

@@ -1134,3 +1134,619 @@
     transition: none;
   }
 }
+/* ===========================================================================
+   Prompt 5 — admin communications, email operations, attachments and system
+   health. Built on the same tokens as everything above; no new palette.
+   Status is never conveyed by colour alone: every badge carries its label and
+   an icon, and Unknown is visually distinct from Healthy rather than a paler
+   version of it.
+   =========================================================================== */
+
+/* ---------------------------- drawer sections ------------------------------ */
+
+.admin-drawer-section {
+  border-top: 1px solid var(--line);
+  padding-top: var(--space-3);
+  margin-top: var(--space-3);
+}
+
+.admin-drawer-section > summary {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  cursor: pointer;
+  font-weight: 700;
+  font-size: 13px;
+  color: var(--ink);
+  list-style: none;
+  padding: var(--space-1) 0;
+}
+
+.admin-drawer-section > summary::-webkit-details-marker {
+  display: none;
+}
+
+.admin-drawer-section > summary::before {
+  content: ">";
+  color: var(--muted);
+  font-size: 11px;
+  font-weight: 700;
+  transition: transform 150ms ease;
+}
+
+.admin-drawer-section[open] > summary::before {
+  transform: rotate(90deg);
+}
+
+.admin-drawer-section > summary:focus-visible {
+  outline: 2px solid var(--gold);
+  outline-offset: 2px;
+  border-radius: var(--radius-sm);
+}
+
+.admin-section-count {
+  background: var(--gold-soft);
+  color: var(--gold-deep);
+  border-radius: 999px;
+  padding: 1px var(--space-2);
+  font-size: 11px;
+  font-weight: 700;
+}
+
+.admin-drawer-section-body {
+  padding: var(--space-3) 0 var(--space-2);
+}
+
+.admin-detail-block {
+  padding: var(--space-3) 0;
+}
+
+.admin-plain-list {
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  font-size: 13px;
+  color: var(--text);
+}
+
+.admin-plain-list li {
+  padding-bottom: var(--space-2);
+  border-bottom: 1px solid var(--line);
+}
+
+.admin-plain-list li:last-child {
+  border-bottom: 0;
+}
+
+.admin-audit-reason {
+  color: var(--muted);
+}
+
+.admin-inline-note {
+  display: block;
+  font-size: 12px;
+  color: var(--muted);
+  line-height: 1.5;
+  margin-top: var(--space-1);
+}
+
+.admin-generated-at {
+  font-size: 12px;
+  color: var(--muted);
+  margin-top: var(--space-4);
+}
+
+.admin-subheading {
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--ink);
+  margin: var(--space-4) 0 var(--space-2);
+}
+
+/* Internal notes must never be mistaken for something the user was sent. */
+.admin-internal-note {
+  display: block;
+  border-left: 3px solid var(--muted);
+  background: var(--bg);
+  padding: var(--space-2) var(--space-3);
+  border-radius: 0 var(--radius-sm) var(--radius-sm) 0;
+}
+
+.admin-internal-tag {
+  display: inline-block;
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--muted);
+  margin-bottom: var(--space-1);
+}
+
+/* ------------------------------- reply form -------------------------------- */
+
+.admin-reply-open {
+  width: 100%;
+}
+
+.admin-reply-form {
+  border: 1px solid var(--gold);
+  border-radius: var(--radius);
+  padding: var(--space-4);
+  background: #fff;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+}
+
+.admin-reply-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: var(--space-3);
+}
+
+.admin-reply-head h3 {
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--ink);
+}
+
+.admin-reply-context {
+  font-size: 12px;
+  color: var(--text);
+}
+
+.admin-reply-context code,
+.admin-mono {
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  font-size: 12px;
+}
+
+.admin-reply-field {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--ink);
+}
+
+.admin-reply-body {
+  resize: vertical;
+  min-height: 140px;
+  font-family: inherit;
+}
+
+.admin-reply-count {
+  font-weight: 400;
+  font-size: 11px;
+  color: var(--muted);
+}
+
+.admin-reply-preview {
+  border: 1px dashed var(--line-strong);
+  border-radius: var(--radius);
+  padding: var(--space-3);
+  background: var(--bg);
+}
+
+.admin-reply-preview-body {
+  margin-top: var(--space-2);
+  font-size: 13px;
+  color: var(--text);
+  line-height: 1.55;
+}
+
+.admin-reply-preview-body p {
+  margin: var(--space-2) 0 0;
+}
+
+.admin-reply-signoff {
+  color: var(--muted);
+}
+
+.admin-reply-confirm,
+.admin-retry.is-confirming {
+  border: 1px solid var(--amber);
+  background: var(--amber-soft);
+  border-radius: var(--radius);
+  padding: var(--space-3);
+  font-size: 13px;
+  color: var(--ink);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+}
+
+.admin-reply-sent {
+  display: flex;
+  gap: var(--space-3);
+  align-items: flex-start;
+  border: 1px solid var(--green);
+  background: var(--green-soft);
+  border-radius: var(--radius);
+  padding: var(--space-3);
+  font-size: 13px;
+  color: var(--ink);
+}
+
+.admin-reply-blocked {
+  border: 1px solid var(--line-strong);
+  background: var(--bg);
+  border-radius: var(--radius);
+  padding: var(--space-3);
+  font-size: 13px;
+  color: var(--text);
+}
+
+.admin-reply-list {
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+}
+
+.admin-reply-item-head {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  flex-wrap: wrap;
+  font-size: 13px;
+  color: var(--ink);
+}
+
+.admin-reply-item-meta {
+  font-size: 11px;
+  color: var(--muted);
+  margin: var(--space-1) 0 var(--space-2);
+}
+
+/* ------------------------------ email timeline ----------------------------- */
+
+.admin-email-timeline {
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+}
+
+.admin-email-attempt {
+  border: 1px solid var(--line);
+  border-left: 3px solid var(--line-strong);
+  border-radius: var(--radius);
+  padding: var(--space-3);
+  background: #fff;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+}
+
+.admin-email-attempt.status-delivered { border-left-color: var(--green); }
+.admin-email-attempt.status-sent { border-left-color: var(--navy-line); }
+.admin-email-attempt.status-queued,
+.admin-email-attempt.status-delayed { border-left-color: var(--amber); }
+.admin-email-attempt.status-failed,
+.admin-email-attempt.status-bounced,
+.admin-email-attempt.status-complained,
+.admin-email-attempt.status-suppressed { border-left-color: var(--red); }
+
+.admin-email-attempt-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: var(--space-2);
+  flex-wrap: wrap;
+}
+
+.admin-email-purpose {
+  font-weight: 700;
+  font-size: 13px;
+  color: var(--ink);
+}
+
+.admin-email-meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+  font-size: 12px;
+  color: var(--muted);
+}
+
+.admin-email-retry-tag {
+  color: var(--gold-deep);
+  font-weight: 600;
+}
+
+.admin-email-times {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: var(--space-2);
+  font-size: 12px;
+}
+
+.admin-email-times dt {
+  color: var(--muted);
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+}
+
+.admin-email-times dd {
+  color: var(--text);
+  font-weight: 600;
+}
+
+.admin-email-failure {
+  background: var(--red-soft);
+  border-radius: var(--radius-sm);
+  padding: var(--space-2) var(--space-3);
+  font-size: 12px;
+  color: var(--ink);
+}
+
+.admin-email-failure-label {
+  font-weight: 700;
+  text-transform: capitalize;
+}
+
+.admin-email-provider {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+}
+
+.admin-email-events {
+  font-size: 12px;
+  color: var(--muted);
+}
+
+.admin-copy-value {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+  flex-wrap: wrap;
+}
+
+.admin-copy-value code {
+  background: var(--bg);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-sm);
+  padding: 2px var(--space-2);
+  word-break: break-all;
+  font-size: 12px;
+}
+
+.admin-retry-blocked {
+  font-size: 12px;
+  color: var(--muted);
+  background: var(--bg);
+  border-radius: var(--radius-sm);
+  padding: var(--space-2) var(--space-3);
+}
+
+/* ------------------------------- attachments ------------------------------- */
+
+.admin-attachment-list {
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+  margin-top: var(--space-3);
+}
+
+.admin-attachment {
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  padding: var(--space-3);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+}
+
+.admin-attachment-head {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  flex-wrap: wrap;
+}
+
+.admin-attachment-name {
+  font-weight: 600;
+  font-size: 13px;
+  color: var(--ink);
+  word-break: break-all;
+}
+
+.admin-attachment-meta {
+  font-size: 11px;
+  color: var(--muted);
+}
+
+.admin-attachment-actions {
+  display: flex;
+  gap: var(--space-2);
+  flex-wrap: wrap;
+}
+
+.admin-attachment-preview img {
+  max-width: 100%;
+  height: auto;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-sm);
+  display: block;
+  margin-bottom: var(--space-2);
+}
+
+/* ------------------------------ system health ------------------------------ */
+
+.admin-system-overall {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+  font-size: 12px;
+  color: var(--muted);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  font-weight: 700;
+}
+
+.admin-system-legend {
+  font-size: 12px;
+  color: var(--muted);
+  line-height: 1.7;
+  background: var(--bg);
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  padding: var(--space-3);
+  margin-bottom: var(--space-4);
+}
+
+.admin-system-legend strong {
+  color: var(--ink);
+  margin-left: var(--space-2);
+}
+
+.admin-system-legend strong:first-child {
+  margin-left: 0;
+}
+
+.admin-health-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-1);
+  border-radius: 999px;
+  padding: 2px var(--space-2);
+  font-size: 11px;
+  font-weight: 700;
+  white-space: nowrap;
+  border: 1px solid transparent;
+}
+
+.admin-health-badge.health-healthy {
+  background: var(--green-soft);
+  color: var(--green);
+  border-color: var(--green);
+}
+
+.admin-health-badge.health-warning {
+  background: var(--amber-soft);
+  color: var(--amber);
+  border-color: var(--amber);
+}
+
+.admin-health-badge.health-critical {
+  background: var(--red-soft);
+  color: var(--red);
+  border-color: var(--red);
+}
+
+/* Unknown is deliberately NOT a soft green or a muted tick — it reads as an
+   open question, because that is exactly what it is. */
+.admin-health-badge.health-unknown {
+  background: #fff;
+  color: var(--muted);
+  border-color: var(--line-strong);
+  border-style: dashed;
+}
+
+.admin-health-line {
+  border-left: 3px solid var(--line-strong);
+  padding: var(--space-2) 0 var(--space-2) var(--space-3);
+}
+
+.admin-health-line.health-healthy { border-left-color: var(--green); }
+.admin-health-line.health-warning { border-left-color: var(--amber); }
+.admin-health-line.health-critical { border-left-color: var(--red); }
+.admin-health-line.health-unknown { border-left-style: dashed; }
+
+.admin-health-line-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-2);
+  flex-wrap: wrap;
+}
+
+.admin-health-line-label {
+  font-weight: 600;
+  font-size: 13px;
+  color: var(--ink);
+  word-break: break-word;
+}
+
+.admin-health-line-detail {
+  font-size: 12px;
+  color: var(--muted);
+  line-height: 1.5;
+  margin-top: var(--space-1);
+}
+
+.admin-warning-list {
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+}
+
+.admin-warning {
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  padding: var(--space-3);
+  font-size: 13px;
+  color: var(--text);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  align-items: flex-start;
+}
+
+.admin-warning.health-critical {
+  border-color: var(--red);
+  background: var(--red-soft);
+}
+
+.admin-warning.health-warning {
+  border-color: var(--amber);
+  background: var(--amber-soft);
+}
+
+.admin-warning.health-unknown {
+  border-style: dashed;
+  border-color: var(--line-strong);
+}
+
+.admin-warning.is-acknowledged {
+  opacity: 0.72;
+}
+
+.admin-warning-head {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  flex-wrap: wrap;
+  color: var(--ink);
+}
+
+/* --------------------------- responsive behaviour -------------------------- */
+
+@media (max-width: 640px) {
+  .admin-email-times {
+    grid-template-columns: 1fr;
+  }
+
+  .admin-reply-head {
+    flex-direction: column;
+  }
+
+  .admin-attachment-actions .btn {
+    flex: 1 1 auto;
+  }
+}
+
+/* Reduced motion: the details marker rotation is the only new animation. */
+@media (prefers-reduced-motion: reduce) {
+  .admin-drawer-section > summary::before {
+    transition: none;
+  }
+}

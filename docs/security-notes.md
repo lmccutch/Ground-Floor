@@ -175,3 +175,85 @@ Postgres, no scratch/prod credentials):** running the live verifier against a
 scratch project; applying both migrations to `openfloor-production`; the
 post-deploy production-safe DB checks, Supabase Security Advisor review, and the
 authenticated-admin browser smoke test.
+---
+
+## Prompt 5 — admin communications, attachments, system health (202607280002/0003/0004)
+
+Full detail in [docs/admin-communications.md](admin-communications.md). Security
+summary only here.
+
+**Recipients are never client-supplied.** `admin_create_reply` has no recipient
+parameter at all; the address is read from `bug_reports.reporter_email` /
+`support_tickets.email` inside the SECURITY DEFINER function. The send Edge
+Function passes the RPC's returned recipient to Resend, never anything from the
+request body. `send-transactional-email` also refuses the `admin_reply` template
+on the ordinary caller-supplied-recipient path, so the free-form template cannot
+be reached with an arbitrary `to`.
+
+**Reply/retry require an administrator JWT.** The `x-intake-secret` internal path
+is explicitly *not* accepted for either mode — the internal secret can send system
+templates to a derived address, but it can never send an operator-authored message.
+
+**Sanitisation.** Subjects have all control characters (including CR/LF) replaced
+— header injection is impossible. Bodies are control-character-stripped and
+length-capped. The email is a fixed template with every value HTML-escaped;
+administrator-supplied HTML is never rendered as markup. Internal notes are never
+read by the reply path.
+
+**Retries preserve evidence.** A retry INSERTs a new `email_messages` row linked
+by `retry_of_message_id`; the original row is never updated. Eligibility is
+decided by one function (`email_retry_ineligible_reason`) used by both the
+enforcement path and the read model, so the UI cannot offer what the server will
+refuse. Delivered, complained, suppressed, in-flight, permanently-bounced,
+orphaned and >30-day-old messages are all refused. A retry request is never
+treated as proof of delivery.
+
+**Attachments.** Private bucket `bug-attachments`, no storage policy for `anon` or
+`authenticated` (deny by default) — all access goes through service-role Edge
+Functions. Object keys are server-generated `<bug_id>/<uuid>.<ext>`; the uploader's
+filename is sanitized and stored separately for display only.
+`record_bug_attachment` refuses any path outside the report's own prefix, which is
+what blocks cross-record access. Types are verified from **magic bytes**, not the
+browser's `Content-Type`; SVG and HTML are refused as script-bearing. Admin
+viewing needs two independent `is_admin()` checks and yields a 60-second signed
+URL; every access is audited. PDFs are never embedded in the admin origin.
+**No malware scanning is integrated and none is claimed.**
+
+**Webhook.** Signature verification still runs against the raw body before parsing.
+Rejected deliveries increment an hourly counter and raise at most one deduplicated
+`webhook_failed` notification per hour — no per-request row, so the endpoint
+cannot be used to exhaust storage. `email_event_log` stores no bodies, recipients,
+headers or signing material and deduplicates on the Svix id.
+
+**No secret is ever exposed.** `admin-system-diagnostics` returns only
+`configured` / `missing` / `invalid_format` per secret — it reads the value, tests
+its shape and discards it. No value, prefix, length or hash is returned or logged.
+Health RPCs return aggregate counts and **masked** recipients only
+(`public.mask_email`), never a recipient list, raw provider payload or
+unsanitized error.
+
+**Function hygiene.** Every new function is SECURITY DEFINER with
+`search_path = ''` pinned empty, fully-qualified references, EXECUTE revoked from
+`public`/`anon`, and an explicit grant to exactly one role — `authenticated` for
+admin-facing RPCs (each gated on `is_admin()` as its first statement),
+`service_role` for internal recorders. Asserted statically by
+`src/pages/admin/adminCommunications.test.tsx` and live by
+`npm run verify:admin-communications`.
+
+**No existing function signature changed.** `record_email_attempt` was
+deliberately left untouched — adding parameters would have created an overload and
+made the deployed Edge Function's named-argument call ambiguous, breaking
+production email. The reply/retry paths use dedicated new functions instead.
+
+**Nothing may report Healthy without evidence.** `/admin/system` computes every
+verdict in `src/lib/systemHealth.ts`, where `worst()` ranks `unknown` above
+`healthy` so an unverifiable check can never be absorbed into a green section.
+`src/lib/systemHealth.test.ts` asserts each absence-of-evidence case resolves to
+Unknown.
+
+**Deferred / owner-run (no scratch or production credentials in the authoring
+environment):** applying the three migrations to scratch and then production;
+deploying the five Edge Functions; setting `EMAIL_REPLY_CONTACT` and
+`VITE_APP_COMMIT`; confirming the `bug-attachments` bucket is private in the
+dashboard; running `npm run verify:admin-communications` against scratch; the
+authenticated-admin browser acceptance tests.

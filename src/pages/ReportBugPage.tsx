@@ -3,9 +3,18 @@ import { useNavigate } from 'react-router-dom'
 import { useForm } from 'react-hook-form'
 import { z } from 'zod'
 import { zodResolver } from '@hookform/resolvers/zod'
-import { Bug, Check, ChevronRight } from 'lucide-react'
+import { Bug, Check, ChevronRight, Paperclip, X } from 'lucide-react'
 import { track } from '../lib/analytics'
-import { newIdempotencyKey, submitBugReport, INTAKE_UNAVAILABLE } from '../lib/intake'
+import {
+  ATTACHMENT_ACCEPT_ATTR,
+  ATTACHMENT_ERROR_TEXT,
+  ATTACHMENT_LIMITS,
+  INTAKE_UNAVAILABLE,
+  newIdempotencyKey,
+  submitBugReport,
+  validateAttachmentSelection,
+  type AttachmentError,
+} from '../lib/intake'
 import { Turnstile, TURNSTILE_ENABLED } from '../components/Turnstile'
 
 const schema = z.object({
@@ -18,15 +27,41 @@ const schema = z.object({
 })
 type Values = z.infer<typeof schema>
 
+function formatSize(bytes: number): string {
+  return bytes < 1024 * 1024 ? `${Math.max(1, Math.round(bytes / 1024))} KB` : `${(bytes / (1024 * 1024)).toFixed(1)} MB`
+}
+
 export function ReportBugPage() {
   const navigate = useNavigate()
-  const [done, setDone] = useState<{ reference: string | null } | null>(null)
+  const [done, setDone] = useState<{ reference: string | null; attachmentsStored: number; attachmentsFailed: boolean } | null>(null)
   const [submitError, setSubmitError] = useState('')
   const [consent, setConsent] = useState(false)
   const [consentError, setConsentError] = useState('')
   const [turnstileToken, setTurnstileToken] = useState('')
+  const [files, setFiles] = useState<File[]>([])
+  const [fileError, setFileError] = useState('')
+  const fileInputRef = useRef<HTMLInputElement>(null)
   const idempotencyKey = useMemo(() => newIdempotencyKey(), [])
   const startedRef = useRef(false)
+
+  function addFiles(selected: FileList | null) {
+    if (!selected || selected.length === 0) return
+    const next = [...files, ...Array.from(selected)]
+    const problem = validateAttachmentSelection(next)
+    if (problem) {
+      setFileError(ATTACHMENT_ERROR_TEXT[problem])
+    } else {
+      setFileError('')
+      setFiles(next)
+    }
+    // Always clear the input so re-picking the same file fires a change event.
+    if (fileInputRef.current) fileInputRef.current.value = ''
+  }
+
+  function removeFile(index: number) {
+    setFiles(current => current.filter((_, i) => i !== index))
+    setFileError('')
+  }
   const {
     register,
     handleSubmit,
@@ -57,6 +92,7 @@ export function ReportBugPage() {
         expected: values.expected,
         actual: values.actual,
         email: values.email || undefined,
+        attachments: files,
         turnstileToken,
         website: values.website,
         idempotencyKey,
@@ -64,7 +100,21 @@ export function ReportBugPage() {
       track('bug_report_submitted')
       setDone(result)
     } catch (e) {
-      const msg = (e as Error)?.message
+      const msg = (e as Error)?.message ?? ''
+      if (msg in ATTACHMENT_ERROR_TEXT) {
+        setFileError(ATTACHMENT_ERROR_TEXT[msg as AttachmentError])
+        return
+      }
+      // The server rejects files it cannot verify; say so specifically rather
+      // than blaming the whole report.
+      if (msg.includes('attachment_too_large')) {
+        setFileError(ATTACHMENT_ERROR_TEXT.too_large)
+        return
+      }
+      if (msg.includes('attachment_type_rejected')) {
+        setFileError('One of those files was rejected. Only genuine PNG, JPEG, WebP and PDF files can be attached.')
+        return
+      }
       setSubmitError(msg === INTAKE_UNAVAILABLE ? 'Bug reporting is temporarily unavailable. Please email us instead.' : 'We could not submit your report. Please try again.')
     }
   }
@@ -80,6 +130,18 @@ export function ReportBugPage() {
         {done.reference && (
           <p>
             Your reference is <b>{done.reference}</b>.
+          </p>
+        )}
+        {done.attachmentsStored > 0 && (
+          <p>
+            {done.attachmentsStored} file{done.attachmentsStored === 1 ? '' : 's'} attached.
+          </p>
+        )}
+        {/* Told plainly rather than quietly dropped. */}
+        {done.attachmentsFailed && (
+          <p className="form-error" role="alert">
+            Your report was saved, but we could not store the file you attached. Nothing else was lost — if the file
+            matters, reply to our confirmation email with it.
           </p>
         )}
         <p>We read every report. There’s no need to submit it again — we have it. If you gave an email, we may follow up there.</p>
@@ -124,6 +186,51 @@ export function ReportBugPage() {
           <input className="text-input" type="email" {...register('email')} placeholder="So we can follow up — optional" autoComplete="email" aria-invalid={Boolean(errors.email)} />
           {errors.email && <small className="form-error" role="alert">{errors.email.message}</small>}
         </label>
+
+        <fieldset className="field attachment-field">
+          <legend>Screenshots or a PDF (optional)</legend>
+          <p className="form-hint">
+            Up to {ATTACHMENT_LIMITS.maxFiles} files, 5 MB each and 10 MB in total. PNG, JPEG, WebP or PDF.
+          </p>
+          <p className="form-hint form-hint-warning">
+            Please don’t attach anything containing passwords, account numbers, identity documents or other sensitive
+            personal information. We can’t scan uploads for viruses, so we only accept these few file types.
+          </p>
+
+          <input
+            ref={fileInputRef}
+            id="bug-attachments"
+            className="visually-hidden-input"
+            type="file"
+            multiple
+            accept={ATTACHMENT_ACCEPT_ATTR}
+            onChange={e => addFiles(e.target.files)}
+            disabled={files.length >= ATTACHMENT_LIMITS.maxFiles}
+          />
+          <label className="btn secondary small attachment-add" htmlFor="bug-attachments">
+            <Paperclip size={14} aria-hidden="true" />{' '}
+            {files.length === 0 ? 'Attach a file' : `Attach another (${files.length} of ${ATTACHMENT_LIMITS.maxFiles})`}
+          </label>
+
+          {files.length > 0 && (
+            <ul className="attachment-list">
+              {files.map((f, i) => (
+                <li key={`${f.name}-${f.size}-${i}`}>
+                  <span className="attachment-name">{f.name}</span>
+                  <span className="attachment-size">{formatSize(f.size)}</span>
+                  <button type="button" className="icon-btn" onClick={() => removeFile(i)} aria-label={`Remove ${f.name}`}>
+                    <X size={14} />
+                  </button>
+                </li>
+              ))}
+            </ul>
+          )}
+          {fileError && (
+            <small className="form-error" role="alert">
+              {fileError}
+            </small>
+          )}
+        </fieldset>
 
         {/* Honeypot — visually hidden, must stay empty. Real users never fill it. */}
         <div aria-hidden="true" style={{ position: 'absolute', left: '-9999px', width: 1, height: 1, overflow: 'hidden' }}>
