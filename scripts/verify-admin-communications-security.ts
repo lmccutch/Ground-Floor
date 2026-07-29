@@ -213,11 +213,13 @@ async function main() {
       check(`${fn} refuses a non-administrator even with the service role`, isRefusal(r), `HTTP ${r.status}`);
     }
 
-    // The masking helper must actually mask.
+    // The masking helper must actually mask. (Reachability by anon is asserted in
+    // section 1; service_role reaching it is expected and harmless — it holds no
+    // data and only transforms a string the caller already supplied.)
     const masked = await svcRpc("mask_email", { p_email: "someone@example.com" });
     const maskedValue = typeof masked.data === "string" ? masked.data : "";
-    check("mask_email is not callable by a client role", isRefusal(masked) || maskedValue === "s***@example.com",
-      `HTTP ${masked.status}`);
+    check("mask_email actually masks the local part", maskedValue === "s***@example.com",
+      `returned "${maskedValue}"`);
 
     /* ============ 9. event log deduplicates ============================== */
 
